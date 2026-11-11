@@ -29,13 +29,33 @@ This document tracks all features, mechanics, visual systems, and updates implem
 | **Crouch** | `S` or `Down Arrow` | Drops into a low martial arts crouch. **Passively ducks under all standing punches!** |
 | **Boxer High Guard Block** | `Left Shift` / `Shift` | Raises both fists and forearms tightly in front of the chin, nose, and eyes (peek-a-boo guard). Absorbs 90% of incoming damage and prevents sweep knockdowns. |
 | **Move Left / Right** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with automatic walk cycle animation. |
+| **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive directional burst propelling character **`184px` (exactly half of Spartan kick knockback!)** with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Aerial leap with parabolic gravity physics. |
 
 ---
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.6.1 — Animated Knockback Physics, Aerial Flip Glide & Crouch Punch (Current)
+### Version 1.7.0 — Tactical Dash Move & Low-Health Enemy AI Behavior (Current)
+- **New Move — Directional Dash (`Double-Tap A / D` or `← / →`)**:
+  - Tapping left or right twice within `280ms` triggers an explosive tactical dash burst in that direction (`dur = 0.20s`).
+  - **Propulsion Distance**: Propels character **`184 * sc` pixels** — exactly **half the distance of the Spartan Kick knockback** (`368 * sc`)!
+  - **Sleek Aerodynamic Posing**:
+    - **Forward Dash**: Low ninja sprint lean (`bodyLean = -26°`, `bodyDip = 16`, lead knee driving forward).
+    - **Backdash**: Evasive martial arts back-hop (`bodyLean = 16°`, `bodyDip = 10`).
+  - **Shadow Afterimages & Dust**: Renders fading shadow afterimages trailing behind the character along with footstep dust bursts.
+  - **Attack-Cancelable**: Can immediately cancel the dash into attacks (dash punch, dash Spartan kick, dash sweep).
+- **New Enemy AI Behavior (Low-Health Rage & Defense Mode)**:
+  - When CPU health drops **below 50% (`enemy.hp < enemy.maxHp * 0.5`)**:
+    - **Heavy Guarding / Turtle Mode**: Blocks incoming high attacks with **82% probability** (up from 35%) and holds the guard longer (`400-650ms`).
+    - **Proactive Close-Range Block**: Blocks 45% of the time at close quarters, absorbing player pressure.
+    - **Frequent Tactical Dashing**:
+      - **Evasive Backdash**: When player approaches or attacks at close range, CPU frequently backdashes (`dash(-dir)`) to reset to neutral.
+      - **Sudden Dash-In Punish**: Mid-range gap-closer dash (`dash(dir)`) followed by a rapid Spartan kick or punch.
+
+---
+
+### Version 1.6.1 — Animated Knockback Physics, Aerial Flip Glide & Crouch Punch
 - **Smooth Animated Knockback Physics (Zero Teleportation)**:
   - Replaced all instant `x` position snaps with a smooth physics-based deceleration slide (`kbVx` and `kbDecel`).
   - Knockback slide duration dynamically scales with hit severity (`0.28s` up to `0.52s` for the 4x Spartan kick).

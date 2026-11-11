@@ -92,6 +92,9 @@ class Fighter {
     this.landedShake  = false;
     this.kbVx         = 0;
     this.kbDecel      = 0;
+    this.dashDir      = 0;
+    this.dashVx       = 0;
+    this.dashGhosts   = [];
   }
 
   get sc()            { return canvas.width / DW; }
@@ -100,15 +103,30 @@ class Fighter {
 
   move(dx) {
     if (this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
     if (this.state === 'crouch') return;
     this.x = clamp(this.x + dx, 55, canvas.width - 55);
     if (Math.abs(dx) > 0.5 && this.onGround) this.state = 'walk';
   }
 
+  dash(dir) {
+    if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
+    const dur = 0.20;
+    this.state = 'dash';
+    this.stateDur = dur;
+    this.stateElapsed = 0;
+    this.dashDir = dir;
+    // Exactly half of Spartan kick's 368px knockback: 184 * sc!
+    const dist = 184 * this.sc;
+    this.dashVx = (dist / dur) * dir;
+    spawnParticles(this.x, this.floor, 10);
+    shake(2, 0.08);
+  }
+
   jump() {
     if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'crouch'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'crouch', 'dash'].includes(this.state)) return;
     this.vy = -canvas.height * 0.9;
     this.onGround = false;
     this.state    = 'jump';
@@ -117,14 +135,14 @@ class Fighter {
   block(on) {
     if (this.state === 'dead' || this.state === 'knockdown') return;
     this.blocking = on;
-    if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'crouch'].includes(this.state)) this.state = 'block';
+    if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'crouch', 'dash'].includes(this.state)) this.state = 'block';
     if (!on && this.state === 'block') this.state = 'idle';
   }
 
   crouch(on) {
     if (this.state === 'dead' || this.state === 'knockdown') return;
     this.crouching = on;
-    if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'block'].includes(this.state)) this.state = 'crouch';
+    if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'block', 'dash'].includes(this.state)) this.state = 'crouch';
     if (!on && this.state === 'crouch') this.state = 'idle';
   }
 
@@ -231,6 +249,27 @@ class Fighter {
       }
     }
 
+    // Dash movement physics
+    if (this.state === 'dash') {
+      const step = this.dashVx * dt;
+      this.x = clamp(this.x + step, 55, canvas.width - 55);
+      if (this.x === 55 || this.x === canvas.width - 55) {
+        this.dashVx = 0;
+      }
+      if (this.onGround && Math.random() < 0.65) {
+        spawnParticles(this.x, this.floor, 2);
+      }
+      // Record ghost afterimage
+      if (this.dashGhosts.length === 0 || Math.abs(this.x - this.dashGhosts[this.dashGhosts.length - 1].x) > 20 * this.sc) {
+        this.dashGhosts.push({ x: this.x, y: this.y, facing: this.facing, alpha: 0.40 });
+      }
+    }
+    // Fade out dash ghost afterimages
+    for (let i = this.dashGhosts.length - 1; i >= 0; i--) {
+      this.dashGhosts[i].alpha -= dt * 3.0;
+      if (this.dashGhosts[i].alpha <= 0) this.dashGhosts.splice(i, 1);
+    }
+
     // Front Flip Axe Kick: automatically propels forward toward the enemy through the air
     if (this.state === 'flipKick') {
       const sp = this.stateProgress;
@@ -251,7 +290,7 @@ class Fighter {
       }
     }
 
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown'].includes(this.state)) {
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'dash'].includes(this.state)) {
       this.stateElapsed += dt;
       if (this.stateElapsed >= this.stateDur) {
         if (!this.onGround) {
@@ -274,7 +313,7 @@ class Fighter {
 
     this.walkCycle += dt * (this.state === 'walk' ? 8 : 1.5);
 
-    if (this.state !== 'dead' && this.state !== 'flipKick') {
+    if (this.state !== 'dead' && this.state !== 'flipKick' && this.state !== 'dash') {
       const dx = opp.x - this.x;
       if (Math.abs(dx) > 2) this.facing = dx > 0 ? 1 : -1;
     }
@@ -300,6 +339,21 @@ class Fighter {
     const FOOT_H     = 9;
     const hipY       = -LEG_H;
     const shoulderY  = hipY - TORSO_H;   // = -150
+
+    // Render fading shadow afterimages for dash move
+    if (this.dashGhosts && this.dashGhosts.length > 0) {
+      for (const g of this.dashGhosts) {
+        ctx.save();
+        ctx.globalAlpha = g.alpha;
+        ctx.fillStyle = '#000';
+        ctx.translate(g.x, g.y);
+        ctx.scale(g.facing * sc, sc);
+        ctx.beginPath();
+        ctx.ellipse(0, -60, 16, 50, -0.25 * g.facing, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
 
     // Pose variables — all degrees, negative=forward
     let bodyDip  = 0;
@@ -681,6 +735,28 @@ class Fighter {
         break;
       }
 
+      case 'dash': {
+        const isForward = (this.dashDir === this.facing);
+        if (isForward) {
+          // Low aerodynamic forward ninja dash
+          bodyLean = -26;
+          bodyDip  = 16;
+          fThigh = -58; fCalf = 72;
+          bThigh =  62; bCalf = 22;
+          fUpper = -68; fFore = 42;
+          bUpper =  42; bFore = 35;
+        } else {
+          // Evasive martial arts back-hop
+          bodyLean = 14;
+          bodyDip  = 10;
+          fThigh =  22; fCalf = 32;
+          bThigh = -32; bCalf = 48;
+          fUpper = -38; fFore = 50;
+          bUpper = -25; bFore = 50;
+        }
+        break;
+      }
+
       case 'crouch':
         bodyDip  = 28;
         bodyLean = -15;
@@ -955,10 +1031,30 @@ function initRound() {
 
 // ── Input ────────────────────────────────────────────────────
 let keys = {};
+let lastTap = { left: 0, right: 0 };
+const DOUBLE_TAP_WINDOW = 280; // ms
+
 document.addEventListener('keydown', e => {
   if (keys[e.code]) return;
   keys[e.code] = true;
   if (gameState === 'fight') {
+    const now = Date.now();
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
+      if (now - lastTap.left < DOUBLE_TAP_WINDOW) {
+        player.dash(-1);
+        lastTap.left = 0;
+      } else {
+        lastTap.left = now;
+      }
+    }
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') {
+      if (now - lastTap.right < DOUBLE_TAP_WINDOW) {
+        player.dash(1);
+        lastTap.right = 0;
+      } else {
+        lastTap.right = now;
+      }
+    }
     if (e.code === 'KeyW' || e.code === 'ArrowUp')       player.jump();
     if (e.code === 'KeyS' || e.code === 'ArrowDown')     player.crouch(true);
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(true);
@@ -1009,7 +1105,7 @@ function updateAI(dt) {
   if (enemy.state === 'knockdown') { enemy.aiMoveX = 0; return; }
 
   // Execute continuous movement
-  if (enemy.aiMoveX !== 0) {
+  if (enemy.aiMoveX !== 0 && enemy.state !== 'dash') {
     enemy.move(enemy.aiMoveX * dt);
   } else if (enemy.state === 'walk') {
     enemy.state = 'idle';
@@ -1017,22 +1113,36 @@ function updateAI(dt) {
 
   enemy.aiTimer -= dt;
   if (enemy.aiTimer > 0) return;
-  enemy.aiTimer = rnd(0.20, 0.45);
+  enemy.aiTimer = rnd(0.18, 0.40);
   if (player.state === 'dead') { enemy.aiMoveX = 0; return; }
 
   const dist = Math.abs(player.x - enemy.x);
   const dir  = player.x > enemy.x ? 1 : -1;
+  const lowHp = enemy.hp < enemy.maxHp * 0.5; // Below 50% health: heavy blocking + frequent dashes!
 
   // 1. RESPECT KNOCKDOWN: Don't attack invulnerable grounded player; space for wake-up
   if (player.state === 'knockdown') {
-    if (dist > 135) enemy.aiMoveX = dir * 160;
-    else if (dist < 105) enemy.aiMoveX = -dir * 120;
+    if (dist > 140) enemy.aiMoveX = dir * 160;
+    else if (dist < 110) enemy.aiMoveX = -dir * 120;
     else enemy.aiMoveX = 0;
     return;
   }
 
-  // 2. ANTI-AIR: If player is jumping at AI, counter with air Front Flip Axe Kick or Spartan Kick!
+  // 2. DEFENSIVE BACKDASH: When HP < 50%, enemy dashes backwards away from pressure a lot more!
+  if (lowHp && enemy.onGround && dist < 170 && Math.random() < 0.52 && enemy.state !== 'dash') {
+    enemy.dash(-dir); // Evasive backdash!
+    enemy.aiMoveX = 0;
+    return;
+  }
+
+  // 3. ANTI-AIR: If player is jumping at AI, counter with air Front Flip Axe Kick, block, or Spartan Kick!
   if (!player.onGround && dist < 190) {
+    if (lowHp && Math.random() < 0.70) {
+      // Under 50% HP: reliably high-guard against incoming jump-ins
+      enemy.block(true);
+      setTimeout(() => enemy && enemy.block(false), rnd(350, 550));
+      return;
+    }
     if (Math.random() < 0.50 && enemy.onGround) {
       enemy.jump();
       setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
@@ -1042,33 +1152,53 @@ function updateAI(dt) {
     return;
   }
 
-  // 3. REACTIVE DEFENSE (Occasional block when player attacks)
+  // 4. REACTIVE DEFENSE (BLOCKS A LOT MORE when HP < 50%!)
   const pAttacking = ['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(player.state);
-  if (pAttacking && dist < 180) {
-    if ((player.state === 'punch') && Math.random() < 0.40 && enemy.onGround) {
+  if (pAttacking && dist < 185) {
+    const blockChance = lowHp ? 0.82 : 0.35; // 82% block chance when HP < 50%!
+    if ((player.state === 'punch') && Math.random() < (lowHp ? 0.55 : 0.40) && enemy.onGround) {
       // Duck under punches!
       enemy.crouch(true);
       setTimeout(() => enemy && enemy.crouch(false), rnd(250, 450));
       return;
-    } else if (Math.random() < 0.35) {
-      // Block incoming high attack
+    } else if (Math.random() < blockChance) {
+      // Block incoming attacks!
       enemy.block(true);
-      setTimeout(() => enemy && enemy.block(false), rnd(250, 450));
+      setTimeout(() => enemy && enemy.block(false), lowHp ? rnd(400, 650) : rnd(250, 450));
+      return;
+    } else if (lowHp && enemy.onGround && Math.random() < 0.50) {
+      // Sudden defensive backdash to dodge attack completely
+      enemy.dash(-dir);
       return;
     }
   }
 
-  // 4. COUNTER CROUCH: If player is crouching, high punch will whiff! Use low sweep, crouch punch, or Spartan kick
+  // 5. COUNTER CROUCH: If player is crouching, high punch will whiff!
   if (player.state === 'crouch' || player.state === 'crouchPunch') {
     if (dist < 140) {
-      enemy.attack(Math.random() < 0.45 ? 'crouchPunch' : (Math.random() < 0.55 ? 'sweepKick' : 'spartanKick'));
+      if (lowHp && Math.random() < 0.48) {
+        enemy.dash(-dir); // Backdash away from low sweep range!
+      } else {
+        enemy.attack(Math.random() < 0.45 ? 'crouchPunch' : (Math.random() < 0.55 ? 'sweepKick' : 'spartanKick'));
+      }
     } else {
       enemy.aiMoveX = dir * 180;
     }
     return;
   }
 
-  // 5. TACTICAL SPACING & ATTACK STRATEGY
+  // 6. OFFENSIVE DASH-IN (Enemy uses dash a lot more when HP < 50%!)
+  if (lowHp && enemy.onGround && dist > 140 && dist < 240 && Math.random() < 0.45 && enemy.state !== 'dash') {
+    enemy.dash(dir); // Burst forward into strike range!
+    setTimeout(() => {
+      if (enemy && enemy.state !== 'dead' && enemy.state !== 'knockdown' && enemy.state !== 'hurt') {
+        enemy.attack(Math.random() < 0.55 ? 'spartanKick' : 'punch');
+      }
+    }, 110);
+    return;
+  }
+
+  // 7. TACTICAL SPACING & ATTACK STRATEGY
   const roll = Math.random();
 
   if (dist > 220) {
@@ -1086,22 +1216,26 @@ function updateAI(dt) {
       enemy.aiMoveX = dir * 130;
     }
   } else if (dist < 80) {
-    // Close range: mix up low sweep, quick punch, crouch punch, or back-step
-    if (roll < 0.28) {
+    // Close range: mix up block, low sweep, quick punch, crouch punch, or backdash
+    if (lowHp && roll < 0.45) {
+      enemy.block(true); // Turtle up at close range when hurt!
+      setTimeout(() => enemy && enemy.block(false), rnd(350, 550));
+    } else if (roll < 0.25) {
       enemy.attack('punch');
-    } else if (roll < 0.52) {
+    } else if (roll < 0.48) {
       enemy.attack('crouchPunch');
-    } else if (roll < 0.75) {
+    } else if (roll < 0.70) {
       enemy.attack('sweepKick');
     } else {
-      enemy.aiMoveX = -dir * 160;
+      if (lowHp && enemy.onGround) enemy.dash(-dir);
+      else enemy.aiMoveX = -dir * 160;
     }
   } else {
     // Mid range mix-up
     enemy.aiMoveX = 0;
-    if (roll < 0.12) {
+    if (roll < (lowHp ? 0.38 : 0.12)) {
       enemy.block(true);
-      setTimeout(() => enemy && enemy.block(false), rnd(250, 400));
+      setTimeout(() => enemy && enemy.block(false), lowHp ? rnd(400, 600) : rnd(250, 400));
     } else if (roll < 0.42) {
       enemy.attack('punch');
     } else if (roll < 0.68) {
@@ -1284,7 +1418,7 @@ function drawHUD() {
 
   // Hint
   ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.font=`${Math.floor(10*sc)}px monospace`;
-  ctx.fillText('L-CLICK: Punch (Crouched: Low Jab)  |  R-CLICK: Kick  |  AIR+R-CLICK: Front Flip Axe Kick  |  FWD+R-CLICK: Spartan (4x KB)  |  S+R-CLICK: Sweep',W/2,H-10);
+  ctx.fillText('L-CLICK: Punch (Crouched: Low Jab)  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  AIR+R-CLICK: Front Flip Axe  |  FWD+R-CLICK: Spartan',W/2,H-10);
 }
 
 // ── Screens ─────────────────────────────────────────────────
@@ -1295,10 +1429,11 @@ function drawMenu() {
   ctx.font=`bold ${Math.floor(52*sc)}px monospace`; ctx.fillText('SHADOW FIGHT',W/2,H*0.26);
   ctx.font=`${Math.floor(14*sc)}px monospace`; ctx.fillText('WEB PROTOTYPE',W/2,H*0.35);
   ctx.fillStyle='#333'; ctx.font=`${Math.floor(12*sc)}px monospace`;
-  ctx.fillText('L-CLICK: Karate Punch (Hold S: Low Crouch Jab)  |  R-CLICK: Kick  |  AIR + R-CLICK: Front Flip Axe Kick',W/2,H*0.48);
-  ctx.fillText('FORWARD + R-CLICK: Spartan Kick (Leans back, 4x colossal knockback!)',W/2,H*0.54);
-  ctx.fillText('S (Crouch) + R-CLICK: Low Sweep Kick  |  S (Crouch) + L-CLICK: Low Crouch Punch',W/2,H*0.60);
-  ctx.fillText('A/D: Move  ·  W: Jump  ·  S: Crouch (Dodge punches)  ·  SHIFT: Boxer Block',W/2,H*0.66);
+  ctx.fillText('L-CLICK: Karate Punch (Hold S: Low Crouch Jab)  |  R-CLICK: Kick  |  AIR + R-CLICK: Front Flip Axe Kick',W/2,H*0.46);
+  ctx.fillText('FORWARD + R-CLICK: Spartan Kick (Leans back, 4x colossal knockback!)',W/2,H*0.52);
+  ctx.fillText('S (Crouch) + R-CLICK: Low Sweep Kick  |  S (Crouch) + L-CLICK: Low Crouch Punch',W/2,H*0.58);
+  ctx.fillText('DOUBLE-TAP A / D: Dash Move (Fast burst, half Spartan knockback distance!)',W/2,H*0.64);
+  ctx.fillText('A/D: Move  ·  W: Jump  ·  S: Crouch (Dodge punches)  ·  SHIFT: Boxer Block',W/2,H*0.70);
   ctx.globalAlpha=0.55+Math.sin(Date.now()*0.004)*0.45;
   ctx.fillStyle='#000'; ctx.font=`bold ${Math.floor(14*sc)}px monospace`;
   ctx.fillText('CLICK ANYWHERE OR PRESS ANY KEY TO START',W/2,H*0.82);

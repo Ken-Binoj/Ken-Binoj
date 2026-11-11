@@ -17,6 +17,7 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 | **Crouch** | `S` or `Down Arrow` | Low martial arts crouch. **Passively ducks under standing punches!** |
 | **Boxer High Guard Block** | `Left Shift` | Peek-a-boo guard in front of face (absorbs 90% dmg & prevents sweep trips). |
 | **Movement** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with walking animation. |
+| **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive burst propelling character `184px` (half of Spartan knockback!) with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Leap into the air with gravity physics. |
 
 ---
