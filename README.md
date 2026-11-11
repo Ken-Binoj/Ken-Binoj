@@ -41,3 +41,4 @@ start index.html  # Windows
 - `style.css` — Minimalist high-contrast aesthetic and styling.
 - `game.js` — Core game engine (kinematics, combat state machines, AI, physics, rendering).
 - `CHANGELOG.md` — Complete development history, version notes, and feature specs.
+
