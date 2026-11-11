@@ -19,6 +19,7 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 | **Movement** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with walking animation. |
 | **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive burst propelling character `184px` (half of Spartan knockback!) with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Leap into the air with gravity physics. |
+| **Reversal Burst** | `Q` | Available when knocked down 3 times in 5s. Blasts nearby opponent with huge knockback and knockdown (0 DMG). |
 | **Pause & Move List** | `P` or `Escape` | Pauses match and opens the Move List modal with combat consequences. Click anywhere or press P/ESC to resume. |
 
 ---

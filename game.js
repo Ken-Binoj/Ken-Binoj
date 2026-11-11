@@ -95,6 +95,8 @@ class Fighter {
     this.dashDir      = 0;
     this.dashVx       = 0;
     this.dashGhosts   = [];
+    this.kdTimestamps = [];
+    this.reversalReady = false;
   }
 
   get sc()            { return canvas.width / DW; }
@@ -162,12 +164,12 @@ class Fighter {
   attack(type) {
     if (this.atkCooldown > 0 || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
     if (this.state === 'crouch' && type !== 'sweepKick' && type !== 'crouchPunch') this.state = 'idle';
-    let dur = 0.42;
-    if (type === 'punch') dur = 0.42;
-    else if (type === 'crouchPunch') dur = 0.40;
-    else if (type === 'kick') dur = 0.54;
+    let dur = 0.28;
+    if (type === 'punch') dur = 0.28; // Faster snappy straight punch!
+    else if (type === 'crouchPunch') dur = 0.28; // Faster low punch!
+    else if (type === 'kick') dur = 0.38; // Faster snappy kick!
     else if (type === 'spartanKick') dur = 0.62;
-    else if (type === 'sweepKick') dur = 0.52;
+    else if (type === 'sweepKick') dur = 0.50;
     else if (type === 'flipKick') {
       dur = 0.68;
       // Athletic acrobatic aerial lift for Front Flip Axe Kick
@@ -176,7 +178,7 @@ class Fighter {
     this.state       = type;
     this.stateDur    = dur;
     this.stateElapsed = 0;
-    this.atkCooldown = dur * 0.78;
+    this.atkCooldown = dur * 0.70;
   }
 
   takeHit(dmg, kbk, attacker) {
@@ -216,6 +218,14 @@ class Fighter {
     if (this.state === 'dead' || this.state === 'knockdown') return;
     this.hp = Math.max(0, this.hp - customDmg);
 
+    // Track knockdown timestamp for 3 knockdowns in 5 seconds [Q] reversal
+    const now = performance.now();
+    this.kdTimestamps.push(now);
+    this.kdTimestamps = this.kdTimestamps.filter(t => now - t <= 5000);
+    if (this.kdTimestamps.length >= 3) {
+      this.reversalReady = true;
+    }
+
     // Smooth animated slide as feet are swept out (no instant teleporting!)
     const sweepKbk = customKbk !== null ? customKbk : 60 * this.sc;
     const sweepSlideDur = 0.32;
@@ -234,6 +244,13 @@ class Fighter {
   }
 
   update(dt, opp) {
+    // Maintain 5-second rolling window for knockdowns
+    const now = performance.now();
+    this.kdTimestamps = this.kdTimestamps.filter(t => now - t <= 5000);
+    if (this.kdTimestamps.length >= 3) {
+      this.reversalReady = true;
+    }
+
     // Player direct key synchronization (guarantees player NEVER gets stuck in crouch or block)
     if (this.isPlayer) {
       const downHeld = !!(keys['KeyS'] || keys['ArrowDown']);
@@ -1097,9 +1114,13 @@ document.addEventListener('keydown', e => {
     if (e.code === 'KeyW' || e.code === 'ArrowUp')       player.jump();
     if (e.code === 'KeyS' || e.code === 'ArrowDown')     player.crouch(true);
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(true);
+    if (e.code === 'KeyQ') {
+      if (player && player.reversalReady) {
+        triggerReversal(player, enemy);
+      }
+    }
   }
   if (gameState === 'menu') { playerWins = 0; enemyWins = 0; roundNum = 1; initRound(); }
-  if ((gameState === 'roundEnd' || gameState === 'gameOver') && e.code === 'Space') nextRound();
 });
 document.addEventListener('keyup', e => {
   keys[e.code] = false;
@@ -1107,6 +1128,16 @@ document.addEventListener('keyup', e => {
   if (e.code === 'KeyS' || e.code === 'ArrowDown')       player.crouch(false);
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(false);
 });
+
+// Clickable Rematch button layout
+function getRematchBtnRect() {
+  const W = canvas.width, H = canvas.height, sc = W / DW;
+  const btnW = Math.min(270 * sc, W * 0.55);
+  const btnH = Math.max(38, 46 * sc);
+  const btnX = (W - btnW) / 2;
+  const btnY = H * 0.62;
+  return { x: btnX, y: btnY, w: btnW, h: btnH };
+}
 
 // Mouse: left = punch (or crouch punch if crouched), right = kick
 canvas.addEventListener('mousedown', e => {
@@ -1139,14 +1170,41 @@ canvas.addEventListener('mousedown', e => {
     }
     return;
   }
-  if (gameState === 'roundEnd' || gameState === 'gameOver') {
-    nextRound();
+  if (gameState === 'gameOver') {
+    // Fight is over: next fight begins ONLY when player clicks the Rematch button!
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    const btn = getRematchBtnRect();
+
+    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+      playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+    }
     return;
   }
   if (gameState === 'menu') {
     playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
   }
 });
+
+canvas.addEventListener('mousemove', e => {
+  if (gameState === 'gameOver') {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    const btn = getRematchBtnRect();
+    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+      canvas.style.cursor = 'pointer';
+      return;
+    }
+  }
+  canvas.style.cursor = 'crosshair';
+});
+
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 window.addEventListener('blur', () => {
@@ -1158,9 +1216,45 @@ window.addEventListener('blur', () => {
   }
 });
 
+// ── Reversal Burst (Knocked down 3 times in 5 seconds -> [Q] Burst) ──
+function triggerReversal(user, target) {
+  if (!user || !user.reversalReady) return;
+  user.reversalReady = false;
+  user.kdTimestamps = [];
+
+  // Shockwave kinetic explosion!
+  shake(15, 0.35);
+  spawnParticles(user.x, user.floor - 40, 30);
+
+  // If user is knocked down or in hurt state, snap them instantly awake!
+  if (user.state === 'knockdown' || user.state === 'hurt') {
+    user.state = 'idle';
+    user.stunTimer = 0;
+    user.y = user.floor;
+    user.vy = 0;
+    user.onGround = true;
+    user.crouching = false;
+    user.blocking = false;
+  }
+
+  // Proximity check:
+  // "opponent gets knocked back if too close and also knocked down without health loss"
+  const dist = Math.abs(user.x - target.x);
+  const PROXIMITY_THRESHOLD = 160 * (canvas.width / DW);
+  if (dist < PROXIMITY_THRESHOLD) {
+    // Huge knockback (380 * sc) + knockdown with 0 DMG!
+    target.knockdown(user, 0, 380 * target.sc);
+  }
+}
+
 // ── AI (Tactical & Realistic: Always Smart, Hyper-Aggressive under 50% HP) ──
 function updateAI(dt) {
   if (!enemy || gameState !== 'fight') return;
+  // Trigger [Q] Reversal Burst if CPU gets knocked down 3 times in 5s!
+  if (enemy.reversalReady) {
+    triggerReversal(enemy, player);
+    return;
+  }
   if (enemy.state === 'knockdown') { enemy.aiMoveX = 0; return; }
 
   // Execute continuous movement
@@ -1387,7 +1481,7 @@ function checkHit(att, def) {
     const rot = sp * 360;
     if (rot < 208 || rot > 236) return;
   } else {
-    if (sp < 0.20 || sp > 0.85) return;
+    if (sp < 0.15 || sp > 0.88) return;
   }
 
   // Reach ranges:
@@ -1531,6 +1625,46 @@ function drawHUD() {
     ctx.fillStyle=i<enemyWins?'#000':'#ccc';
     ctx.beginPath(); ctx.arc(W-pad-gr-i*20*sc,gy,gr,0,Math.PI*2); ctx.fill();
     ctx.stroke();
+  }
+
+  // [Q] Reversal Burst Prompt below Player Health Bar (when knocked down 3 times in 5s)
+  if (player && player.reversalReady) {
+    const pulse = 0.70 + Math.sin(Date.now() * 0.009) * 0.30;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    const badgeX = pad;
+    const badgeY = pad + barH + 44 * sc;
+    const badgeW = 150 * sc, badgeH = 20 * sc;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${Math.floor(10 * sc)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('⚡ PRESS [Q] BURST! ⚡', badgeX + badgeW / 2, badgeY + badgeH * 0.72);
+    ctx.restore();
+  }
+
+  // Reversal Prompt below CPU Health Bar
+  if (enemy && enemy.reversalReady) {
+    const pulse = 0.70 + Math.sin(Date.now() * 0.009) * 0.30;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    const badgeW = 150 * sc, badgeH = 20 * sc;
+    const badgeX = W - pad - badgeW;
+    const badgeY = pad + barH + 44 * sc;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${Math.floor(10 * sc)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('⚡ REVERSAL READY ⚡', badgeX + badgeW / 2, badgeY + badgeH * 0.72);
+    ctx.restore();
   }
 
   // Timer
@@ -1687,10 +1821,10 @@ function drawPauseMenu() {
     },
     {
       name: 'Combat Tactics & AI',
-      input: 'ENRAGE INFO',
+      input: 'ENRAGE & REVERSAL',
       badge: 'TIPS',
-      line1: 'Enraged enemies (<50% HP) attack relentlessly & hound wakeups!',
-      line2: 'Standing guard stops high hits; crouch block stops sweeps!'
+      line1: 'Knocked down 3x in 5s? Press [Q] to unleash Reversal Burst!',
+      line2: 'Standing guard blocks high; crouch block stops sweeps!'
     }
   ];
 
@@ -1755,29 +1889,45 @@ function drawCountdown() {
   ctx.fillText(countdown > 0 ? countdown : 'FIGHT!', W / 2, H / 2 + 25 * sc);
 }
 
+function drawRoundTransition() {
+  const W = canvas.width, H = canvas.height, sc = W / DW;
+  ctx.fillStyle = '#000'; ctx.textAlign = 'center';
+  ctx.font = `bold ${Math.floor(38 * sc)}px monospace`;
+  ctx.fillText(resultText, W / 2, H * 0.38);
+  ctx.fillStyle = '#555'; ctx.font = `bold ${Math.floor(16 * sc)}px monospace`;
+  ctx.fillText(`STARTING ROUND ${roundNum + 1}...`, W / 2, H * 0.50);
+}
+
 function drawRoundEnd() {
   const W=canvas.width, H=canvas.height, sc=W/DW;
   ctx.fillStyle='#000'; ctx.textAlign='center';
   ctx.font=`bold ${Math.floor(42*sc)}px monospace`; ctx.fillText(resultText,W/2,H*0.4);
   ctx.fillStyle='#555'; ctx.font=`${Math.floor(13*sc)}px monospace`;
-  const prompt = (playerWins >= WIN_ROUNDS || enemyWins >= WIN_ROUNDS) ? 'SPACE or Click to continue' : `ROUND ${roundNum + 1} STARTING... (Click or SPACE)`;
-  ctx.fillText(prompt, W/2, H*0.55);
+  ctx.fillText('MATCH COMPLETED', W/2, H*0.55);
 }
 
 function drawGameOver() {
   const W=canvas.width, H=canvas.height, sc=W/DW;
   ctx.fillStyle='#000'; ctx.textAlign='center';
   ctx.font=`bold ${Math.floor(52*sc)}px monospace`;
-  ctx.fillText(playerWins>=WIN_ROUNDS?'YOU WIN!':'YOU LOSE',W/2,H*0.35);
-  ctx.font=`${Math.floor(16*sc)}px monospace`;
-  ctx.fillText(`${playerWins} — ${enemyWins}`,W/2,H*0.5);
-  ctx.fillStyle='#555'; ctx.font=`${Math.floor(12*sc)}px monospace`;
-  ctx.fillText('SPACE or Click to play again',W/2,H*0.65);
+  ctx.fillText(playerWins>=WIN_ROUNDS?'VICTORY!':'DEFEAT',W/2,H*0.35);
+  ctx.font=`bold ${Math.floor(18*sc)}px monospace`;
+  ctx.fillText(`FINAL SCORE: ${playerWins} — ${enemyWins}`,W/2,H*0.48);
+
+  // Clickable Rematch Button: only clicking this begins the next fight!
+  const btn = getRematchBtnRect();
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${Math.floor(15*sc)}px monospace`;
+  ctx.fillText('⚔  REMATCH  ⚔', W/2, btn.y + btn.h * 0.64);
 }
 
 // ── Round logic ─────────────────────────────────────────────
-let roundEndHandled = false;
-
 function checkRoundEnd() {
   if (gameState !== 'fight') return;
   const pDead = player.hp <= 0 || player.state === 'dead';
@@ -1785,43 +1935,34 @@ function checkRoundEnd() {
   const timeout = roundTimer <= 0;
   if (!pDead && !eDead && !timeout) return;
 
-  gameState = 'roundEnd';
-  roundEndHandled = false;
-
   if (timeout) {
-    if (player.hp > enemy.hp) { playerWins++; resultText = 'TIME OUT — YOU WIN!'; }
+    if (player.hp > enemy.hp) { playerWins++; resultText = 'TIME OUT — PLAYER WINS!'; }
     else if (enemy.hp > player.hp) { enemyWins++; resultText = 'TIME OUT — CPU WINS!'; }
-    else resultText = 'DRAW!';
+    else { resultText = 'ROUND DRAW!'; }
   } else if (pDead && !eDead) {
     enemyWins++;
-    resultText = 'CPU WINS!';
+    resultText = 'CPU WINS ROUND!';
   } else if (eDead && !pDead) {
     playerWins++;
-    resultText = 'YOU WIN!';
+    resultText = 'PLAYER WINS ROUND!';
   } else {
     resultText = 'DOUBLE KO!';
   }
 
+  // Check if match is completely decided (First to 2 wins)
   if (playerWins >= WIN_ROUNDS || enemyWins >= WIN_ROUNDS) {
-    setTimeout(() => { if (gameState === 'roundEnd') gameState = 'gameOver'; }, 2200);
+    gameState = 'roundEnd';
+    setTimeout(() => { if (gameState === 'roundEnd') gameState = 'gameOver'; }, 1800);
   } else {
-    // Automatically advance to continuous Round 2 after 2.2 seconds if player doesn't press space/click
+    // Match continues into next round! (Round 1 -> Round 2, or Round 2 -> Round 3)
+    gameState = 'roundTransition';
     setTimeout(() => {
-      if (gameState === 'roundEnd' && !roundEndHandled) {
-        nextRound();
-      }
-    }, 2200);
+      startNextRoundContinuous();
+    }, 1500); // 1.5s dramatic pause to witness KO hit
   }
 }
 
-function nextRound() {
-  roundEndHandled = true;
-  if (gameState === 'gameOver' || playerWins >= WIN_ROUNDS || enemyWins >= WIN_ROUNDS) {
-    playerWins = 0; enemyWins = 0; roundNum = 1;
-    initRound();
-    return;
-  }
-
+function startNextRoundContinuous() {
   // ── ROUND 2 & CONTINUOUS ROUNDS (ARENA PERSISTS, NO RESET!) ────────
   roundNum++;
   roundTimer = 99;
@@ -1880,12 +2021,12 @@ function nextRound() {
 
     // 4. "if the winner is too close to loser while loser wakes up for round 2 the get huge knockback and knock down (no health loss)"
     const dist = Math.abs(winner.x - loser.x);
-    const PROXIMITY_THRESHOLD = 155 * (canvas.width / DW);
+    const PROXIMITY_THRESHOLD = 160 * (canvas.width / DW);
 
     if (dist < PROXIMITY_THRESHOLD) {
       // Reversal wake-up shockwave explosion!
       shake(15, 0.35);
-      spawnParticles(loser.x, loser.floor - 40, 26);
+      spawnParticles(loser.x, loser.floor - 40, 28);
 
       // Huge knockback (380 * sc) + knock down onto back with NO HEALTH LOSS (0 DMG)!
       winner.knockdown(loser, 0, 380 * winner.sc);
@@ -1970,7 +2111,7 @@ function loop(ts) {
     checkRoundEnd();
   }
 
-  if (gameState === 'roundEnd') {
+  if (gameState === 'roundTransition' || gameState === 'roundEnd') {
     player.update(dt, enemy);
     enemy.update(dt, player);
   }
@@ -1978,8 +2119,9 @@ function loop(ts) {
   drawBackground(); player.draw(); enemy.draw();
   updateParticles(dt); drawParticles();
   drawHUD();
-  if (gameState==='roundEnd') drawRoundEnd();
-  if (gameState==='gameOver') drawGameOver();
+  if (gameState === 'roundTransition') drawRoundTransition();
+  if (gameState === 'roundEnd') drawRoundEnd();
+  if (gameState === 'gameOver') drawGameOver();
 
   ctx.restore();
   requestAnimationFrame(loop);

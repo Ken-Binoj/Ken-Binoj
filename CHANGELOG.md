@@ -31,13 +31,43 @@ This document tracks all features, mechanics, visual systems, and updates implem
 | **Move Left / Right** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with automatic walk cycle animation. |
 | **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive directional burst propelling character **`184px` (exactly half of Spartan kick knockback!)** with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Aerial leap with parabolic gravity physics. |
+| **Reversal Burst** | `Q` | Ready when knocked down 3 times in 5 seconds! Blasts nearby foes with colossal knockback and knockdown (0 DMG). |
 | **Pause & Move Consequences** | `P` or `Escape` | Pauses match and opens full Move List modal with damage values and tactical consequences. Press P/ESC or click to resume. |
 
 ---
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.2 — Continuous Arena Round 2, Wake-up Shockwave & Crouch Fix (Current)
+### Version 1.7.3 — Faster Strikes, [Q] Reversal Burst, Guaranteed Round 2 Flow & Clickable Rematch (Current)
+- **Faster Normal Punch & Kick**:
+  - **Karate Straight Punch**: Duration decreased from `0.42s` to **`0.28s`** (33% faster snap jab, quicker recovery).
+  - **Low Crouch Punch**: Duration decreased from `0.40s` to **`0.28s`** (30% faster low jab from crouch).
+  - **Normal Snap Kick**: Duration decreased from `0.54s` to **`0.38s`** (30% faster high snap poke).
+  - **Snappier Hit Detection**: Active hit window widened to `sp >= 0.15` to match the rapid strikes.
+- **[Q] Comeback Reversal Burst Mechanic**:
+  - **5-Second Knockdown Tracker**: Both fighters now track knockdown timestamps within a rolling 5-second window (`kdTimestamps.filter(t => now - t <= 5000)`).
+  - **HUD Indicator**: When a player is knocked down 3 times in 5 seconds, an animated pulsing **`[Q] BURST!`** badge appears directly below their health bar.
+  - **Trigger with [Q]**:
+    - Pressing `Q` immediately unleashes a violent kinetic shockwave (`shake(15, 0.35)` + particle explosion).
+    - Instantly breaks the user out of knockdown/hitstun into standing neutral `idle`.
+    - If the opponent is within close proximity (`< 160px`), they suffer **colossal knockback** (`380 * sc`, Spartan Kick force) and are **knocked down flat on their back with zero health loss (0 DMG)**!
+  - **CPU AI Integration**: CPU also recognizes when it has been knocked down 3 times in 5 seconds and strategically unleashes its Reversal Burst.
+- **Guaranteed Seamless Round 2 Automatic Flow**:
+  - Fixed round completion logic so Round 2 reliably starts automatically after Round 1 without locking or dropping.
+  - When Round 1 finishes, `roundTransition` displays round results for 1.5 seconds, then immediately initiates continuous Round 2:
+    - Arena positions are preserved (no reset).
+    - Both health bars refill to 100% full HP.
+    - Fallen fighter pushes up and wakes back up from knockdown.
+    - Hovering winner is blasted with the wake-up shockwave if too close (`160px`).
+    - Cinematic `ROUND 2` countdown plays in real-time.
+- **Dedicated Clickable Rematch Button**:
+  - When the entire match is finished (best of 3 rounds completed), the game enters `gameOver`.
+  - The next fight **ONLY begins when the player explicitly clicks the centered `[ ⚔ REMATCH ⚔ ]` button**.
+  - Accidental keyboard presses (Space, Enter) and clicks outside the button no longer restart the match.
+
+---
+
+### Version 1.7.2 — Continuous Arena Round 2, Wake-up Shockwave & Crouch Fix
 - **Permanent Crouch Fix (Never Stuck in Crouch Mode)**:
   - **Frame-by-Frame Key State Synchronization**: Every frame in `Fighter.update()`, player crouching is synchronized directly with physical key states (`keys['KeyS'] || keys['ArrowDown']`). If the key is released at any point (even mid-attack, during hitstun, or during knockdown), crouching immediately clears to `idle`.
   - **Attack-Recovery Guard**: When exiting an attack or knockdown state, the character only transitions back to `crouch` if the down key is actively being held at that exact moment.
