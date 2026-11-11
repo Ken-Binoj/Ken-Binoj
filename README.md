@@ -24,6 +24,18 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 
 ---
 
+## 🏆 Difficulty Levels
+
+Selectable on the interactive startup Menu Screen or via hotkeys `1`, `2`, `3`:
+
+| Level | Silhouette | Damage | Aggression (<50% HP) | Defense & Tactics |
+|---|---|---|---|---|
+| **Easy** | 🟢 **Green** (`#16a34a`) | **-35% Damage** | **No Frenzy** (Stays calm) | Slower decision timer, 50% block, 25% duck. Great for beginners! |
+| **Medium (Default)** | ⚫ **Black** (`#000000`) | **100% Normal** | **Aggressive Frenzy** | Smart tactical blocking (78%), 50% duck, 40% backdashes, and okizeme. |
+| **Hard** | 🔴 **Red** (`#dc2626`) | **100% Normal** | **Aggressive Frenzy** | **Extremely dodgy & defensive!** 95% High Guard, 88% punch ducks, 72% evasive backdashes, twitch reflexes. |
+
+---
+
 ## 🚀 How to Play
 
 No build step or server required! Simply clone the repo and open `index.html` in any modern web browser:

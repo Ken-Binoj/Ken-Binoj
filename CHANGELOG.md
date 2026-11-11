@@ -38,7 +38,43 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.6 — Red Blood Hit Effects & Combat Damage Tuning (Current)
+### Version 1.7.7 — Interactive Menu Screen & Difficulty Levels (Easy, Medium, Hard) (Current)
+- **Interactive Menu Screen & Difficulty Selection**:
+  - **Menu UI & Architecture**: Redesigned the startup flow with an interactive Menu Screen featuring title typography, responsive layout scaling, quick move hints, and three clickable difficulty cards.
+  - **Input Controls**:
+    - Click any difficulty card to select.
+    - Keyboard hotkeys: press `[1]` for Easy, `[2]` for Medium, `[3]` for Hard, or use `[←]` / `[→]` to cycle.
+    - Start match: click the pulsing **"START FIGHT"** button or press **`[Enter]` / `[Space]`**.
+- **Difficulty Systems & AI Archetypes**:
+  - **Medium (Default Difficulty)**:
+    - **Visual Identity**: Classic Black shadow silhouette (`#000000` body, `#333333` rear limbs).
+    - **Damage & Aggression**: 100% standard damage. Triggers ruthless aggressive frenzy below 50% HP (`lowHp = true`).
+    - **AI Tactics**: Balanced tactical blocking (78% guard), 50% punch ducks, 40% backdashes, and methodical spacing.
+  - **Easy Difficulty**:
+    - **Visual Identity**: Emerald Green silhouette (`#16a34a` body, `#15803d` rear limbs).
+    - **Damage Scaling**: Enemy attacks deal **35% less damage** (`Math.max(1, Math.round(dmg * 0.65 * 10) / 10)`).
+    - **No Berserk Aggression**: Enemy **never** enters aggressive frenzy when health is below 50% HP (`lowHp = false`).
+    - **Forgiving AI Behavior**: Relaxed decision cycle (`0.24 - 0.42s`), lower block rate (50%), lower duck rate (25%), and fewer offensive dashes.
+  - **Hard Difficulty**:
+    - **Visual Identity**: Crimson Red silhouette (`#dc2626` body, `#991b1b` rear limbs).
+    - **Damage & Aggression**: 100% standard damage. Aggressively enrages below 50% HP just like Medium difficulty.
+    - **Extremely Dodgy & Defensive**:
+      - **High Guard Defense**: 95% block rate against incoming strikes (`Math.random() < 0.95`).
+      - **Reflex Punch Ducks**: 88% chance to duck under standing punches into low crouch.
+      - **Twitch Evasive Backdashes**: 72% backdash chance when pressured in close range (`dist < 140px`) and 75% evasive dash counter against incoming attacks.
+      - **Twitch Reflex Timer**: Ultra-fast decision cycles (`0.07 - 0.14s` normal, `0.05 - 0.09s` below 50% HP).
+      - **Anti-Air Dominance**: 92% anti-air reaction rate against aerial jump attacks.
+- **Dynamic HUD & Character Color-Matching**:
+  - Enemy display name updates dynamically: `CPU [EASY]`, `CPU [MEDIUM]`, or `CPU [HARD]`.
+  - Enemy health bar fill color dynamically matches the difficulty palette (Green on Easy, Black on Medium, Red on Hard).
+  - Limb rendering, torso, head, and dash afterimages all dynamically reflect the chosen difficulty theme.
+- **Game Over Screen Improvements**:
+  - Added dual interactive buttons: **"⚔ REMATCH ⚔"** (instantly starts rematch on current difficulty) and **"⚙ MENU / DIFFICULTY ⚙"** (returns to Main Menu to select a new difficulty).
+  - Displays current difficulty tag (`[ DIFFICULTY: EASY / MEDIUM / HARD ]`).
+
+---
+
+### Version 1.7.6 — Red Blood Hit Effects & Combat Damage Tuning
 - **Red Blood Splatter & Arterial Spray**:
   - **Dynamic Blood Particle Engine**: Implemented `spawnBlood(x, y, dir, count)` with rich multi-tonal crimson red palette (`#ff0d38`, `#d60029`, `#ff2449`, `#a8001d`, `#e6002b`).
   - **Physics & Dispersion**: Blood droplets spray in the forward impact direction with natural gravitational arc (`gravity: 700`), realistic decay velocities, and varying droplet radii.

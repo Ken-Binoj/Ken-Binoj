@@ -194,6 +194,9 @@ class Fighter {
     this.punchLockoutTimer = 0;
     this.punchHand = 0;
     this.currentPunchNum = 1;
+    this.mainColor = isPlayer ? '#000000' : '#000000';
+    this.backColor = isPlayer ? '#333333' : '#333333';
+    this.displayName = name;
   }
 
   get sc() { return canvas.width / DW; }
@@ -575,7 +578,7 @@ class Fighter {
       for (const g of this.dashGhosts) {
         ctx.save();
         ctx.globalAlpha = g.alpha;
-        ctx.fillStyle = '#000';
+        ctx.fillStyle = this.mainColor || '#000';
         ctx.translate(g.x, g.y);
         ctx.scale(g.facing * sc, sc);
         ctx.beginPath();
@@ -1207,8 +1210,11 @@ class Fighter {
       ctx.translate(0, -hipY * 0.5);
     }
 
+    const mainCol = this.mainColor || '#000';
+    const backCol = this.backColor || '#333';
+
     // 1) Back leg
-    this._leg(-4, hipY, bThigh, bCalf, THIGH_L, CALF_L, LIMB_W, FOOT_W, FOOT_H, '#333');
+    this._leg(-4, hipY, bThigh, bCalf, THIGH_L, CALF_L, LIMB_W, FOOT_W, FOOT_H, backCol);
 
     // 2) Torso block (torso + head + both double-jointed arms, all lean together)
     ctx.save();
@@ -1216,10 +1222,10 @@ class Fighter {
     ctx.rotate(bodyLean * Math.PI / 180);
 
     // back arm (behind torso)
-    this._arm(bArmX, bArmY, bUpper, bFore, U_ARM_L, FORE_L, LIMB_W, '#333');
+    this._arm(bArmX, bArmY, bUpper, bFore, U_ARM_L, FORE_L, LIMB_W, backCol);
 
     // torso
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = mainCol;
     ctx.beginPath(); ctx.roundRect(-15, -TORSO_H, 30, TORSO_H, 6); ctx.fill();
 
     // head
@@ -1240,12 +1246,12 @@ class Fighter {
     }
 
     // front arm (over torso)
-    this._arm(fArmX, fArmY, fUpper, fFore, U_ARM_L, FORE_L, LIMB_W, '#000');
+    this._arm(fArmX, fArmY, fUpper, fFore, U_ARM_L, FORE_L, LIMB_W, mainCol);
 
     ctx.restore(); // end torso+lean
 
     // 3) Front leg
-    this._leg(4, hipY, fThigh, fCalf, THIGH_L, CALF_L, LIMB_W, FOOT_W, FOOT_H, '#000');
+    this._leg(4, hipY, fThigh, fCalf, THIGH_L, CALF_L, LIMB_W, FOOT_W, FOOT_H, mainCol);
 
     ctx.restore(); // end character space
     ctx.globalAlpha = 1;
@@ -1315,6 +1321,7 @@ class Fighter {
 //  GAME STATE
 // ═══════════════════════════════════════════════════════════
 let gameState = 'menu';
+let difficulty = 'medium'; // 'easy' | 'medium' (default) | 'hard'
 let isPaused = false;
 let playerWins = 0, enemyWins = 0;
 const WIN_ROUNDS = 2;
@@ -1327,6 +1334,22 @@ let player, enemy;
 function initRound() {
   player = new Fighter(canvas.width * 0.25, true, 'PLAYER');
   enemy = new Fighter(canvas.width * 0.75, false, 'CPU');
+
+  // Configure enemy appearance & traits by difficulty
+  if (difficulty === 'easy') {
+    enemy.mainColor = '#16a34a'; // Vibrant emerald green
+    enemy.backColor = '#15803d'; // Deep green for back limbs
+    enemy.displayName = 'CPU [EASY]';
+  } else if (difficulty === 'hard') {
+    enemy.mainColor = '#dc2626'; // Vibrant crimson red
+    enemy.backColor = '#991b1b'; // Deep dark red for back limbs
+    enemy.displayName = 'CPU [HARD]';
+  } else {
+    enemy.mainColor = '#000000'; // Classic black shadow (medium default)
+    enemy.backColor = '#333333';
+    enemy.displayName = 'CPU [MEDIUM]';
+  }
+
   roundTimer = 99; roundTimerAcc = 0;
   countdown = 3; countdownTimer = 1;
   gameState = 'countdown';
@@ -1383,7 +1406,34 @@ document.addEventListener('keydown', e => {
       }
     }
   }
-  if (gameState === 'menu') { playerWins = 0; enemyWins = 0; roundNum = 1; initRound(); }
+  if (gameState === 'menu') {
+    if (e.code === 'Digit1' || e.code === 'Numpad1') {
+      difficulty = 'easy';
+      return;
+    }
+    if (e.code === 'Digit2' || e.code === 'Numpad2') {
+      difficulty = 'medium';
+      return;
+    }
+    if (e.code === 'Digit3' || e.code === 'Numpad3') {
+      difficulty = 'hard';
+      return;
+    }
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+      if (difficulty === 'hard') difficulty = 'medium';
+      else if (difficulty === 'medium') difficulty = 'easy';
+      return;
+    }
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+      if (difficulty === 'easy') difficulty = 'medium';
+      else if (difficulty === 'medium') difficulty = 'hard';
+      return;
+    }
+    if (e.code === 'Enter' || e.code === 'Space') {
+      playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+      return;
+    }
+  }
 });
 document.addEventListener('keyup', e => {
   keys[e.code] = false;
@@ -1392,14 +1442,98 @@ document.addEventListener('keyup', e => {
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(false);
 });
 
-// Clickable Rematch button layout
-function getRematchBtnRect() {
-  const W = canvas.width, H = canvas.height, sc = W / DW;
-  const btnW = Math.min(270 * sc, W * 0.55);
-  const btnH = Math.max(38, 46 * sc);
+// ── Menu and Button Layouts ──────────────────────────────────
+function getMenuLayout() {
+  const W = canvas.width, H = canvas.height;
+  const sc = Math.min(W / DW, H / 560);
+
+  const gap = 16 * sc;
+  const cardW = Math.min(270 * sc, (W - 44 * sc - gap * 2) / 3);
+  const cardH = Math.min(205 * sc, H * 0.40);
+  const totalW = cardW * 3 + gap * 2;
+  const startX = (W - totalW) / 2;
+  const cardY = H * 0.31;
+
+  const cards = [
+    {
+      id: 'easy',
+      title: 'EASY',
+      sub: 'GENTLE TRAINING',
+      color: '#16a34a',
+      accentBg: 'rgba(22, 163, 74, 0.08)',
+      bullets: [
+        '• Enemy deals -35% damage',
+        '• NO berserk rage (<50% HP)',
+        '• Slower reflexes & defense',
+        '• Green Enemy Silhouette'
+      ],
+      x: startX,
+      y: cardY,
+      w: cardW,
+      h: cardH
+    },
+    {
+      id: 'medium',
+      title: 'MEDIUM',
+      sub: 'AUTHENTIC CHALLENGE',
+      badge: 'DEFAULT',
+      color: '#000000',
+      accentBg: 'rgba(0, 0, 0, 0.05)',
+      bullets: [
+        '• Standard 100% damage',
+        '• Enrages below 50% HP!',
+        '• Smart tactical blocking/AI',
+        '• Classic Black Silhouette'
+      ],
+      x: startX + cardW + gap,
+      y: cardY,
+      w: cardW,
+      h: cardH
+    },
+    {
+      id: 'hard',
+      title: 'HARD',
+      sub: 'EXTREME DEFENSE',
+      color: '#dc2626',
+      accentBg: 'rgba(220, 38, 38, 0.08)',
+      bullets: [
+        '• Extremely dodgy & defensive',
+        '• 95% High Guard & reflex ducks',
+        '• Twitch backdashes & enrage',
+        '• Crimson Red Silhouette'
+      ],
+      x: startX + (cardW + gap) * 2,
+      y: cardY,
+      w: cardW,
+      h: cardH
+    }
+  ];
+
+  const btnW = Math.min(320 * sc, W * 0.65);
+  const btnH = Math.max(38, 44 * sc);
   const btnX = (W - btnW) / 2;
+  const btnY = cardY + cardH + 18 * sc;
+  const startBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
+
+  return { sc, cards, startBtn };
+}
+
+function getGameOverBtns() {
+  const W = canvas.width, H = canvas.height, sc = Math.min(W / DW, H / 560);
+  const btnW = Math.min(270 * sc, (W - 60 * sc) / 2);
+  const btnH = Math.max(40, 46 * sc);
+  const gap = 18 * sc;
+  const totalW = btnW * 2 + gap;
+  const startX = (W - totalW) / 2;
   const btnY = H * 0.62;
-  return { x: btnX, y: btnY, w: btnW, h: btnH };
+  return {
+    rematch: { x: startX, y: btnY, w: btnW, h: btnH },
+    menu: { x: startX + btnW + gap, y: btnY, w: btnW, h: btnH }
+  };
+}
+
+function getRematchBtnRect() {
+  return getGameOverBtns().rematch;
 }
 
 // Mouse: left = punch (or crouch punch if crouched), right = kick
@@ -1434,36 +1568,82 @@ canvas.addEventListener('mousedown', e => {
     return;
   }
   if (gameState === 'gameOver') {
-    // Fight is over: next fight begins ONLY when player clicks the Rematch button!
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     const mx = (e.clientX - rect.left) * scaleX;
     const my = (e.clientY - rect.top) * scaleY;
-    const btn = getRematchBtnRect();
+    const btns = getGameOverBtns();
 
-    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+    if (mx >= btns.rematch.x && mx <= btns.rematch.x + btns.rematch.w &&
+        my >= btns.rematch.y && my <= btns.rematch.y + btns.rematch.h) {
       playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+      return;
+    }
+    if (mx >= btns.menu.x && mx <= btns.menu.x + btns.menu.w &&
+        my >= btns.menu.y && my <= btns.menu.y + btns.menu.h) {
+      playerWins = 0; enemyWins = 0; roundNum = 1; gameState = 'menu';
+      return;
     }
     return;
   }
   if (gameState === 'menu') {
-    playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
-  }
-});
-
-canvas.addEventListener('mousemove', e => {
-  if (gameState === 'gameOver') {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     const mx = (e.clientX - rect.left) * scaleX;
     const my = (e.clientY - rect.top) * scaleY;
-    const btn = getRematchBtnRect();
+    const layout = getMenuLayout();
+
+    // Check click on difficulty cards
+    for (const card of layout.cards) {
+      if (mx >= card.x && mx <= card.x + card.w && my >= card.y && my <= card.y + card.h) {
+        difficulty = card.id;
+        return;
+      }
+    }
+
+    // Check click on Start Button
+    const btn = layout.startBtn;
+    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+      playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+      return;
+    }
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+
+  if (gameState === 'gameOver') {
+    const btns = getGameOverBtns();
+    if ((mx >= btns.rematch.x && mx <= btns.rematch.x + btns.rematch.w && my >= btns.rematch.y && my <= btns.rematch.y + btns.rematch.h) ||
+        (mx >= btns.menu.x && mx <= btns.menu.x + btns.menu.w && my >= btns.menu.y && my <= btns.menu.y + btns.menu.h)) {
+      canvas.style.cursor = 'pointer';
+      return;
+    }
+    canvas.style.cursor = 'default';
+    return;
+  }
+  if (gameState === 'menu') {
+    const layout = getMenuLayout();
+    for (const card of layout.cards) {
+      if (mx >= card.x && mx <= card.x + card.w && my >= card.y && my <= card.y + card.h) {
+        canvas.style.cursor = 'pointer';
+        return;
+      }
+    }
+    const btn = layout.startBtn;
     if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
       canvas.style.cursor = 'pointer';
       return;
     }
+    canvas.style.cursor = 'default';
+    return;
   }
   canvas.style.cursor = 'crosshair';
 });
@@ -1523,9 +1703,22 @@ function updateAI(dt) {
   enemy.aiTimer -= dt;
   if (enemy.aiTimer > 0) return;
 
-  const lowHp = enemy.hp < enemy.maxHp * 0.5; // Under 50% HP: Aggressive Berserk Mode!
-  // Fast decision cycle: normal smart tactical (0.16 - 0.32s), aggressive frenzy (0.07 - 0.15s)
-  enemy.aiTimer = lowHp ? rnd(0.07, 0.15) : rnd(0.16, 0.32);
+  const isEasy = (difficulty === 'easy');
+  const isHard = (difficulty === 'hard');
+  // Easy mode: CPU NEVER enters berserk aggression below 50% HP!
+  const lowHp = !isEasy && (enemy.hp < enemy.maxHp * 0.5);
+
+  // Decision cycles tuned per difficulty:
+  // Easy: relaxed, forgiving (0.24 - 0.42s)
+  // Medium: smart tactical (0.16 - 0.32s), aggressive frenzy (0.07 - 0.15s)
+  // Hard: twitch evasion reflexes (0.07 - 0.14s normal, 0.05 - 0.09s aggressive frenzy)
+  if (isEasy) {
+    enemy.aiTimer = rnd(0.24, 0.42);
+  } else if (isHard) {
+    enemy.aiTimer = lowHp ? rnd(0.05, 0.09) : rnd(0.07, 0.14);
+  } else {
+    enemy.aiTimer = lowHp ? rnd(0.07, 0.15) : rnd(0.16, 0.32);
+  }
 
   if (player.state === 'dead') { enemy.aiMoveX = 0; return; }
 
@@ -1536,19 +1729,17 @@ function updateAI(dt) {
   // 1. WAKE-UP / KNOCKDOWN BEHAVIOR:
   if (player.state === 'knockdown') {
     if (lowHp) {
-      // Aggressive AI: Okizeme / Wake-up pressure!
-      // Rushes right into strike range (75-95px) and prepares to strike the moment player gets up!
+      // Aggressive AI (Medium & Hard below 50% HP): Okizeme wake-up pressure!
       if (dist > 95) enemy.aiMoveX = dir * 260;
       else if (dist < 65) enemy.aiMoveX = -dir * 140;
       else {
         enemy.aiMoveX = 0;
-        // Prime low sweep kick or spartan kick right as wake-up completes
         if (player.stateProgress > 0.70 && Math.random() < 0.60) {
           enemy.attack(Math.random() < 0.50 ? 'sweepKick' : 'spartanKick');
         }
       }
     } else {
-      // Smart AI spacing: respect knockdown invulnerability, hold tactical spacing
+      // Tactical spacing: respect wake-up invulnerability
       if (dist > 140) enemy.aiMoveX = dir * 160;
       else if (dist < 110) enemy.aiMoveX = -dir * 120;
       else enemy.aiMoveX = 0;
@@ -1556,18 +1747,20 @@ function updateAI(dt) {
     return;
   }
 
-  // 2. DEFENSIVE BACKDASH: Smart AI ALWAYS uses evasive backdash when pressed close
-  if (!lowHp && enemy.onGround && dist < 125 && Math.random() < 0.40 && enemy.state !== 'dash') {
+  // 2. DEFENSIVE BACKDASH & EVASION:
+  // Hard mode: EXTREMELY DODGY! Constantly skips back to maintain optimal spacing and avoid trades
+  const backdashDist = isHard ? 140 : 125;
+  const backdashChance = isHard ? 0.72 : (isEasy ? 0.20 : 0.40);
+  if (!lowHp && enemy.onGround && dist < backdashDist && Math.random() < backdashChance && enemy.state !== 'dash') {
     enemy.dash(-dir); // Evasive backdash!
     enemy.aiMoveX = 0;
     return;
   }
 
-  // 3. ANTI-AIR DEFENSE: Smart AI ALWAYS reacts to airborne player
-  if (!player.onGround && dist < 190) {
+  // 3. ANTI-AIR DEFENSE: Reacts to airborne player
+  if (!player.onGround && dist < 195) {
     const roll = Math.random();
     if (lowHp) {
-      // Aggressive: leap into air with counter flip kick or spartan kick
       if (roll < 0.60 && enemy.onGround) {
         enemy.jump();
         setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 130);
@@ -1575,11 +1768,11 @@ function updateAI(dt) {
         enemy.attack('spartanKick');
       }
     } else {
-      // Smart AI: 75% block or anti-air kick
-      if (roll < 0.65) {
+      const antiAirRate = isHard ? 0.92 : (isEasy ? 0.50 : 0.75);
+      if (roll < antiAirRate) {
         enemy.block(true);
         setTimeout(() => enemy && enemy.block(false), rnd(350, 500));
-      } else if (enemy.onGround && roll < 0.85) {
+      } else if (enemy.onGround && roll < 0.90) {
         enemy.jump();
         setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
       } else {
@@ -1589,22 +1782,29 @@ function updateAI(dt) {
     return;
   }
 
-  // 4. REACTIVE DEFENSE (Smart blocking and ducking ALWAYS active!)
-  if (pAttacking && dist < 185) {
-    if (player.state === 'punch' && Math.random() < 0.50 && enemy.onGround) {
-      // Smart duck under high punches!
+  // 4. REACTIVE DEFENSE (Smart blocking, ducking, and dodging incoming strikes)
+  if (pAttacking && dist < (isHard ? 200 : 185)) {
+    // Duck punch: Hard = 88%, Medium = 50%, Easy = 25%
+    const duckPunchChance = isHard ? 0.88 : (isEasy ? 0.25 : 0.50);
+    if (player.state === 'punch' && Math.random() < duckPunchChance && enemy.onGround) {
       enemy.crouch(true);
       setTimeout(() => enemy && enemy.crouch(false), rnd(240, 420));
       return;
     }
 
-    if (Math.random() < 0.78) {
-      // 78% High Guard block chance against incoming strikes!
+    // Hard mode: lightning quick evasive backdash out of harm's way!
+    if (isHard && enemy.onGround && Math.random() < 0.75 && enemy.state !== 'dash') {
+      enemy.dash(-dir);
+      return;
+    }
+
+    // High Guard block rate: Hard = 95%, Medium = 78%, Easy = 50%
+    const blockChance = isHard ? 0.95 : (isEasy ? 0.50 : 0.78);
+    if (Math.random() < blockChance) {
       enemy.block(true);
       setTimeout(() => enemy && enemy.block(false), rnd(300, 500));
       return;
-    } else if (enemy.onGround && Math.random() < 0.45 && enemy.state !== 'dash') {
-      // Defensive backdash away from incoming hit
+    } else if (enemy.onGround && Math.random() < (isEasy ? 0.20 : 0.45) && enemy.state !== 'dash') {
       enemy.dash(-dir);
       return;
     }
@@ -1614,11 +1814,14 @@ function updateAI(dt) {
   if (player.state === 'crouch' || player.state === 'crouchPunch') {
     if (dist < 140) {
       if (lowHp) {
-        // Aggressive: low sweep or low jab immediately!
         enemy.attack(Math.random() < 0.60 ? 'sweepKick' : 'crouchPunch');
       } else {
-        if (Math.random() < 0.40) enemy.dash(-dir);
-        else enemy.attack(Math.random() < 0.50 ? 'sweepKick' : 'crouchPunch');
+        const crouchBackdashChance = isHard ? 0.70 : (isEasy ? 0.20 : 0.40);
+        if (Math.random() < crouchBackdashChance && enemy.onGround && enemy.state !== 'dash') {
+          enemy.dash(-dir);
+        } else {
+          enemy.attack(Math.random() < 0.50 ? 'sweepKick' : 'crouchPunch');
+        }
       }
     } else {
       enemy.aiMoveX = dir * (lowHp ? 260 : 180);
@@ -1626,13 +1829,12 @@ function updateAI(dt) {
     return;
   }
 
-  // 6. OFFENSIVE DASH (Always used for spacing; MUCH MORE aggressive below 50% HP)
-  const dashChance = lowHp ? 0.70 : 0.38;
+  // 6. OFFENSIVE DASH (Used for spacing; much more aggressive below 50% HP)
+  const dashChance = isHard ? (lowHp ? 0.75 : 0.55) : (lowHp ? 0.70 : (isEasy ? 0.20 : 0.38));
   if (enemy.onGround && dist > 130 && dist < 250 && Math.random() < dashChance && enemy.state !== 'dash') {
-    enemy.dash(dir); // Fast forward burst!
+    enemy.dash(dir);
     setTimeout(() => {
       if (enemy && enemy.state !== 'dead' && enemy.state !== 'knockdown' && enemy.state !== 'hurt') {
-        // Aggressive follow-up immediately out of dash!
         const atkRoll = Math.random();
         if (atkRoll < 0.45) enemy.attack('spartanKick');
         else if (atkRoll < 0.75) enemy.attack('sweepKick');
@@ -1642,18 +1844,16 @@ function updateAI(dt) {
     return;
   }
 
-  // 7. ATTACK & MOVEMENT STRATEGY (Relentless aggression when lowHp!)
+  // 7. ATTACK & MOVEMENT STRATEGY
   const roll = Math.random();
 
   if (lowHp) {
     // ═══════════════════════════════════════════════════════
-    //  AGGRESSIVE MODE (< 50% HP): Relentless Forward Pressure
+    //  AGGRESSIVE MODE (< 50% HP on Medium & Hard): Relentless Forward Pressure
     // ═══════════════════════════════════════════════════════
     if (dist > 200) {
-      // Sprint relentlessly towards player
-      enemy.aiMoveX = dir * 270;
+      enemy.aiMoveX = dir * (isHard ? 280 : 270);
     } else if (dist > 120) {
-      // Mid-range: burst in with Spartan Kick, Jump Front Flip Axe Kick, or dash
       if (roll < 0.45) {
         enemy.aiMoveX = dir * 220;
         setTimeout(() => { if (enemy) enemy.attack('spartanKick'); }, 80);
@@ -1664,8 +1864,10 @@ function updateAI(dt) {
         enemy.dash(dir);
       }
     } else {
-      // Point-blank melee range: relentless attacks, no backing down!
-      if (roll < 0.35) {
+      // In Hard mode, mix relentless attacks with sudden evasive resets
+      if (isHard && Math.random() < 0.40 && enemy.onGround && enemy.state !== 'dash') {
+        enemy.dash(-dir);
+      } else if (roll < 0.35) {
         enemy.attack('punch');
       } else if (roll < 0.60) {
         enemy.attack('crouchPunch');
@@ -1680,32 +1882,34 @@ function updateAI(dt) {
     //  STANDARD SMART TACTICAL MODE: Methodical spacing & counters
     // ═══════════════════════════════════════════════════════
     if (dist > 220) {
-      enemy.aiMoveX = dir * 190;
+      enemy.aiMoveX = dir * (isHard ? 200 : (isEasy ? 160 : 190));
     } else if (dist > 135) {
-      if (roll < 0.35) {
+      if (roll < (isEasy ? 0.25 : 0.35)) {
         enemy.aiMoveX = dir * 150;
         setTimeout(() => { if (enemy) enemy.attack('spartanKick'); }, 100);
-      } else if (roll < 0.60 && enemy.onGround) {
+      } else if (roll < (isEasy ? 0.45 : 0.60) && enemy.onGround) {
         enemy.jump();
         setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
       } else {
         enemy.aiMoveX = dir * 130;
       }
     } else if (dist < 80) {
-      if (roll < 0.25) {
+      // Hard mode: constantly dodgy when player gets within 80px!
+      if (isHard && Math.random() < 0.68 && enemy.onGround && enemy.state !== 'dash') {
+        enemy.dash(-dir); // Evasively dash away!
+      } else if (roll < 0.25) {
         enemy.attack('punch');
       } else if (roll < 0.48) {
         enemy.attack('crouchPunch');
       } else if (roll < 0.70) {
         enemy.attack('sweepKick');
       } else if (roll < 0.88 && enemy.onGround) {
-        enemy.dash(-dir); // Evasive backdash
+        enemy.dash(-dir);
       } else {
         enemy.block(true);
         setTimeout(() => enemy && enemy.block(false), rnd(300, 450));
       }
     } else {
-      // Mid-range mixup
       enemy.aiMoveX = 0;
       if (roll < 0.32) {
         enemy.attack('punch');
@@ -1780,6 +1984,11 @@ function checkHit(att, def) {
     range = 175 * sc;
     dmg = 21; // Increased health loss (+3 DMG, was 18)
     kbk = 55 * sc;
+  }
+
+  // Easy mode: CPU attacks deal 35% less damage
+  if (!att.isPlayer && difficulty === 'easy') {
+    dmg = Math.max(1, Math.round(dmg * 0.65 * 10) / 10);
   }
 
   if (Math.abs(att.x - def.x) > range) return;
@@ -1875,13 +2084,15 @@ function drawHUD() {
   const ex = W - pad - barW;
   ctx.fillStyle = '#eee'; ctx.fillRect(ex, pad, barW, barH);
   const ef = barW * (enemy.hp / enemy.maxHp);
-  ctx.fillStyle = '#000'; ctx.fillRect(ex + barW - ef, pad, ef, barH);
+  ctx.fillStyle = enemy.mainColor || '#000'; ctx.fillRect(ex + barW - ef, pad, ef, barH);
   ctx.strokeStyle = '#000'; ctx.strokeRect(ex, pad, barW, barH);
 
   // Names
   ctx.fillStyle = '#000'; ctx.font = `bold ${Math.floor(12 * sc)}px monospace`;
   ctx.textAlign = 'left'; ctx.fillText('PLAYER', pad, pad + barH + 16 * sc);
-  ctx.textAlign = 'right'; ctx.fillText('CPU', W - pad, pad + barH + 16 * sc);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = enemy.mainColor || '#000';
+  ctx.fillText(enemy.displayName || 'CPU', W - pad, pad + barH + 16 * sc);
 
   // Win gems
   const gr = 6 * sc, gy = pad + barH + 32 * sc;
@@ -1948,21 +2159,128 @@ function drawHUD() {
 
 // ── Screens ─────────────────────────────────────────────────
 function drawMenu() {
-  const W = canvas.width, H = canvas.height, sc = W / DW;
+  const W = canvas.width, H = canvas.height;
+  const layout = getMenuLayout();
+  const sc = layout.sc;
+
   drawBackground();
-  ctx.fillStyle = '#000'; ctx.textAlign = 'center';
-  ctx.font = `bold ${Math.floor(52 * sc)}px monospace`; ctx.fillText('SHADOW FIGHT', W / 2, H * 0.26);
-  ctx.font = `${Math.floor(14 * sc)}px monospace`; ctx.fillText('WEB PROTOTYPE', W / 2, H * 0.35);
-  ctx.fillStyle = '#333'; ctx.font = `${Math.floor(12 * sc)}px monospace`;
-  ctx.fillText('L-CLICK: Karate Punch (Hold S: Low Crouch Jab)  |  R-CLICK: Kick  |  AIR + R-CLICK: Front Flip Axe Kick', W / 2, H * 0.45);
-  ctx.fillText('FORWARD + R-CLICK: Spartan Kick (Leans back, 4x colossal knockback!)', W / 2, H * 0.51);
-  ctx.fillText('S (Crouch) + R-CLICK: Low Sweep Kick  |  S (Crouch) + L-CLICK: Low Crouch Punch', W / 2, H * 0.57);
-  ctx.fillText('DOUBLE-TAP A / D: Dash Move (Fast burst, half Spartan knockback distance!)', W / 2, H * 0.63);
-  ctx.fillText('A/D: Move  ·  W: Jump  ·  S: Crouch (Dodge punches)  ·  SHIFT: Boxer Block  ·  P: Pause & Moves', W / 2, H * 0.69);
-  ctx.globalAlpha = 0.55 + Math.sin(Date.now() * 0.004) * 0.45;
-  ctx.fillStyle = '#000'; ctx.font = `bold ${Math.floor(14 * sc)}px monospace`;
-  ctx.fillText('CLICK ANYWHERE OR PRESS ANY KEY TO START', W / 2, H * 0.82);
-  ctx.globalAlpha = 1;
+
+  // Header Title
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#000000';
+  ctx.font = `900 ${Math.floor(46 * sc)}px monospace`;
+  ctx.fillText('SHADOW FIGHT', W / 2, H * 0.14);
+
+  ctx.font = `bold ${Math.floor(12 * sc)}px monospace`;
+  ctx.fillStyle = '#666666';
+  ctx.fillText('SELECT DIFFICULTY  ·  CLICK TO CHOOSE  ·  PRESS ENTER TO FIGHT', W / 2, H * 0.22);
+
+  // Subtle separator line
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W * 0.12, H * 0.25);
+  ctx.lineTo(W * 0.88, H * 0.25);
+  ctx.stroke();
+
+  // Render Difficulty Selection Cards
+  for (const card of layout.cards) {
+    const isSelected = (difficulty === card.id);
+
+    // Card background
+    ctx.fillStyle = isSelected ? card.accentBg : '#ffffff';
+    ctx.fillRect(card.x, card.y, card.w, card.h);
+
+    // Card border
+    ctx.strokeStyle = isSelected ? card.color : '#d1d5db';
+    ctx.lineWidth = isSelected ? Math.max(3, 3.5 * sc) : Math.max(1.5, 1.5 * sc);
+    ctx.strokeRect(card.x, card.y, card.w, card.h);
+
+    // Card Header Banner
+    const headerH = 34 * sc;
+    ctx.fillStyle = isSelected ? card.color : '#f3f4f6';
+    ctx.fillRect(card.x, card.y, card.w, headerH);
+    ctx.strokeStyle = isSelected ? card.color : '#d1d5db';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(card.x, card.y + headerH);
+    ctx.lineTo(card.x + card.w, card.y + headerH);
+    ctx.stroke();
+
+    // Card Title
+    ctx.textAlign = 'center';
+    ctx.fillStyle = isSelected ? '#ffffff' : card.color;
+    ctx.font = `900 ${Math.floor(14 * sc)}px monospace`;
+    ctx.fillText(card.title, card.x + card.w / 2, card.y + 22 * sc);
+
+    // Default badge
+    if (card.badge) {
+      const badgeW = 60 * sc, badgeH = 14 * sc;
+      const bx = card.x + card.w - badgeW - 6 * sc;
+      const by = card.y + (headerH - badgeH) / 2;
+      ctx.fillStyle = isSelected ? '#ffffff' : '#000000';
+      ctx.fillRect(bx, by, badgeW, badgeH);
+      ctx.fillStyle = isSelected ? '#000000' : '#ffffff';
+      ctx.font = `bold ${Math.floor(8.5 * sc)}px monospace`;
+      ctx.fillText(card.badge, bx + badgeW / 2, by + badgeH * 0.75);
+    }
+
+    // Subtitle
+    ctx.fillStyle = isSelected ? card.color : '#6b7280';
+    ctx.font = `bold ${Math.floor(9.5 * sc)}px monospace`;
+    ctx.fillText(card.sub, card.x + card.w / 2, card.y + headerH + 16 * sc);
+
+    // Bullet points
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#374151';
+    ctx.font = `${Math.floor(9.5 * sc)}px monospace`;
+    const bulletStartY = card.y + headerH + 34 * sc;
+    const bulletGap = 20 * sc;
+    card.bullets.forEach((b, i) => {
+      ctx.fillText(b, card.x + 10 * sc, bulletStartY + i * bulletGap);
+    });
+
+    // Active Selection Badge Pill
+    if (isSelected) {
+      const pillH = 18 * sc;
+      const pillY = card.y + card.h - pillH - 7 * sc;
+      const pillW = card.w - 20 * sc;
+      const pillX = card.x + 10 * sc;
+      ctx.fillStyle = card.color;
+      ctx.fillRect(pillX, pillY, pillW, pillH);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `900 ${Math.floor(9.5 * sc)}px monospace`;
+      ctx.fillText('✓ SELECTED', pillX + pillW / 2, pillY + pillH * 0.72);
+    }
+  }
+
+  // Large Start Fight Button
+  const btn = layout.startBtn;
+  const pulse = 0.85 + Math.sin(Date.now() * 0.005) * 0.15;
+  ctx.save();
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `900 ${Math.floor(13.5 * sc)}px monospace`;
+  ctx.fillText('▶  START FIGHT  [ CLICK / ENTER ]', btn.x + btn.w / 2, btn.y + btn.h * 0.64);
+  ctx.restore();
+
+  // Keyboard navigation hint & quick move bar
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#888888';
+  ctx.font = `${Math.floor(9.5 * sc)}px monospace`;
+  ctx.fillText('KEYS: [1] Easy  ·  [2] Medium (Default)  ·  [3] Hard  ·  [ENTER / SPACE] Start Match', W / 2, btn.y + btn.h + 20 * sc);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.font = `${Math.floor(9 * sc)}px monospace`;
+  ctx.fillText('L-CLICK: Punch  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  HOLD S: Crouch  |  HOLD SHIFT: Block  |  P: Pause & Move List', W / 2, H - 12);
 }
 
 function drawPauseMenu() {
@@ -2204,21 +2522,39 @@ function drawGameOver() {
   const W = canvas.width, H = canvas.height, sc = W / DW;
   ctx.fillStyle = '#000'; ctx.textAlign = 'center';
   ctx.font = `bold ${Math.floor(52 * sc)}px monospace`;
-  ctx.fillText(playerWins >= WIN_ROUNDS ? 'VICTORY!' : 'DEFEAT', W / 2, H * 0.35);
+  ctx.fillText(playerWins >= WIN_ROUNDS ? 'VICTORY!' : 'DEFEAT', W / 2, H * 0.34);
   ctx.font = `bold ${Math.floor(18 * sc)}px monospace`;
-  ctx.fillText(`FINAL SCORE: ${playerWins} — ${enemyWins}`, W / 2, H * 0.48);
+  ctx.fillText(`FINAL SCORE: ${playerWins} — ${enemyWins}`, W / 2, H * 0.45);
 
-  // Clickable Rematch Button: only clicking this begins the next fight!
-  const btn = getRematchBtnRect();
+  const diffLabel = difficulty.toUpperCase();
+  ctx.fillStyle = difficulty === 'easy' ? '#16a34a' : (difficulty === 'hard' ? '#dc2626' : '#555555');
+  ctx.font = `bold ${Math.floor(13 * sc)}px monospace`;
+  ctx.fillText(`[ DIFFICULTY: ${diffLabel} ]`, W / 2, H * 0.52);
+
+  // Clickable Rematch & Main Menu buttons
+  const btns = getGameOverBtns();
+
+  // Rematch Button
   ctx.fillStyle = '#000000';
-  ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+  ctx.fillRect(btns.rematch.x, btns.rematch.y, btns.rematch.w, btns.rematch.h);
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = 3;
-  ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+  ctx.strokeRect(btns.rematch.x, btns.rematch.y, btns.rematch.w, btns.rematch.h);
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${Math.floor(15 * sc)}px monospace`;
-  ctx.fillText('⚔  REMATCH  ⚔', W / 2, btn.y + btn.h * 0.64);
+  ctx.font = `bold ${Math.floor(13.5 * sc)}px monospace`;
+  ctx.fillText('⚔  REMATCH  ⚔', btns.rematch.x + btns.rematch.w / 2, btns.rematch.y + btns.rematch.h * 0.64);
+
+  // Main Menu / Difficulty Selection Button
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(btns.menu.x, btns.menu.y, btns.menu.w, btns.menu.h);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(btns.menu.x, btns.menu.y, btns.menu.w, btns.menu.h);
+
+  ctx.fillStyle = '#000000';
+  ctx.font = `bold ${Math.floor(13.5 * sc)}px monospace`;
+  ctx.fillText('⚙  MENU / DIFFICULTY  ⚙', btns.menu.x + btns.menu.w / 2, btns.menu.y + btns.menu.h * 0.64);
 }
 
 // ── Round logic ─────────────────────────────────────────────
