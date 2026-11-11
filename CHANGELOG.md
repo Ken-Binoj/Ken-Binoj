@@ -21,9 +21,10 @@ This document tracks all features, mechanics, visual systems, and updates implem
 | Action | Control | Description |
 |---|---|---|
 | **Karate Punch** | `Left Click` | Piston-straight horizontal jab/cross; opposite hand pulled back tight to the hip (**Hikite**). |
+| **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched**; ducks under high standing punches! |
 | **Normal Kick** | `Right Click` (Stationary) | Upward sweeping round/snap kick targeting mid/high zones. |
-| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault kick; completes a **360° forward rotational flip** with downward axe kick. **Connects at 220° rotation & knocks down opponent!** |
-| **Spartan Kick** | `Moving Forward + Right Click` | Ferocious linear chest thrust kick; fighter **bends backward** dramatically (`-40°`); extended reach (`192px`) & **4x colossal knockback (`368px`)!** |
+| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault kick; completes a **360° forward rotational flip** gliding toward enemy with downward axe kick. **Connects at 220° rotation & knocks down opponent!** |
+| **Spartan Kick** | `Moving Forward + Right Click` | Ferocious linear chest thrust kick; fighter **bends backward** dramatically (`-40°`); extended reach (`192px`) & **4x colossal knockback (`368px`) with smooth sliding physics!** |
 | **Low Sweep Kick** | `Crouch (S) + Right Click` | Ground-level sweep with hand planted on floor. **Trips unblocked opponents onto their ass with screen shake!** |
 | **Crouch** | `S` or `Down Arrow` | Drops into a low martial arts crouch. **Passively ducks under all standing punches!** |
 | **Boxer High Guard Block** | `Left Shift` / `Shift` | Raises both fists and forearms tightly in front of the chin, nose, and eyes (peek-a-boo guard). Absorbs 90% of incoming damage and prevents sweep knockdowns. |
@@ -34,7 +35,25 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.6.0 — Front Flip Axe Kick & 4x Spartan Knockback (Current)
+### Version 1.6.1 — Animated Knockback Physics, Aerial Flip Glide & Crouch Punch (Current)
+- **Smooth Animated Knockback Physics (Zero Teleportation)**:
+  - Replaced all instant `x` position snaps with a smooth physics-based deceleration slide (`kbVx` and `kbDecel`).
+  - Knockback slide duration dynamically scales with hit severity (`0.28s` up to `0.52s` for the 4x Spartan kick).
+  - **Skid Dust Clouds**: As the opponent slides across the floor, their dragging heels kick up realistic dust particle clouds.
+  - **Perimeter Wall Collision**: If knockback reaches the arena boundary (`55px` or `W - 55px`), the opponent impacts the wall with a firm thud sound/shake (`shake(6, 0.14)`) and wall impact dust.
+- **Front Flip Axe Kick Forward Aerial Propulsion**:
+  - The attacker now automatically propels smoothly forward through the air toward the opponent (`forwardSpeed = 200 * sc`) during the first 70% of the somersault.
+  - Ensures the descending 220° axe kick lands squarely upon the opponent from mid-range.
+- **Crouch Punch (`S + Left Click`)**:
+  - Punching while crouching now executes a dedicated low straight punch (`crouchPunch`) **without standing up**.
+  - Fighter maintains a deep, grounded martial arts crouch (`bodyDip = 28`, `fThigh = -68°`, `fCalf = 68°`).
+  - **Duck Under Standing Punches**: Because the fighter stays low throughout the strike, opponent standing punches whiff harmlessly overhead.
+  - Includes IK straight-line arm extension and opposite-hand Hikite at the hip.
+  - Seamlessly returns to crouch stance if `S` is held.
+
+---
+
+### Version 1.6.0 — Front Flip Axe Kick & 4x Spartan Knockback
 - **Front Flip Axe Kick Overhaul (`flipKick`)**:
   - Replaced the backward somersault with a **forward somersault (Front Flip)** rotating clockwise 360° (`charRot = sp * 360°`).
   - **Devastating Axe Kick Mechanics**:

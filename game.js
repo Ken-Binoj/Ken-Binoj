@@ -90,6 +90,8 @@ class Fighter {
     this.aiTimer      = 0;
     this.aiMoveX      = 0;
     this.landedShake  = false;
+    this.kbVx         = 0;
+    this.kbDecel      = 0;
   }
 
   get sc()            { return canvas.width / DW; }
@@ -98,7 +100,7 @@ class Fighter {
 
   move(dx) {
     if (this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt'].includes(this.state)) return;
     if (this.state === 'crouch') return;
     this.x = clamp(this.x + dx, 55, canvas.width - 55);
     if (Math.abs(dx) > 0.5 && this.onGround) this.state = 'walk';
@@ -106,7 +108,7 @@ class Fighter {
 
   jump() {
     if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'crouch'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'crouch'].includes(this.state)) return;
     this.vy = -canvas.height * 0.9;
     this.onGround = false;
     this.state    = 'jump';
@@ -115,29 +117,30 @@ class Fighter {
   block(on) {
     if (this.state === 'dead' || this.state === 'knockdown') return;
     this.blocking = on;
-    if (on && this.onGround && !['punch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'crouch'].includes(this.state)) this.state = 'block';
+    if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'crouch'].includes(this.state)) this.state = 'block';
     if (!on && this.state === 'block') this.state = 'idle';
   }
 
   crouch(on) {
     if (this.state === 'dead' || this.state === 'knockdown') return;
     this.crouching = on;
-    if (on && this.onGround && !['punch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'block'].includes(this.state)) this.state = 'crouch';
+    if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'block'].includes(this.state)) this.state = 'crouch';
     if (!on && this.state === 'crouch') this.state = 'idle';
   }
 
   attack(type) {
     if (this.atkCooldown > 0 || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (this.state === 'crouch' && type !== 'sweepKick') this.state = 'idle';
+    if (this.state === 'crouch' && type !== 'sweepKick' && type !== 'crouchPunch') this.state = 'idle';
     let dur = 0.42;
-    if (type === 'kick') dur = 0.54;
+    if (type === 'punch') dur = 0.42;
+    else if (type === 'crouchPunch') dur = 0.40;
+    else if (type === 'kick') dur = 0.54;
     else if (type === 'spartanKick') dur = 0.62;
     else if (type === 'sweepKick') dur = 0.52;
     else if (type === 'flipKick') {
       dur = 0.68;
-      // Athletic acrobatic aerial lift & forward drive for Front Flip Axe Kick
+      // Athletic acrobatic aerial lift for Front Flip Axe Kick
       if (!this.onGround && this.vy > -240) this.vy = -canvas.height * 0.42;
-      this.x = clamp(this.x + 30 * this.facing * this.sc, 55, canvas.width - 55);
     }
     this.state       = type;
     this.stateDur    = dur;
@@ -150,17 +153,26 @@ class Fighter {
     if (this.blocking) {
       this.hp = Math.max(0, this.hp - Math.floor(dmg * 0.1));
       if (kbk > 150 * this.sc) {
-        // Massive hits (like 4x Spartan kick) push through guard
-        this.x = clamp(this.x + (kbk * 0.35) * attacker.facing, 55, canvas.width - 55);
+        // Massive hits (like 4x Spartan kick) push through guard smoothly with animation
+        const blockKbk = kbk * 0.35;
+        const dur = 0.22;
+        this.kbVx = (2 * blockKbk / dur) * attacker.facing;
+        this.kbDecel = Math.abs(this.kbVx) / dur;
       }
       shake(3, 0.10);
       return true;
     }
     this.hp = Math.max(0, this.hp - dmg);
-    this.x  = clamp(this.x + kbk * attacker.facing, 55, canvas.width - 55);
-    this.stunTimer    = 0.28;
+
+    // Dynamic animated knockback slide physics (no instant teleporting!)
+    // Duration scales with knockback distance: 0.28s for standard hits, up to 0.52s for 4x Spartan kick!
+    const dur = Math.max(0.28, Math.min(0.52, kbk / (650 * this.sc)));
+    this.kbVx = (2 * kbk / dur) * attacker.facing;
+    this.kbDecel = Math.abs(this.kbVx) / dur;
+
+    this.stunTimer    = dur;
     this.state        = 'hurt';
-    this.stateDur     = 0.28;
+    this.stateDur     = dur;
     this.stateElapsed = 0;
     this.hitCooldown  = 0.55;
     spawnParticles(this.x, this.y - 90 * this.sc);
@@ -172,7 +184,13 @@ class Fighter {
   knockdown(attacker, customDmg = 10) {
     if (this.state === 'dead' || this.state === 'knockdown') return;
     this.hp = Math.max(0, this.hp - customDmg);
-    this.x  = clamp(this.x + 55 * attacker.facing, 55, canvas.width - 55);
+
+    // Smooth animated slide as feet are swept out (no instant teleporting!)
+    const sweepKbk = 60 * this.sc;
+    const sweepSlideDur = 0.26;
+    this.kbVx = (2 * sweepKbk / sweepSlideDur) * attacker.facing;
+    this.kbDecel = Math.abs(this.kbVx) / sweepSlideDur;
+
     this.state        = 'knockdown';
     this.stateDur     = 1.65; // ~0.33s fall + ~1.0s grounded in sleeping position + ~0.32s get up
     this.stateElapsed = 0;
@@ -189,6 +207,40 @@ class Fighter {
     if (this.stunTimer    > 0) this.stunTimer     -= dt;
     if (this.comboTimer   > 0) this.comboTimer    -= dt; else this.comboCount = 0;
 
+    // Knockback slide physics update (smooth deceleration & wall collision)
+    if (Math.abs(this.kbVx) > 0) {
+      const step = this.kbVx * dt;
+      this.x = clamp(this.x + step, 55, canvas.width - 55);
+
+      // Hit arena perimeter wall: stop knockback with thud
+      if (this.x === 55 || this.x === canvas.width - 55) {
+        if (Math.abs(this.kbVx) > 100 * this.sc) {
+          shake(6, 0.14);
+          spawnParticles(this.x, this.y - 80 * this.sc, 8);
+        }
+        this.kbVx = 0;
+      } else {
+        const sign = Math.sign(this.kbVx);
+        this.kbVx -= sign * this.kbDecel * dt;
+        if (Math.sign(this.kbVx) !== sign) this.kbVx = 0;
+      }
+
+      // Kick up skid dust when sliding across the floor
+      if (this.onGround && Math.abs(this.kbVx) > 50 * this.sc && Math.random() < 0.60) {
+        spawnParticles(this.x, this.floor, 2);
+      }
+    }
+
+    // Front Flip Axe Kick: automatically propels forward toward the enemy through the air
+    if (this.state === 'flipKick') {
+      const sp = this.stateProgress;
+      // Active forward dive during first 70% of flip (launch, inversion, and 220° axe slam)
+      if (sp < 0.70) {
+        const forwardSpeed = 200 * this.sc;
+        this.x = clamp(this.x + forwardSpeed * this.facing * dt, 55, canvas.width - 55);
+      }
+    }
+
     // Ass slam shake trigger for knockdown fall
     if (this.state === 'knockdown') {
       const sp = this.stateProgress;
@@ -199,7 +251,7 @@ class Fighter {
       }
     }
 
-    if (['punch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown'].includes(this.state)) {
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown'].includes(this.state)) {
       this.stateElapsed += dt;
       if (this.stateElapsed >= this.stateDur) {
         if (!this.onGround) {
@@ -222,7 +274,7 @@ class Fighter {
 
     this.walkCycle += dt * (this.state === 'walk' ? 8 : 1.5);
 
-    if (this.state !== 'dead') {
+    if (this.state !== 'dead' && this.state !== 'flipKick') {
       const dx = opp.x - this.x;
       if (Math.abs(dx) > 2) this.facing = dx > 0 ? 1 : -1;
     }
@@ -367,6 +419,74 @@ class Fighter {
         bodyDip  = pDip;
         fThigh = -8; fCalf = 10;
         bThigh =  8; bCalf = 6;
+        break;
+      }
+
+      case 'crouchPunch': {
+        // Karate Low Punch from Crouch (Gedan Tsuki):
+        // Fighter remains crouched low to duck under high punches; fires straight low punch
+        bodyDip = 28; // Stays crouched low!
+        fThigh = -68; fCalf = 68; // Crouched stance legs
+        bThigh =  58; bCalf = -58;
+
+        let D = 24;
+        let pLean = -15;
+        let sShift = 0;
+        let bShift = 0;
+        let bUp = 20, bFo = -30;
+
+        if (sp < 0.16) {
+          const t = sp / 0.16;
+          D = lerp(26, 20, t);
+          sShift = lerp(0, -3, t);
+          pLean = lerp(-15, -12, t);
+          bUp = lerp(14, 35, t);
+          bFo = lerp(20, -60, t);
+        } else if (sp < 0.48) {
+          const t = (sp - 0.16) / 0.32;
+          const ease = 1 - (1 - t) * (1 - t);
+          D = lerp(20, 60.5, ease);
+          sShift = lerp(-3, 16, ease);
+          pLean = lerp(-12, -22, ease); // lean forward into low punch
+          bUp = lerp(35, 52, ease);
+          bFo = lerp(-60, -88, ease);
+          bShift = lerp(0, -10, ease);
+        } else if (sp < 0.66) {
+          D = 60.5;
+          sShift = 16;
+          pLean = -22;
+          bUp = 52;
+          bFo = -88;
+          bShift = -10;
+        } else {
+          const t = (sp - 0.66) / 0.34;
+          const ease = t * t;
+          D = lerp(60.5, 26, ease);
+          sShift = lerp(16, 0, ease);
+          pLean = lerp(-22, -15, ease);
+          bUp = lerp(52, 14, ease);
+          bFo = lerp(-88, 20, ease);
+          bShift = lerp(-10, 0, ease);
+        }
+
+        const u = U_ARM_L, f = FORE_L;
+        const clampedD = clamp(D, 18, u + f - 0.6);
+        const cosShoulder = (u*u + clampedD*clampedD - f*f) / (2 * u * clampedD);
+        const sAngle = Math.acos(clamp(cosShoulder, -1, 1));
+        const cosElbow = (u*u + f*f - clampedD*clampedD) / (2 * u * f);
+        const eAngle = Math.acos(clamp(cosElbow, -1, 1));
+
+        fUpper = -(90 - sAngle * 180 / Math.PI);
+        fFore  = -(180 - eAngle * 180 / Math.PI);
+        fArmX  = sShift;
+
+        // Hikite at hip
+        bUpper = bUp;
+        bFore  = bFo;
+        bArmX  = bShift;
+        bArmY  = -TORSO_H + 12;
+
+        bodyLean = pLean;
         break;
       }
 
@@ -853,10 +973,16 @@ document.addEventListener('keyup', e => {
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(false);
 });
 
-// Mouse: left = punch, right = kick (or Spartan kick if moving towards enemy, or sweep kick if crouched, or flip kick in air)
+// Mouse: left = punch (or crouch punch if crouched), right = kick
 canvas.addEventListener('mousedown', e => {
   if (gameState === 'fight') {
-    if (e.button === 0) player.attack('punch');
+    if (e.button === 0) {
+      if (player.crouching || player.state === 'crouch') {
+        player.attack('crouchPunch');
+      } else {
+        player.attack('punch');
+      }
+    }
     if (e.button === 2) {
       if (!player.onGround) {
         // Kick performed in the air -> Front Flip Axe Kick!
@@ -917,9 +1043,9 @@ function updateAI(dt) {
   }
 
   // 3. REACTIVE DEFENSE (Occasional block when player attacks)
-  const pAttacking = ['punch', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(player.state);
+  const pAttacking = ['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(player.state);
   if (pAttacking && dist < 180) {
-    if (player.state === 'punch' && Math.random() < 0.40 && enemy.onGround) {
+    if ((player.state === 'punch') && Math.random() < 0.40 && enemy.onGround) {
       // Duck under punches!
       enemy.crouch(true);
       setTimeout(() => enemy && enemy.crouch(false), rnd(250, 450));
@@ -932,10 +1058,10 @@ function updateAI(dt) {
     }
   }
 
-  // 4. COUNTER CROUCH: If player is crouching, high punch will whiff! Use low sweep or Spartan kick
-  if (player.state === 'crouch') {
-    if (dist < 165) {
-      enemy.attack(Math.random() < 0.60 ? 'sweepKick' : 'spartanKick');
+  // 4. COUNTER CROUCH: If player is crouching, high punch will whiff! Use low sweep, crouch punch, or Spartan kick
+  if (player.state === 'crouch' || player.state === 'crouchPunch') {
+    if (dist < 140) {
+      enemy.attack(Math.random() < 0.45 ? 'crouchPunch' : (Math.random() < 0.55 ? 'sweepKick' : 'spartanKick'));
     } else {
       enemy.aiMoveX = dir * 180;
     }
@@ -960,10 +1086,12 @@ function updateAI(dt) {
       enemy.aiMoveX = dir * 130;
     }
   } else if (dist < 80) {
-    // Close range: mix up low sweep, quick punch, or back-step
-    if (roll < 0.35) {
+    // Close range: mix up low sweep, quick punch, crouch punch, or back-step
+    if (roll < 0.28) {
       enemy.attack('punch');
-    } else if (roll < 0.65) {
+    } else if (roll < 0.52) {
+      enemy.attack('crouchPunch');
+    } else if (roll < 0.75) {
       enemy.attack('sweepKick');
     } else {
       enemy.aiMoveX = -dir * 160;
@@ -974,11 +1102,11 @@ function updateAI(dt) {
     if (roll < 0.12) {
       enemy.block(true);
       setTimeout(() => enemy && enemy.block(false), rnd(250, 400));
-    } else if (roll < 0.45) {
+    } else if (roll < 0.42) {
       enemy.attack('punch');
-    } else if (roll < 0.70) {
+    } else if (roll < 0.68) {
       enemy.attack(dist > 115 ? 'spartanKick' : 'kick');
-    } else if (roll < 0.85 && enemy.onGround) {
+    } else if (roll < 0.82 && enemy.onGround) {
       enemy.jump();
       setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
     } else {
@@ -990,7 +1118,7 @@ function updateAI(dt) {
 // ── Hit detection ──────────────────────────────────────────
 // Combo increments ONLY on confirmed hit
 function checkHit(att, def) {
-  if (!['punch', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(att.state)) return;
+  if (!['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(att.state)) return;
   if (att.hitCooldown > 0) return;
   if (def.state === 'knockdown' || def.state === 'dead') return; // Cannot hit grounded target
   const sp = att.stateProgress;
@@ -1006,6 +1134,7 @@ function checkHit(att, def) {
 
   // Reach ranges:
   // - Normal punch: 132 * sc
+  // - Crouch punch: 138 * sc
   // - Normal kick: 152 * sc
   // - Spartan kick: 192 * sc (massive reach & 4x colossal knockback: 368px!)
   // - Sweep kick: 160 * sc (low ground sweep)
@@ -1014,7 +1143,11 @@ function checkHit(att, def) {
   let dmg   = 9;
   let kbk   = 44 * sc;
 
-  if (att.state === 'kick') {
+  if (att.state === 'crouchPunch') {
+    range = 138 * sc;
+    dmg   = 9;
+    kbk   = 44 * sc;
+  } else if (att.state === 'kick') {
     range = 152 * sc;
     dmg   = 12;
     kbk   = 62 * sc;
@@ -1035,8 +1168,8 @@ function checkHit(att, def) {
   if (Math.abs(att.x - def.x) > range) return;
   if (att.facing * (def.x - att.x) < 0) return;
 
-  // Crouching ducks under standing punches
-  if (att.state === 'punch' && def.state === 'crouch') return;
+  // Crouching (or Crouch Punching) ducks under standing punches!
+  if (att.state === 'punch' && (def.state === 'crouch' || def.state === 'crouchPunch')) return;
 
   // Sweep kick special logic: trips unblocked opponents!
   if (att.state === 'sweepKick') {
@@ -1151,7 +1284,7 @@ function drawHUD() {
 
   // Hint
   ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.font=`${Math.floor(10*sc)}px monospace`;
-  ctx.fillText('L-CLICK: Punch  |  R-CLICK: Kick  |  AIR+R-CLICK: Front Flip Axe Kick  |  FWD+R-CLICK: Spartan Kick (4x KB)  |  S+R-CLICK: Sweep',W/2,H-10);
+  ctx.fillText('L-CLICK: Punch (Crouched: Low Jab)  |  R-CLICK: Kick  |  AIR+R-CLICK: Front Flip Axe Kick  |  FWD+R-CLICK: Spartan (4x KB)  |  S+R-CLICK: Sweep',W/2,H-10);
 }
 
 // ── Screens ─────────────────────────────────────────────────
@@ -1162,9 +1295,9 @@ function drawMenu() {
   ctx.font=`bold ${Math.floor(52*sc)}px monospace`; ctx.fillText('SHADOW FIGHT',W/2,H*0.26);
   ctx.font=`${Math.floor(14*sc)}px monospace`; ctx.fillText('WEB PROTOTYPE',W/2,H*0.35);
   ctx.fillStyle='#333'; ctx.font=`${Math.floor(12*sc)}px monospace`;
-  ctx.fillText('L-CLICK: Karate Punch  |  R-CLICK: Kick  |  AIR + R-CLICK: Front Flip Axe Kick (Knocks Down at 220°!)',W/2,H*0.48);
+  ctx.fillText('L-CLICK: Karate Punch (Hold S: Low Crouch Jab)  |  R-CLICK: Kick  |  AIR + R-CLICK: Front Flip Axe Kick',W/2,H*0.48);
   ctx.fillText('FORWARD + R-CLICK: Spartan Kick (Leans back, 4x colossal knockback!)',W/2,H*0.54);
-  ctx.fillText('S (Crouch) + R-CLICK: Low Sweep Kick (Knocks enemy onto ass for 1s!)',W/2,H*0.60);
+  ctx.fillText('S (Crouch) + R-CLICK: Low Sweep Kick  |  S (Crouch) + L-CLICK: Low Crouch Punch',W/2,H*0.60);
   ctx.fillText('A/D: Move  ·  W: Jump  ·  S: Crouch (Dodge punches)  ·  SHIFT: Boxer Block',W/2,H*0.66);
   ctx.globalAlpha=0.55+Math.sin(Date.now()*0.004)*0.45;
   ctx.fillStyle='#000'; ctx.font=`bold ${Math.floor(14*sc)}px monospace`;
@@ -1247,7 +1380,7 @@ function loop(ts) {
   }
 
   if (gameState==='fight') {
-    if (!['punch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'crouch'].includes(player.state)) {
+    if (!['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'crouch'].includes(player.state)) {
       let mv=false;
       if (keys['KeyA']||keys['ArrowLeft'])  { player.move(-220*dt); mv=true; }
       if (keys['KeyD']||keys['ArrowRight']) { player.move( 220*dt); mv=true; }
