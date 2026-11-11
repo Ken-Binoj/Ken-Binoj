@@ -54,6 +54,61 @@ function drawParticles() {
   ctx.globalAlpha = 1;
 }
 
+// ── Ground Seismic Shockwaves ────────────────────────────────
+const groundShockwaves = [];
+function spawnGroundShockwave(x, y) {
+  const sc = canvas.width / DW;
+  groundShockwaves.push({
+    x: x,
+    y: y,
+    radius: 12,
+    maxRadius: canvas.width * 1.1,
+    speed: 1500 * sc,
+    alpha: 1.0
+  });
+}
+function updateGroundShockwaves(dt) {
+  for (let i = groundShockwaves.length - 1; i >= 0; i--) {
+    const sw = groundShockwaves[i];
+    sw.radius += sw.speed * dt;
+    sw.alpha = Math.max(0, 1 - (sw.radius / sw.maxRadius));
+    if (sw.radius >= sw.maxRadius || sw.alpha <= 0) {
+      groundShockwaves.splice(i, 1);
+    }
+  }
+}
+function drawGroundShockwaves() {
+  if (groundShockwaves.length === 0) return;
+  const sc = canvas.width / DW;
+  ctx.save();
+  for (const sw of groundShockwaves) {
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = Math.max(2, 4 * sc);
+    ctx.globalAlpha = sw.alpha * 0.9;
+
+    const leftX = sw.x - sw.radius;
+    const rightX = sw.x + sw.radius;
+    const floorY = sw.y;
+
+    // Ground fissure line
+    ctx.beginPath();
+    ctx.moveTo(Math.max(0, leftX), floorY);
+    ctx.lineTo(Math.min(canvas.width, rightX), floorY);
+    ctx.stroke();
+
+    // Rising seismic spikes at leading edges of shockwave
+    for (const sx of [leftX, rightX]) {
+      if (sx >= -40 && sx <= canvas.width + 40) {
+        ctx.beginPath();
+        ctx.moveTo(sx, floorY);
+        ctx.lineTo(sx, floorY - 24 * sw.alpha * sc);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+}
+
 // ── Screen shake ────────────────────────────────────────────
 let shakeAmt = 0, shakeDur = 0;
 function shake(a, d) { shakeAmt = a; shakeDur = d; }
@@ -99,6 +154,9 @@ class Fighter {
     this.dashGhosts = [];
     this.kdTimestamps = [];
     this.reversalReady = false;
+    this.spartanHitTimestamps = [];
+    this.groundStompReady = false;
+    this.hasStomped = false;
     this.punchComboCount = 0;
     this.punchComboTimer = 0;
     this.punchLockoutTimer = 0;
@@ -112,7 +170,7 @@ class Fighter {
 
   move(dx) {
     if (this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash', 'groundStomp'].includes(this.state)) return;
     if (this.state === 'crouch') {
       if (this.isPlayer && !(keys['KeyS'] || keys['ArrowDown'])) {
         this.state = 'idle';
@@ -126,7 +184,7 @@ class Fighter {
 
   dash(dir) {
     if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash', 'groundStomp'].includes(this.state)) return;
     const dur = 0.20;
     this.state = 'dash';
     this.stateDur = dur;
@@ -212,6 +270,12 @@ class Fighter {
       dur = 0.68;
       // Athletic acrobatic aerial lift for Front Flip Axe Kick
       if (!this.onGround && this.vy > -240) this.vy = -canvas.height * 0.42;
+    } else if (type === 'groundStomp') {
+      dur = 0.58;
+      this.hasStomped = false;
+      this.y = this.floor;
+      this.vy = 0;
+      this.onGround = true;
     }
     this.state = type;
     this.stateDur = dur;
@@ -221,6 +285,17 @@ class Fighter {
 
   takeHit(dmg, kbk, attacker) {
     if (this.state === 'dead' || this.state === 'knockdown') return false;
+
+    // Track receiving Spartan Kicks (3 Spartan Kicks received in span of 5s -> unlocks Ground Stomp "Q"!)
+    if (attacker && attacker.state === 'spartanKick') {
+      const now = performance.now();
+      this.spartanHitTimestamps.push(now);
+      this.spartanHitTimestamps = this.spartanHitTimestamps.filter(t => now - t <= 5000);
+      if (this.spartanHitTimestamps.length >= 3) {
+        this.groundStompReady = true;
+      }
+    }
+
     if (this.blocking) {
       this.hp = Math.max(0, this.hp - Math.floor(dmg * 0.1));
       if (kbk > 150 * this.sc) {
@@ -282,10 +357,15 @@ class Fighter {
   }
 
   update(dt, opp) {
-    // Maintain 5-second rolling window for knockdowns
+    // Maintain 5-second rolling window for Spartan kicks received and knockdowns
     const now = performance.now();
+    this.spartanHitTimestamps = this.spartanHitTimestamps.filter(t => now - t <= 5000);
+    if (this.spartanHitTimestamps.length >= 3) {
+      this.groundStompReady = true;
+    }
     this.kdTimestamps = this.kdTimestamps.filter(t => now - t <= 5000);
     if (this.kdTimestamps.length >= 3) {
+      this.groundStompReady = true;
       this.reversalReady = true;
     }
 
@@ -382,7 +462,24 @@ class Fighter {
       }
     }
 
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'dash'].includes(this.state)) {
+    // Ground Stomp seismic impact
+    if (this.state === 'groundStomp') {
+      const sp = this.stateProgress;
+      if (sp >= 0.38 && !this.hasStomped) {
+        this.hasStomped = true;
+        shake(22, 0.45);
+        spawnParticles(this.x, this.floor - 15, 45);
+        spawnGroundShockwave(this.x, this.floor);
+
+        // Ground Stomp effect: Opponent gets knocked down wherever they are on screen!
+        if (opp && opp.state !== 'dead') {
+          spawnParticles(opp.x, opp.floor - 20, 25);
+          opp.knockdown(this, 0, 110 * opp.sc);
+        }
+      }
+    }
+
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'dash', 'groundStomp'].includes(this.state)) {
       this.stateElapsed += dt;
       if (this.stateElapsed >= this.stateDur) {
         if (!this.onGround) {
@@ -868,6 +965,61 @@ class Fighter {
         break;
       }
 
+      case 'groundStomp': {
+        // Martial Arts Ground Stomp Attack ("Q"):
+        // 0.0 -> 0.38: Dramatic high knee raise chamber (charging kinetic seismic energy)
+        // 0.38 -> 0.52: Violent downward foot stomp impact onto the arena floor!
+        // 0.52 -> 1.0: Deep grounded crater stance and recovery back to idle
+        if (sp < 0.38) {
+          const t = sp / 0.38;
+          const ease = t * (2 - t);
+          bodyLean = lerp(0, 14, ease); // Leaning back slightly to chamber leg
+          bodyDip = lerp(0, -6, ease);
+          // Front leg lifts high into chest chamber
+          fThigh = lerp(-5, -108, ease);
+          fCalf = lerp(5, 102, ease);
+          // Back leg firmly planted
+          bThigh = lerp(8, 6, ease);
+          bCalf = lerp(5, 12, ease);
+          // Power arms flare outward
+          fUpper = lerp(-35, -75, ease);
+          fFore = lerp(65, 30, ease);
+          bUpper = lerp(-15, 60, ease);
+          bFore = lerp(50, 30, ease);
+        } else if (sp < 0.52) {
+          // Violent stomping slam into the ground!
+          const t = (sp - 0.38) / 0.14;
+          const ease = t * t;
+          bodyLean = lerp(14, -14, ease);
+          bodyDip = lerp(-6, 20, ease); // Deep drop into the earth
+          // Front leg stomps straight into the ground
+          fThigh = lerp(-108, -6, ease);
+          fCalf = lerp(102, 6, ease);
+          bThigh = lerp(6, 45, ease);
+          bCalf = lerp(12, -35, ease);
+          // Arms thrust down in power kiai
+          fUpper = lerp(-75, 45, ease);
+          fFore = lerp(30, 40, ease);
+          bUpper = lerp(60, -35, ease);
+          bFore = lerp(30, 45, ease);
+        } else {
+          // Deep power stance recovery back to idle
+          const t = (sp - 0.52) / 0.48;
+          const ease = 1 - (1 - t) * (1 - t);
+          bodyLean = lerp(-14, 0, ease);
+          bodyDip = lerp(20, 0, ease);
+          fThigh = lerp(-6, -5, ease);
+          fCalf = lerp(6, 5, ease);
+          bThigh = lerp(45, 8, ease);
+          bCalf = lerp(-35, 5, ease);
+          fUpper = lerp(45, -35, ease);
+          fFore = lerp(40, 65, ease);
+          bUpper = lerp(-35, -15, ease);
+          bFore = lerp(45, 50, ease);
+        }
+        break;
+      }
+
       case 'crouch':
         bodyDip = 28;
         bodyLean = -15;
@@ -1139,6 +1291,7 @@ function initRound() {
   gameState = 'countdown';
   isPaused = false;
   particles.length = 0;
+  groundShockwaves.length = 0;
   keys = {};
   roundBannerText = '';
   roundBannerTimer = 0;
@@ -1184,8 +1337,8 @@ document.addEventListener('keydown', e => {
     if (e.code === 'KeyS' || e.code === 'ArrowDown') player.crouch(true);
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(true);
     if (e.code === 'KeyQ') {
-      if (player && player.reversalReady) {
-        triggerReversal(player, enemy);
+      if (player && (player.groundStompReady || player.reversalReady)) {
+        triggerGroundStomp(player, enemy);
       }
     }
   }
@@ -1285,43 +1438,36 @@ window.addEventListener('blur', () => {
   }
 });
 
-// ── Reversal Burst (Knocked down 3 times in 5 seconds -> [Q] Burst) ──
-function triggerReversal(user, target) {
-  if (!user || !user.reversalReady) return;
+// ── Ground Stomp Attack ("Q") (Received 3 Spartan Kicks in 5s -> Screen-Wide Knockdown) ──
+function triggerGroundStomp(user, target) {
+  if (!user || (!user.groundStompReady && !user.reversalReady)) return;
+  user.groundStompReady = false;
   user.reversalReady = false;
+  user.spartanHitTimestamps = [];
   user.kdTimestamps = [];
 
-  // Shockwave kinetic explosion!
-  shake(15, 0.35);
-  spawnParticles(user.x, user.floor - 40, 30);
+  // If user is knocked down or in hurt state, snap them instantly awake onto their feet!
+  user.state = 'idle';
+  user.stunTimer = 0;
+  user.y = user.floor;
+  user.vy = 0;
+  user.onGround = true;
+  user.crouching = false;
+  user.blocking = false;
 
-  // If user is knocked down or in hurt state, snap them instantly awake!
-  if (user.state === 'knockdown' || user.state === 'hurt') {
-    user.state = 'idle';
-    user.stunTimer = 0;
-    user.y = user.floor;
-    user.vy = 0;
-    user.onGround = true;
-    user.crouching = false;
-    user.blocking = false;
-  }
-
-  // Proximity check:
-  // "opponent gets knocked back if too close and also knocked down without health loss"
-  const dist = Math.abs(user.x - target.x);
-  const PROXIMITY_THRESHOLD = 160 * (canvas.width / DW);
-  if (dist < PROXIMITY_THRESHOLD) {
-    // Huge knockback (380 * sc) + knockdown with 0 DMG!
-    target.knockdown(user, 0, 380 * target.sc);
-  }
+  // Execute the epic Ground Stomp attack!
+  user.attack('groundStomp');
+}
+function triggerReversal(user, target) {
+  triggerGroundStomp(user, target);
 }
 
 // ── AI (Tactical & Realistic: Always Smart, Hyper-Aggressive under 50% HP) ──
 function updateAI(dt) {
   if (!enemy || gameState !== 'fight') return;
-  // Trigger [Q] Reversal Burst if CPU gets knocked down 3 times in 5s!
-  if (enemy.reversalReady) {
-    triggerReversal(enemy, player);
+  // Trigger [Q] Ground Stomp if CPU received 3 Spartan Kicks (or 3 knockdowns) in 5s!
+  if (enemy.groundStompReady || enemy.reversalReady) {
+    triggerGroundStomp(enemy, player);
     return;
   }
   if (enemy.state === 'knockdown') { enemy.aiMoveX = 0; return; }
@@ -1705,32 +1851,32 @@ function drawHUD() {
     ctx.stroke();
   }
 
-  // [Q] Reversal Burst Prompt below Player Health Bar (when knocked down 3 times in 5s)
-  if (player && player.reversalReady) {
+  // [Q] Ground Stomp Prompt below Player Health Bar (unlocked by receiving 3 Spartan Kicks in 5s)
+  if (player && (player.groundStompReady || player.reversalReady)) {
     const pulse = 0.70 + Math.sin(Date.now() * 0.009) * 0.30;
     ctx.save();
     ctx.globalAlpha = pulse;
     const badgeX = pad;
     const badgeY = pad + barH + 44 * sc;
-    const badgeW = 150 * sc, badgeH = 20 * sc;
+    const badgeW = 172 * sc, badgeH = 20 * sc;
     ctx.fillStyle = '#000000';
     ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
     ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${Math.floor(10 * sc)}px monospace`;
+    ctx.font = `900 ${Math.floor(9.5 * sc)}px monospace`;
     ctx.textAlign = 'center';
-    ctx.fillText('⚡ PRESS [Q] BURST! ⚡', badgeX + badgeW / 2, badgeY + badgeH * 0.72);
+    ctx.fillText('💥 PRESS [Q] GROUND STOMP! 💥', badgeX + badgeW / 2, badgeY + badgeH * 0.72);
     ctx.restore();
   }
 
-  // Reversal Prompt below CPU Health Bar
-  if (enemy && enemy.reversalReady) {
+  // Ground Stomp Prompt below CPU Health Bar
+  if (enemy && (enemy.groundStompReady || enemy.reversalReady)) {
     const pulse = 0.70 + Math.sin(Date.now() * 0.009) * 0.30;
     ctx.save();
     ctx.globalAlpha = pulse;
-    const badgeW = 150 * sc, badgeH = 20 * sc;
+    const badgeW = 160 * sc, badgeH = 20 * sc;
     const badgeX = W - pad - badgeW;
     const badgeY = pad + barH + 44 * sc;
     ctx.fillStyle = '#000000';
@@ -1739,9 +1885,9 @@ function drawHUD() {
     ctx.lineWidth = 2;
     ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
     ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${Math.floor(10 * sc)}px monospace`;
+    ctx.font = `900 ${Math.floor(9.5 * sc)}px monospace`;
     ctx.textAlign = 'center';
-    ctx.fillText('⚡ REVERSAL READY ⚡', badgeX + badgeW / 2, badgeY + badgeH * 0.72);
+    ctx.fillText('💥 STOMP READY 💥', badgeX + badgeW / 2, badgeY + badgeH * 0.72);
     ctx.restore();
   }
 
@@ -1898,11 +2044,11 @@ function drawPauseMenu() {
       line2: 'Passively evades all standing punches and high kicks.'
     },
     {
-      name: 'Combat Tactics & AI',
-      input: 'ENRAGE & REVERSAL',
-      badge: 'TIPS',
-      line1: 'Knocked down 3x in 5s? Press [Q] to unleash Reversal Burst!',
-      line2: 'Standing guard blocks high; crouch block stops sweeps!'
+      name: 'Ground Stomp ("Q")',
+      input: 'RECEIVE 3 SPARTAN KICKS',
+      badge: 'SCREEN-WIDE',
+      line1: 'Taking 3 Spartan Kicks in 5s unlocks [Q] Ground Stomp.',
+      line2: 'Violently slams the floor: KNOCKS DOWN FOE ANYWHERE!'
     }
   ];
 
@@ -2079,6 +2225,15 @@ function startNextRoundContinuous() {
   roundBannerTimer = 1.8;
   isPaused = false;
   keys = {};
+  groundShockwaves.length = 0;
+  player.groundStompReady = false;
+  player.reversalReady = false;
+  player.spartanHitTimestamps = [];
+  player.kdTimestamps = [];
+  enemy.groundStompReady = false;
+  enemy.reversalReady = false;
+  enemy.spartanHitTimestamps = [];
+  enemy.kdTimestamps = [];
 
   // 1. Both health bars become full!
   player.hp = player.maxHp;
@@ -2168,7 +2323,8 @@ function loop(ts) {
   if (gameState === 'countdown') {
     player.update(dt, enemy); enemy.update(dt, player);
     updateParticles(dt);
-    drawBackground(); player.draw(); enemy.draw(); drawParticles(); drawHUD();
+    updateGroundShockwaves(dt);
+    drawBackground(); player.draw(); enemy.draw(); drawParticles(); drawGroundShockwaves(); drawHUD();
     countdownTimer -= dt;
     if (countdownTimer <= 0) { countdown--; if (countdown < 0) gameState = 'fight'; else countdownTimer = 1; }
     drawCountdown();
@@ -2181,6 +2337,7 @@ function loop(ts) {
       player.draw();
       enemy.draw();
       drawParticles();
+      drawGroundShockwaves();
       drawHUD();
       drawPauseMenu();
       ctx.restore();
@@ -2188,7 +2345,7 @@ function loop(ts) {
       return;
     }
 
-    if (!['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block'].includes(player.state)) {
+    if (!['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp'].includes(player.state)) {
       if (player.state === 'crouch' && (keys['KeyS'] || keys['ArrowDown'])) {
         // Player is intentionally holding crouch
       } else {
@@ -2225,7 +2382,7 @@ function loop(ts) {
   }
 
   drawBackground(); player.draw(); enemy.draw();
-  updateParticles(dt); drawParticles();
+  updateParticles(dt); updateGroundShockwaves(dt); drawParticles(); drawGroundShockwaves();
   drawHUD();
   if (roundBannerTimer > 0) drawRoundBanner();
   if (gameState === 'roundTransition') drawRoundTransition();

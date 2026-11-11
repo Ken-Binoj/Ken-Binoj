@@ -31,14 +31,34 @@ This document tracks all features, mechanics, visual systems, and updates implem
 | **Move Left / Right** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with automatic walk cycle animation. |
 | **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive directional burst propelling character **`184px` (exactly half of Spartan kick knockback!)** with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Aerial leap with parabolic gravity physics. |
-| **Reversal Burst** | `Q` | Ready when knocked down 3 times in 5 seconds! Blasts nearby foes with colossal knockback and knockdown (0 DMG). |
+| **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after receiving 3 Spartan Kicks in 5 seconds! Smashes floor: **KNOCKS DOWN OPPONENT WHEREVER THEY ARE ON SCREEN!** |
 | **Pause & Move Consequences** | `P` or `Escape` | Pauses match and opens full Move List modal with damage values and tactical consequences. Press P/ESC or click to resume. |
 
 ---
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.4 — Instant Round 2 & 3 Start (No Countdown) & Alternating Rapid Punch Combo (Current)
+### Version 1.7.5 — [Q] Ground Stomp Screen-Wide Knockdown Attack (Current)
+- **Receive 3 Spartan Kicks in 5 Seconds**:
+  - **Dynamic Rolling Tracker**: Both fighters now track the exact timestamps of every Spartan Kick received (`spartanHitTimestamps`) within a rolling 5-second window (`filter(t => now - t <= 5000)`).
+  - **Unlock Condition**: When a character absorbs or is hit by 3 Spartan Kicks in the span of 5 seconds, the devastating **Ground Stomp Attack ("Q")** is immediately unlocked (`groundStompReady = true`).
+  - **HUD Callout**: An animated high-contrast pulsing indicator appears directly below the fighter's health bar:
+    - Player: `💥 PRESS [Q] GROUND STOMP! 💥`
+    - CPU: `💥 STOMP READY 💥`
+- **Ground Stomp Attack Execution & Animation**:
+  - **Instant Recovery**: If the user is currently knocked down or in hitstun when pressing `Q`, they immediately surge upright onto their feet.
+  - **Chambering Pose**: The fighter rears back, arms flaring wide with clenched fists, while their lead knee chambers up high toward the chest (`bodyLean = 14°`, `fThigh = -108°`, `fCalf = 102°`).
+  - **Sledgehammer Impact**: At `sp >= 0.38`, the foot slams downward into the earth with massive kinetic force (`fThigh = -6°`, `fCalf = 6°`, `bodyDip = 20px`), triggering heavy screen shake (`shake(22, 0.45)`) and upward dust explosions.
+  - **Seismic Ground Wave Effect**: Dynamic horizontal seismic shockwaves ripple outward along the arena floor line in both directions with rising vertical kinetic spikes (`groundShockwaves`).
+  - **Screen-Wide Knockdown**: The seismic shock knocks down the opponent **wherever they are on screen**, sweeping their feet out and putting them flat on their back in the sleeping position (0 DMG, guaranteed knockdown).
+- **CPU AI Integration**:
+  - If the CPU absorbs 3 Spartan Kicks within 5 seconds, it recognizes its unlocked Ground Stomp and activates it strategically.
+- **In-Game Pause Menu Updates**:
+  - Updated the Pause Menu (`P` / `ESC`) move list with full documentation for the Ground Stomp attack and its screen-wide knockdown effect.
+
+---
+
+### Version 1.7.4 — Instant Round 2 & 3 Start (No Countdown) & Alternating Rapid Punch Combo
 - **Instant Round 2 & Round 3 Start**:
   - **No Countdown**: Completely removed the 3... 2... 1... countdown timer for Round 2 and Round 3.
   - **Instant Action Banner**: As soon as the next continuous round begins, a sleek high-contrast banner displays `"ROUND 2 BEGINS"` (or `"ROUND 3 BEGINS"`), and fighters are immediately in active combat mode (`gameState = 'fight'`).
