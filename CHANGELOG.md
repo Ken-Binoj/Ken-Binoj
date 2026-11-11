@@ -20,7 +20,7 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 | Action | Control | Description |
 |---|---|---|
-| **Karate Punch** | `Left Click` | Piston-straight horizontal jab/cross; opposite hand pulled back tight to the hip (**Hikite**). |
+| **Rapid Punch Combo** | `Rapid Left Click (x1-5)` | Fast flurry punching with **alternating hands** (lead & back arms). 1st punch deals **9 DMG**; remaining 4 punches deal **2.25 DMG** (`9 / 4`). Max 5 punches followed by a **0.5s lockout**. |
 | **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched**; ducks under high standing punches! |
 | **Normal Kick** | `Right Click` (Stationary) | Upward sweeping round/snap kick targeting mid/high zones. |
 | **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault kick; completes a **360° forward rotational flip** gliding toward enemy with downward axe kick. **Connects at 220° rotation & knocks down opponent!** |
@@ -38,7 +38,25 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.3 — Faster Strikes, [Q] Reversal Burst, Guaranteed Round 2 Flow & Clickable Rematch (Current)
+### Version 1.7.4 — Instant Round 2 & 3 Start (No Countdown) & Alternating Rapid Punch Combo (Current)
+- **Instant Round 2 & Round 3 Start**:
+  - **No Countdown**: Completely removed the 3... 2... 1... countdown timer for Round 2 and Round 3.
+  - **Instant Action Banner**: As soon as the next continuous round begins, a sleek high-contrast banner displays `"ROUND 2 BEGINS"` (or `"ROUND 3 BEGINS"`), and fighters are immediately in active combat mode (`gameState = 'fight'`).
+  - **Fluid Combat Flow**: Loser recovers up from knockdown with wake-up shockwave if the winner is too close, and both fighters can immediately engage with attacks, dashes, blocks, and counters.
+- **Rapid Punch Combo Move**:
+  - **Alternating Hands Animation**: Clicking normal punch (`Left Click`) in rapid succession cycles punches between the lead hand (front arm) and rear hand (back arm) using full 2D double-jointed skeletal inverse kinematics. The non-striking arm pulls back to the hip in Karate *Hikite* chamber.
+  - **Maximum 5-Punch String**: The flurry chains up to a maximum of 5 rapid punches.
+  - **0.5-Second Punch Lockout**: After executing the 5th punch in the string, a strict `0.5s` punch lockout timer engages (`punchLockoutTimer = 0.50s`), during which further punches are disabled while all other moves (kicks, dashes, jump, block) remain accessible.
+  - **Combo Damage Scaling**:
+    - **1st Punch**: Deals full normal punch damage (**9 DMG**).
+    - **Punches 2 through 5**: Deal punch damage divided by 4 (**2.25 DMG** per punch) with calibrated knockback (`22px`) ensuring the full combination string stays in range and lands smoothly.
+    - **Hit Registration & Cooldown**: Resetting hit cooldown allows each rapid punch in the combination to confirm hits and increment the combo meter.
+- **In-Game Pause Menu Updates**:
+  - Updated the Pause Menu (`P` / `ESC`) move list entry with full documentation for the Rapid Punch Combo, including damage scaling (9 DMG / 2.25 DMG) and the 0.5s lockout consequence.
+
+---
+
+### Version 1.7.3 — Faster Strikes, [Q] Reversal Burst, Guaranteed Round 2 Flow & Clickable Rematch
 - **Faster Normal Punch & Kick**:
   - **Karate Straight Punch**: Duration decreased from `0.42s` to **`0.28s`** (33% faster snap jab, quicker recovery).
   - **Low Crouch Punch**: Duration decreased from `0.40s` to **`0.28s`** (30% faster low jab from crouch).

@@ -8,7 +8,7 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 
 | Move | Key / Input | Description |
 |---|---|---|
-| **Karate Punch** | `Left Click` | Piston-straight horizontal jab with Hikite (hand pulled back to hip). |
+| **Rapid Punch Combo** | `Rapid Left Click (x1-5)` | Flurry punches alternating lead and rear hands (Hikite chamber). 1st punch 9 DMG; rest 2.25 DMG (`9 / 4`). Max 5 punches followed by 0.5s lockout. |
 | **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched**; ducks under standing punches! |
 | **Normal Kick** | `Right Click` (Stationary) | Quick upward snap kick (`152px` reach). |
 | **Front Flip Axe Kick** | `Airborne + Right Click` | 360° forward somersault gliding toward enemy with downward axe slam. **Connects at 220° rotation & knocks down opponent!** |

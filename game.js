@@ -97,6 +97,11 @@ class Fighter {
     this.dashGhosts   = [];
     this.kdTimestamps = [];
     this.reversalReady = false;
+    this.punchComboCount = 0;
+    this.punchComboTimer = 0;
+    this.punchLockoutTimer = 0;
+    this.punchHand = 0;
+    this.currentPunchNum = 1;
   }
 
   get sc()            { return canvas.width / DW; }
@@ -162,10 +167,41 @@ class Fighter {
   }
 
   attack(type) {
-    if (this.atkCooldown > 0 || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
+    if (this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
     if (this.state === 'crouch' && type !== 'sweepKick' && type !== 'crouchPunch') this.state = 'idle';
+
+    if (type === 'punch') {
+      // Punch Combo move: fast succession alternates hands, max 5 punches, 0.5s lockout
+      if (this.punchLockoutTimer > 0) return;
+
+      // If already punching, allow chaining into next combo punch once current punch has struck/extended
+      if (this.state === 'punch') {
+        if (this.stateElapsed < this.stateDur * 0.40) return;
+      } else {
+        if (this.atkCooldown > 0) return;
+      }
+
+      if (this.punchComboTimer > 0 && this.punchComboCount > 0) {
+        this.punchComboCount++;
+      } else {
+        this.punchComboCount = 1;
+      }
+      this.currentPunchNum = this.punchComboCount;
+      this.punchHand = (this.currentPunchNum - 1) % 2; // 0 = front hand, 1 = back hand
+      this.punchComboTimer = 0.45; // Window to chain next punch
+
+      if (this.punchComboCount >= 5) {
+        this.punchLockoutTimer = 0.50; // Cannot punch for 0.5 sec after 5 punches
+        this.punchComboCount = 0;
+        this.punchComboTimer = 0;
+      }
+      this.hitCooldown = 0; // Fresh punch is ready to hit
+    } else {
+      if (this.atkCooldown > 0) return;
+    }
+
     let dur = 0.28;
-    if (type === 'punch') dur = 0.28; // Faster snappy straight punch!
+    if (type === 'punch') dur = 0.20; // Ultra snappy rapid flurry punches
     else if (type === 'crouchPunch') dur = 0.28; // Faster low punch!
     else if (type === 'kick') dur = 0.38; // Faster snappy kick!
     else if (type === 'spartanKick') dur = 0.62;
@@ -178,7 +214,7 @@ class Fighter {
     this.state       = type;
     this.stateDur    = dur;
     this.stateElapsed = 0;
-    this.atkCooldown = dur * 0.70;
+    this.atkCooldown = (type === 'punch') ? (dur * 0.40) : (dur * 0.70);
   }
 
   takeHit(dmg, kbk, attacker) {
@@ -262,6 +298,15 @@ class Fighter {
       this.blocking = blockHeld;
       if (this.state === 'block' && !blockHeld) {
         this.state = 'idle';
+      }
+    }
+
+    // Punch combo timers
+    if (this.punchLockoutTimer > 0) this.punchLockoutTimer -= dt;
+    if (this.punchComboTimer > 0) {
+      this.punchComboTimer -= dt;
+      if (this.punchComboTimer <= 0) {
+        this.punchComboCount = 0;
       }
     }
 
@@ -504,15 +549,34 @@ class Fighter {
         const cosElbow = (u*u + f*f - clampedD*clampedD) / (2 * u * f);
         const eAngle = Math.acos(clamp(cosElbow, -1, 1));
 
-        fUpper = -(90 - sAngle * 180 / Math.PI);
-        fFore  = -(180 - eAngle * 180 / Math.PI);
-        fArmX  = sShift;
+        const punchArmUpper = -(90 - sAngle * 180 / Math.PI);
+        const punchArmFore  = -(180 - eAngle * 180 / Math.PI);
 
-        // Opposite arm pulled back to the waist/hip (Hikite):
-        bUpper = bUp;
-        bFore  = bFo;
-        bArmX  = bShift;
-        bArmY  = -TORSO_H + 10;
+        if (this.punchHand === 1) {
+          // Rear/Back arm punches forward with IK
+          bUpper = punchArmUpper;
+          bFore  = punchArmFore;
+          bArmX  = sShift;
+          bArmY  = -TORSO_H + 6;
+
+          // Lead/Front arm pulls back into Hikite at hip
+          fUpper = bUp;
+          fFore  = bFo;
+          fArmX  = bShift;
+          fArmY  = -TORSO_H + 10;
+        } else {
+          // Lead/Front arm punches forward with IK
+          fUpper = punchArmUpper;
+          fFore  = punchArmFore;
+          fArmX  = sShift;
+          fArmY  = -TORSO_H + 6;
+
+          // Rear/Back arm pulls back into Hikite at hip
+          bUpper = bUp;
+          bFore  = bFo;
+          bArmX  = bShift;
+          bArmY  = -TORSO_H + 10;
+        }
 
         bodyLean = pLean;
         bodyDip  = pDip;
@@ -1062,6 +1126,7 @@ const WIN_ROUNDS = 2;
 let roundTimer = 99, roundTimerAcc = 0;
 let countdown = 3, countdownTimer = 0;
 let roundNum = 1, resultText = '';
+let roundBannerText = '', roundBannerTimer = 0;
 let player, enemy;
 
 function initRound() {
@@ -1073,6 +1138,8 @@ function initRound() {
   isPaused = false;
   particles.length = 0;
   keys = {};
+  roundBannerText = '';
+  roundBannerTimer = 0;
 }
 
 // ── Input ────────────────────────────────────────────────────
@@ -1495,7 +1562,16 @@ function checkHit(att, def) {
   let dmg   = 9;
   let kbk   = 44 * sc;
 
-  if (att.state === 'crouchPunch') {
+  if (att.state === 'punch') {
+    if (att.currentPunchNum && att.currentPunchNum > 1) {
+      // Rapid punch combo: punches 2 to 5 deal punch damage divided by 4 (2.25 DMG)
+      dmg = 2.25;
+      kbk = 22 * sc;
+    } else {
+      dmg = 9;
+      kbk = 44 * sc;
+    }
+  } else if (att.state === 'crouchPunch') {
     range = 138 * sc;
     dmg   = 9;
     kbk   = 44 * sc;
@@ -1564,7 +1640,7 @@ function checkHit(att, def) {
   }
 
   if (def.takeHit(dmg, kbk, att)) {
-    att.hitCooldown = 0.5;
+    att.hitCooldown = (att.state === 'punch') ? 0.10 : 0.5;
     // Combo: only increment on confirmed hit to enemy
     if (att.isPlayer) { att.comboCount++; att.comboTimer = 1.5; }
   }
@@ -1754,11 +1830,11 @@ function drawPauseMenu() {
 
   const col1Moves = [
     {
-      name: 'Karate Straight Punch',
-      input: 'L-CLICK',
-      badge: '9 DMG',
-      line1: 'Direct piston strike with Hikite waist chambering.',
-      line2: 'Fast recovery & combo starter. Whiffs if target crouches!'
+      name: 'Rapid Punch Combo',
+      input: 'L-CLICK (x1-5)',
+      badge: '9 / 2.25 DMG',
+      line1: 'Rapid alternating hands! First punch 9 DMG; rest 2.25 DMG.',
+      line2: 'Max 5 punches, then 0.5s lockout. Whiffs if foe crouches!'
     },
     {
       name: 'Low Crouch Punch',
@@ -1889,6 +1965,33 @@ function drawCountdown() {
   ctx.fillText(countdown > 0 ? countdown : 'FIGHT!', W / 2, H / 2 + 25 * sc);
 }
 
+function drawRoundBanner() {
+  if (roundBannerTimer <= 0) return;
+  const W = canvas.width, H = canvas.height, sc = W / DW;
+  ctx.save();
+  const alpha = Math.min(1, roundBannerTimer / 0.45);
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'center';
+
+  const text = roundBannerText;
+  ctx.font = `900 ${Math.floor(36 * sc)}px monospace`;
+  const tw = ctx.measureText(text).width;
+  const pillW = tw + 44 * sc;
+  const pillH = 52 * sc;
+  const pillX = (W - pillW) / 2;
+  const pillY = H * 0.35 - pillH * 0.65;
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+  ctx.fillRect(pillX, pillY, pillW, pillH);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3 * sc;
+  ctx.strokeRect(pillX, pillY, pillW, pillH);
+
+  ctx.fillStyle = '#000000';
+  ctx.fillText(text, W / 2, H * 0.35);
+  ctx.restore();
+}
+
 function drawRoundTransition() {
   const W = canvas.width, H = canvas.height, sc = W / DW;
   ctx.fillStyle = '#000'; ctx.textAlign = 'center';
@@ -1967,9 +2070,11 @@ function startNextRoundContinuous() {
   roundNum++;
   roundTimer = 99;
   roundTimerAcc = 0;
-  countdown = 3;
-  countdownTimer = 1;
-  gameState = 'countdown';
+  countdown = 0;
+  countdownTimer = 0;
+  gameState = 'fight'; // Instant combat start for Round 2 & 3! No countdown!
+  roundBannerText = `ROUND ${roundNum} BEGINS`;
+  roundBannerTimer = 1.8;
   isPaused = false;
   keys = {};
 
@@ -2106,6 +2211,7 @@ function loop(ts) {
 
     player.update(dt,enemy); enemy.update(dt,player);
     checkHits();
+    if (roundBannerTimer > 0) roundBannerTimer -= dt;
     roundTimerAcc+=dt;
     if (roundTimerAcc>=1) { roundTimerAcc=0; roundTimer--; }
     checkRoundEnd();
@@ -2119,6 +2225,7 @@ function loop(ts) {
   drawBackground(); player.draw(); enemy.draw();
   updateParticles(dt); drawParticles();
   drawHUD();
+  if (roundBannerTimer > 0) drawRoundBanner();
   if (gameState === 'roundTransition') drawRoundTransition();
   if (gameState === 'roundEnd') drawRoundEnd();
   if (gameState === 'gameOver') drawGameOver();
