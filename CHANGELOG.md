@@ -20,12 +20,12 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 | Action | Control | Description |
 |---|---|---|
-| **Rapid Punch Combo** | `Rapid Left Click (x1-5)` | Fast flurry punching with **alternating hands** (lead & back arms). 1st punch deals **9 DMG**; remaining 4 punches deal **2.25 DMG** (`9 / 4`). Max 5 punches followed by a **0.5s lockout**. |
-| **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched**; ducks under high standing punches! |
-| **Normal Kick** | `Right Click` (Stationary) | Upward sweeping round/snap kick targeting mid/high zones. |
-| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault kick; completes a **360° forward rotational flip** gliding toward enemy with downward axe kick. **Connects at 220° rotation & knocks down opponent!** |
-| **Spartan Kick** | `Moving Forward + Right Click` | Ferocious linear chest thrust kick; fighter **bends backward** dramatically (`-40°`); extended reach (`192px`) & **4x colossal knockback (`368px`) with smooth sliding physics!** |
-| **Low Sweep Kick** | `Crouch (S) + Right Click` | Ground-level sweep with hand planted on floor. **Trips unblocked opponents onto their ass with screen shake!** |
+| **Rapid Punch Combo** | `Rapid Left Click (x1-5)` | Fast flurry punching with **alternating hands** (lead & back arms). 1st punch deals **9 DMG**; remaining 4 punches deal **2.25 DMG** (`9 / 4`). Max 5 punches followed by a **0.5s lockout**. Spawns **red blood spray**. |
+| **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched** (**9 DMG**); ducks under high standing punches! Spawns **red blood**. |
+| **Normal Kick** | `Right Click` (Stationary) | Upward sweeping round/snap kick targeting mid/high zones (**12 DMG**). Spawns **red blood**. |
+| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault axe slam. **Buffed to 21 DMG (+3 DMG)**! Knocks down opponent at 220° rotation with **explosive red blood spray**! |
+| **Spartan Kick** | `Moving Forward + Right Click` | Ferocious chest thrust kick (**18 DMG**); **4x colossal knockback (`368px`) with dust skidding! (No blood effect)**. |
+| **Low Sweep Kick** | `Crouch (S) + Right Click` | Ground-level sweep. **Reduced to 7 DMG (-3 DMG)**. **Trips unblocked opponents onto their ass! (No blood effect)**. |
 | **Crouch** | `S` or `Down Arrow` | Drops into a low martial arts crouch. **Passively ducks under all standing punches!** |
 | **Boxer High Guard Block** | `Left Shift` / `Shift` | Raises both fists and forearms tightly in front of the chin, nose, and eyes (peek-a-boo guard). Absorbs 90% of incoming damage and prevents sweep knockdowns. |
 | **Move Left / Right** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with automatic walk cycle animation. |
@@ -38,7 +38,24 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.5 — [Q] Ground Stomp Screen-Wide Knockdown Attack (Current)
+### Version 1.7.6 — Red Blood Hit Effects & Combat Damage Tuning (Current)
+- **Red Blood Splatter & Arterial Spray**:
+  - **Dynamic Blood Particle Engine**: Implemented `spawnBlood(x, y, dir, count)` with rich multi-tonal crimson red palette (`#ff0d38`, `#d60029`, `#ff2449`, `#a8001d`, `#e6002b`).
+  - **Physics & Dispersion**: Blood droplets spray in the forward impact direction with natural gravitational arc (`gravity: 700`), realistic decay velocities, and varying droplet radii.
+  - **Impact Triggers**: Confirmed unblocked hits from punches, rapid punch combos, crouch punches, standing snap kicks, and jump axe kicks generate vivid blood splatters.
+- **Excluded Strikes (No Blood Effects)**:
+  - **Spartan Kick**: Generates blunt force kinetic dust and debris shockwaves only (`spawnParticles`), maintaining pure blunt impact aesthetic without blood.
+  - **Low Sweep Kick**: Generates ground sweep dust clouds when tripping the opponent, with zero blood.
+  - **Guard Blocks**: Striking a blocking opponent spawns defensive guard sparks rather than blood.
+- **Damage Rebalancing**:
+  - **Low Sweep Kick**: Health loss reduced from `10 DMG` to **`7 DMG`** (**-3 DMG reduction**), balancing its unblockable low knockdown advantage.
+  - **Front Flip Axe Kick (Jump Kick)**: Health loss increased from `18 DMG` to **`21 DMG`** (**+3 DMG increase**), making high-risk aerial axe kicks devastatingly rewarding.
+- **Pause Menu & UI Synchronization**:
+  - Updated the in-game Pause Menu move badges to clearly display `7 DMG` for Low Sweep Kick and `21 DMG` for Front Flip Axe Kick.
+
+---
+
+### Version 1.7.5 — [Q] Ground Stomp Screen-Wide Knockdown Attack
 - **Receive 3 Spartan Kicks in 5 Seconds**:
   - **Dynamic Rolling Tracker**: Both fighters now track the exact timestamps of every Spartan Kick received (`spartanHitTimestamps`) within a rolling 5-second window (`filter(t => now - t <= 5000)`).
   - **Unlock Condition**: When a character absorbs or is hit by 3 Spartan Kicks in the span of 5 seconds, the devastating **Ground Stomp Attack ("Q")** is immediately unlocked (`groundStompReady = true`).

@@ -27,29 +27,61 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rnd = (a, b) => a + Math.random() * (b - a);
 const lerp = (a, b, t) => a + (b - a) * t;
 
-// ── Particles ───────────────────────────────────────────────
+// ── Particles & Blood Effects ─────────────────────────────────
 const particles = [];
-function spawnParticles(x, y, n = 9) {
+function spawnParticles(x, y, n = 9, color = '#000') {
   for (let i = 0; i < n; i++) {
     const a = rnd(0, Math.PI * 2), s = rnd(60, 230);
     particles.push({
       x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 100,
-      life: 1, decay: rnd(2.5, 4.5), r: rnd(2, 5)
+      life: 1, decay: rnd(2.5, 4.5), r: rnd(2, 5),
+      color: color, alpha: 0.65, gravity: 500
     });
   }
 }
+
+// Red blood splatter & arterial spray on confirmed hits
+function spawnBlood(x, y, dir = 1, n = 18) {
+  const bloodColors = ['#ff0d38', '#d60029', '#ff2449', '#a8001d', '#e6002b', '#800014'];
+  for (let i = 0; i < n; i++) {
+    // Kinetic arterial spray outward in hit direction with vertical spread
+    const angle = (dir > 0 ? 0 : Math.PI) + rnd(-0.55, 0.55);
+    const speed = rnd(90, 340);
+    const vx = Math.cos(angle) * speed + dir * rnd(40, 110);
+    const vy = Math.sin(angle) * speed - rnd(50, 190);
+    particles.push({
+      x: x + rnd(-5, 5),
+      y: y + rnd(-7, 7),
+      vx: vx,
+      vy: vy,
+      gravity: 700,
+      life: 1,
+      decay: rnd(1.3, 2.5),
+      r: rnd(1.8, 4.2),
+      color: bloodColors[Math.floor(Math.random() * bloodColors.length)],
+      alpha: rnd(0.85, 0.98)
+    });
+  }
+}
+
 function updateParticles(dt) {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 500 * dt; p.life -= p.decay * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += (p.gravity || 500) * dt;
+    p.life -= p.decay * dt;
     if (p.life <= 0) particles.splice(i, 1);
   }
 }
+
 function drawParticles() {
-  ctx.fillStyle = '#000';
   for (const p of particles) {
-    ctx.globalAlpha = Math.max(0, p.life) * 0.65;
-    ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, p.r * p.life), 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.color || '#000';
+    ctx.globalAlpha = Math.max(0, p.life) * (p.alpha || 0.65);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.5, p.r * p.life), 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
@@ -306,6 +338,7 @@ class Fighter {
         this.kbDecel = Math.abs(this.kbVx) / dur;
       }
       shake(3, 0.10);
+      spawnParticles(this.x, this.y - 90 * this.sc, 8);
       return true;
     }
     this.hp = Math.max(0, this.hp - dmg);
@@ -321,7 +354,15 @@ class Fighter {
     this.stateDur = dur;
     this.stateElapsed = 0;
     this.hitCooldown = 0.55;
-    spawnParticles(this.x, this.y - 90 * this.sc);
+
+    // Red blood effects on unblocked hits (no blood on Spartan Kick and Sweep Kick)
+    if (attacker && (attacker.state === 'spartanKick' || attacker.state === 'sweepKick')) {
+      spawnParticles(this.x, this.y - 90 * this.sc, 15);
+    } else {
+      const bloodCount = (attacker && attacker.state === 'punch' && attacker.currentPunchNum > 1) ? 10 : 20;
+      spawnBlood(this.x, this.y - 88 * this.sc, attacker ? attacker.facing : 1, bloodCount);
+      spawnParticles(this.x, this.y - 90 * this.sc, 6);
+    }
     shake(5, 0.15);
     if (this.hp <= 0) { this.state = 'dead'; this.vy = -canvas.height * 0.5; }
     return true;
@@ -1733,11 +1774,11 @@ function checkHit(att, def) {
     kbk = 368 * sc; // 4X MASSIVE KNOCKBACK (was 92 * sc, now 368 * sc)!
   } else if (att.state === 'sweepKick') {
     range = 160 * sc;
-    dmg = 10;
+    dmg = 7; // Reduced health loss (-3 DMG, was 10)
     kbk = 35 * sc;
   } else if (att.state === 'flipKick') {
     range = 175 * sc;
-    dmg = 18;
+    dmg = 21; // Increased health loss (+3 DMG, was 18)
     kbk = 55 * sc;
   }
 
@@ -1747,7 +1788,7 @@ function checkHit(att, def) {
   // Crouching (or Crouch Punching) ducks under standing punches!
   if (att.state === 'punch' && (def.state === 'crouch' || def.state === 'crouchPunch')) return;
 
-  // Sweep kick special logic: trips unblocked opponents!
+  // Sweep kick special logic: trips unblocked opponents! (No blood effect)
   if (att.state === 'sweepKick') {
     // A standing high guard CANNOT block a low ground sweep! Only a crouching block can stop it.
     const isLowBlocked = def.blocking && def.crouching;
@@ -1758,6 +1799,7 @@ function checkHit(att, def) {
       // Swept off their feet -> KNOCKDOWN onto their ass!
       def.knockdown(att, dmg);
       att.hitCooldown = 0.6;
+      spawnParticles(def.x, def.floor - 20, 14);
       if (att.isPlayer) { att.comboCount++; att.comboTimer = 1.8; }
     }
     return;
@@ -1774,14 +1816,15 @@ function checkHit(att, def) {
       // Overhead axe kick slams down from above at 220° -> KNOCKDOWN onto back in sleeping pose!
       def.knockdown(att, dmg);
       att.hitCooldown = 0.6;
-      shake(12, 0.28);
-      spawnParticles(def.x, def.y - 70 * sc, 20);
+      shake(14, 0.30);
+      spawnBlood(def.x, def.y - 70 * sc, att.facing, 26);
+      spawnParticles(def.x, def.y - 70 * sc, 8);
       if (att.isPlayer) { att.comboCount++; att.comboTimer = 1.8; }
     }
     return;
   }
 
-  // Spartan Kick colossal impact screen shake
+  // Spartan Kick colossal impact screen shake (no blood effect)
   if (att.state === 'spartanKick') {
     shake(14, 0.32);
     spawnParticles(def.x, def.y - 75 * sc, 18);
@@ -2008,9 +2051,9 @@ function drawPauseMenu() {
     {
       name: 'Front Flip Axe Kick',
       input: 'AIRBORNE + R-CLICK',
-      badge: '18 DMG',
+      badge: '21 DMG',
       line1: '360° forward aerial flip; chops down at 220° rotation.',
-      line2: 'Glides forward & KNOCKS FOE FLAT ON BACK for 1s!'
+      line2: 'Glides forward & KNOCKS FOE FLAT ON BACK for 1s! (+3 DMG)'
     }
   ];
 
@@ -2018,8 +2061,8 @@ function drawPauseMenu() {
     {
       name: 'Low Sweep Kick',
       input: 'S + R-CLICK',
-      badge: '10 DMG',
-      line1: 'Low ground sweep with grounded hand plant.',
+      badge: '7 DMG',
+      line1: 'Low ground sweep with grounded hand plant (-3 DMG).',
       line2: 'Ignores high guard! TRIPS enemy onto back for 1s.'
     },
     {
