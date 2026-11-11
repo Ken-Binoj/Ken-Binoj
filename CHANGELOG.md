@@ -22,8 +22,8 @@ This document tracks all features, mechanics, visual systems, and updates implem
 |---|---|---|
 | **Karate Punch** | `Left Click` | Piston-straight horizontal jab/cross; opposite hand pulled back tight to the hip (**Hikite**). |
 | **Normal Kick** | `Right Click` (Stationary) | Upward sweeping round/snap kick targeting mid/high zones. |
-| **Backflip Kick** | `Airborne + Right Click` | Aerial somersault kick; completes a **360° backward rotational flip** with overhead leg whip. **Extra knockback (`110px`)!** |
-| **Spartan Kick** | `Moving Forward + Right Click` | Ferocious linear chest thrust kick; fighter **bends backward** dramatically (`-40°`); extended reach (`192px`) & heavy knockback (`92px`). |
+| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault kick; completes a **360° forward rotational flip** with downward axe kick. **Connects at 220° rotation & knocks down opponent!** |
+| **Spartan Kick** | `Moving Forward + Right Click` | Ferocious linear chest thrust kick; fighter **bends backward** dramatically (`-40°`); extended reach (`192px`) & **4x colossal knockback (`368px`)!** |
 | **Low Sweep Kick** | `Crouch (S) + Right Click` | Ground-level sweep with hand planted on floor. **Trips unblocked opponents onto their ass with screen shake!** |
 | **Crouch** | `S` or `Down Arrow` | Drops into a low martial arts crouch. **Passively ducks under all standing punches!** |
 | **Boxer High Guard Block** | `Left Shift` / `Shift` | Raises both fists and forearms tightly in front of the chin, nose, and eyes (peek-a-boo guard). Absorbs 90% of incoming damage and prevents sweep knockdowns. |
@@ -34,7 +34,28 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.5.2 — Knockdown Sleeping Position Overhaul (Current)
+### Version 1.6.0 — Front Flip Axe Kick & 4x Spartan Knockback (Current)
+- **Front Flip Axe Kick Overhaul (`flipKick`)**:
+  - Replaced the backward somersault with a **forward somersault (Front Flip)** rotating clockwise 360° (`charRot = sp * 360°`).
+  - **Devastating Axe Kick Mechanics**:
+    - **0° -> 108° (`sp < 0.30`)**: Fighter tucks knees and curls into forward roll launch with forward rotational momentum.
+    - **108° -> 198° (`0.30 <= sp < 0.55`)**: Fighter inverts upside-down; kicking leg chambers high above hips.
+    - **198° -> 245° (`0.55 <= sp < 0.68`)**: Kicking leg locks completely straight into a razor-sharp axe blade (`fThigh = -105°`, `fCalf = 0°`), chopping downward with immense torque.
+    - **Exact 220° Rotation Hit Window**: Damage and knockdown connect precisely when the attacker reaches **220° rotation** (`rot >= 208° && rot <= 236°`), right at peak downward axe extension!
+    - **245° -> 360° (`sp >= 0.68`)**: Downward follow-through and clean 2-point landing reset onto both feet.
+  - **Downwards Axe Slam Causes Hard Knockdown**:
+    - When unblocked, Front Flip Kick now triggers `def.knockdown(att, 18)`!
+    - The opponent is slammed onto their rear and rolls into the peaceful flat-on-back sleeping position for 1 second.
+    - Heavy impact screen shake (`shake(12, 0.28)`) and high-impact particle burst.
+- **Spartan Kick 4x Massive Knockback**:
+  - Increased knockback force from `92 * sc` to **`368 * sc` (4x increase)**!
+  - Unblocked Spartan Kicks now rocket opponents across the entire width of the arena into the perimeter boundary.
+  - Enhanced camera screen shake (`shake(14, 0.32)`) and chest impact dust burst (`spawnParticles`).
+  - Heavy strike pushback through block: even when guarded with Boxer Block, the 4x Spartan kick pushes opponents backward by `~128px`.
+
+---
+
+### Version 1.5.2 — Knockdown Sleeping Position Overhaul
 - **Natural Sleeping Position Flat on Back**:
   - **Backward Fall Alignment**: Corrected torso lean from positive (which bent forward face-down) to negative (`bodyLean = -90°`), ensuring the fallen fighter lies completely flat on their back.
   - **Ground Height Alignment (`bodyDip = 58`)**: Recalculated hip and head offsets so the back of the head, neck, torso, and buttocks rest naturally on top of the mat line with zero clipping below the floor.

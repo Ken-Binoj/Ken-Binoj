@@ -10,8 +10,8 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 |---|---|---|
 | **Karate Punch** | `Left Click` | Piston-straight horizontal jab with Hikite (hand pulled back to hip). |
 | **Normal Kick** | `Right Click` (Stationary) | Quick upward snap kick (`152px` reach). |
-| **Backflip Kick** | `Airborne + Right Click` | 360° reverse somersault flip with overhead whip. **Extra heavy knockback (`110px`)!** |
-| **Spartan Kick** | `Forward + Right Click` | Heavy chest thrust kick, **fighter bends backward** (`-40°`), long reach (`192px`). |
+| **Front Flip Axe Kick** | `Airborne + Right Click` | 360° forward somersault with downward axe slam. **Connects at 220° rotation & knocks down opponent!** |
+| **Spartan Kick** | `Forward + Right Click` | Ferocious chest thrust kick, **fighter bends backward** (`-40°`), **4x massive knockback (`368px`)!** |
 | **Low Sweep Kick** | `S (Crouch) + Right Click` | Low ground sweep — **trips unblocked enemies onto their rear into a 1-second knockdown!** |
 | **Crouch** | `S` or `Down Arrow` | Low martial arts crouch. **Passively ducks under standing punches!** |
 | **Boxer High Guard Block** | `Left Shift` | Peek-a-boo guard in front of face (absorbs 90% dmg & prevents sweep trips). |

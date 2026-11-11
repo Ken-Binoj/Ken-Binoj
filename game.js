@@ -134,9 +134,10 @@ class Fighter {
     else if (type === 'spartanKick') dur = 0.62;
     else if (type === 'sweepKick') dur = 0.52;
     else if (type === 'flipKick') {
-      dur = 0.65;
-      // Athletic acrobatic aerial lift
-      if (!this.onGround && this.vy > -240) this.vy = -canvas.height * 0.45;
+      dur = 0.68;
+      // Athletic acrobatic aerial lift & forward drive for Front Flip Axe Kick
+      if (!this.onGround && this.vy > -240) this.vy = -canvas.height * 0.42;
+      this.x = clamp(this.x + 30 * this.facing * this.sc, 55, canvas.width - 55);
     }
     this.state       = type;
     this.stateDur    = dur;
@@ -148,7 +149,11 @@ class Fighter {
     if (this.state === 'dead' || this.state === 'knockdown') return false;
     if (this.blocking) {
       this.hp = Math.max(0, this.hp - Math.floor(dmg * 0.1));
-      shake(2, 0.08);
+      if (kbk > 150 * this.sc) {
+        // Massive hits (like 4x Spartan kick) push through guard
+        this.x = clamp(this.x + (kbk * 0.35) * attacker.facing, 55, canvas.width - 55);
+      }
+      shake(3, 0.10);
       return true;
     }
     this.hp = Math.max(0, this.hp - dmg);
@@ -164,9 +169,9 @@ class Fighter {
     return true;
   }
 
-  knockdown(attacker) {
+  knockdown(attacker, customDmg = 10) {
     if (this.state === 'dead' || this.state === 'knockdown') return;
-    this.hp = Math.max(0, this.hp - 10);
+    this.hp = Math.max(0, this.hp - customDmg);
     this.x  = clamp(this.x + 55 * attacker.facing, 55, canvas.width - 55);
     this.state        = 'knockdown';
     this.stateDur     = 1.65; // ~0.33s fall + ~1.0s grounded in sleeping position + ~0.32s get up
@@ -502,33 +507,56 @@ class Fighter {
       }
 
       case 'flipKick': {
-        // Backflip Kick (Somersault Flash Kick in the air!)
-        // Whole character somersaults backward 360° around body center
-        charRot = -sp * 360;
+        // Front Flip Axe Kick (Acrobatic forward somersault with axe kick slam at 220°!)
+        // Whole character somersaults forward 360° around body center
+        charRot = sp * 360;
 
-        if (sp < 0.20) {
-          fThigh = -40; fCalf = 80;
-          bThigh =  30; bCalf = 60;
-          fUpper = -60; fFore = 30;
-          bUpper = -60; bFore = 30;
-          bodyLean = 15;
-        } else if (sp < 0.65) {
-          // Peak flip: kicking leg snaps straight overhead with massive torque!
-          fThigh = -115; fCalf = 0;   // straight overhead vertical whip!
-          bThigh =   45; bCalf = 85;  // supporting leg tucked
-          fUpper =   40; fFore = 20;  // arms spread wide for aerial balance
-          bUpper =  -70; bFore = 40;
-          bodyLean = -20;
+        if (sp < 0.30) {
+          // 0° -> 108°: Forward roll launch & tuck
+          const t = sp / 0.30;
+          bodyLean = lerp(0, 25, t);          // curling forward into front flip
+          fThigh   = lerp(-10, -80, t);       // chambering knees high
+          fCalf    = lerp(10, 85, t);
+          bThigh   = lerp(10, -50, t);
+          bCalf    = lerp(10, 80, t);
+          fUpper   = lerp(-35, -80, t);       // arms driving forward flip rotation
+          fFore    = lerp(65, 30, t);
+          bUpper   = lerp(-15, -70, t);
+          bFore    = lerp(50, 30, t);
+        } else if (sp < 0.55) {
+          // 108° -> 198°: Inversion & high chamber of the axe blade
+          const t = (sp - 0.30) / 0.25;
+          bodyLean = lerp(25, -5, t);
+          fThigh   = lerp(-80, -100, t);      // kicking leg raises and uncoils
+          fCalf    = lerp(85, 10, t);
+          bThigh   = lerp(-50, 35, t);        // supporting leg tucked
+          bCalf    = lerp(80, 75, t);
+          fUpper   = lerp(-80, 35, t);
+          fFore    = lerp(30, 20, t);
+          bUpper   = lerp(-70, -50, t);
+          bFore    = lerp(30, 40, t);
+        } else if (sp < 0.68) {
+          // 198° -> 245° (PEAK AT 220°): DEVASTATING DOWNWARD AXE KICK!
+          // Leg snaps completely straight like a guillotine axe blade!
+          fThigh   = -105;                    // locked straight, slicing downward
+          fCalf    = 0;                       // fully extended axe blade
+          bThigh   = 45;                      // supporting leg tucked
+          bCalf    = 85;
+          bodyLean = -10;
+          fUpper   = 40;  fFore = 20;         // arms spread for balance
+          bUpper   = -60; bFore = 35;
         } else {
-          // Landing tuck & reset
-          const t = (sp - 0.65) / 0.35;
-          fThigh = lerp(-115, -20, t);
-          fCalf  = lerp(0, 30, t);
-          bThigh = lerp(45, -10, t);
-          bCalf  = lerp(85, 20, t);
-          fUpper = -30; fFore = 40;
-          bUpper = -20; bFore = 40;
-          bodyLean = 0;
+          // 245° -> 360°: Follow-through and landing tuck onto feet
+          const t = (sp - 0.68) / 0.32;
+          bodyLean = lerp(-10, 0, t);
+          fThigh   = lerp(-105, -15, t);
+          fCalf    = lerp(0, 30, t);
+          bThigh   = lerp(45, 5, t);
+          bCalf    = lerp(85, 20, t);
+          fUpper   = lerp(40, -35, t);
+          fFore    = lerp(20, 65, t);
+          bUpper   = lerp(-60, -15, t);
+          bFore    = lerp(35, 50, t);
         }
         break;
       }
@@ -831,7 +859,7 @@ canvas.addEventListener('mousedown', e => {
     if (e.button === 0) player.attack('punch');
     if (e.button === 2) {
       if (!player.onGround) {
-        // Kick performed in the air -> Backflip Kick!
+        // Kick performed in the air -> Front Flip Axe Kick!
         player.attack('flipKick');
       } else if (player.crouching || player.state === 'crouch') {
         // Crouch + Right Click: Low Sweep Kick (trips unblocked enemies!)
@@ -877,7 +905,7 @@ function updateAI(dt) {
     return;
   }
 
-  // 2. ANTI-AIR: If player is jumping at AI, counter with air Backflip Kick or Spartan Kick!
+  // 2. ANTI-AIR: If player is jumping at AI, counter with air Front Flip Axe Kick or Spartan Kick!
   if (!player.onGround && dist < 190) {
     if (Math.random() < 0.50 && enemy.onGround) {
       enemy.jump();
@@ -921,7 +949,7 @@ function updateAI(dt) {
     // Approach player
     enemy.aiMoveX = dir * 200;
   } else if (dist > 135 && dist <= 220) {
-    // Spartan kick zone or jump-in backflip kick!
+    // Spartan kick zone or jump-in front flip axe kick!
     if (roll < 0.40) {
       enemy.aiMoveX = dir * 150;
       setTimeout(() => { if (enemy) enemy.attack('spartanKick'); }, 100);
@@ -966,15 +994,22 @@ function checkHit(att, def) {
   if (att.hitCooldown > 0) return;
   if (def.state === 'knockdown' || def.state === 'dead') return; // Cannot hit grounded target
   const sp = att.stateProgress;
-  if (sp < 0.20 || sp > 0.85) return;
   const sc = canvas.width / DW;
+
+  // Front Flip Axe Kick: damage specifically connects at 220° rotation!
+  if (att.state === 'flipKick') {
+    const rot = sp * 360;
+    if (rot < 208 || rot > 236) return;
+  } else {
+    if (sp < 0.20 || sp > 0.85) return;
+  }
 
   // Reach ranges:
   // - Normal punch: 132 * sc
   // - Normal kick: 152 * sc
-  // - Spartan kick: 192 * sc (massive reach & knockback)
+  // - Spartan kick: 192 * sc (massive reach & 4x colossal knockback: 368px!)
   // - Sweep kick: 160 * sc (low ground sweep)
-  // - Backflip kick: 165 * sc (extra heavy aerial knockback: 110!)
+  // - Front Flip Axe Kick: 175 * sc (overhead axe slam at 220°, knocks down opponent!)
   let range = 132 * sc;
   let dmg   = 9;
   let kbk   = 44 * sc;
@@ -985,16 +1020,16 @@ function checkHit(att, def) {
     kbk   = 62 * sc;
   } else if (att.state === 'spartanKick') {
     range = 192 * sc;
-    dmg   = 16;
-    kbk   = 92 * sc;
+    dmg   = 18;
+    kbk   = 368 * sc; // 4X MASSIVE KNOCKBACK (was 92 * sc, now 368 * sc)!
   } else if (att.state === 'sweepKick') {
     range = 160 * sc;
     dmg   = 10;
     kbk   = 35 * sc;
   } else if (att.state === 'flipKick') {
-    range = 165 * sc;
+    range = 175 * sc;
     dmg   = 18;
-    kbk   = 110 * sc; // Extra knockback on backflip kick!
+    kbk   = 55 * sc;
   }
 
   if (Math.abs(att.x - def.x) > range) return;
@@ -1012,16 +1047,35 @@ function checkHit(att, def) {
       att.hitCooldown = 0.5;
     } else {
       // Swept off their feet -> KNOCKDOWN onto their ass!
-      def.knockdown(att);
+      def.knockdown(att, dmg);
       att.hitCooldown = 0.6;
       if (att.isPlayer) { att.comboCount++; att.comboTimer = 1.8; }
     }
     return;
   }
 
-  // Heavy hits extra impact screen shake
-  if (att.state === 'spartanKick' || att.state === 'flipKick') {
-    shake(10, 0.25);
+  // Front Flip Axe Kick special logic: KNOCKS DOWN OPPONENT!
+  if (att.state === 'flipKick') {
+    // Standing boxer block can mitigate overhead hit; crouching cannot block overhead axe kick!
+    const isHighBlocked = def.blocking && !def.crouching;
+    if (isHighBlocked) {
+      def.takeHit(Math.floor(dmg * 0.20), 45 * sc, att);
+      att.hitCooldown = 0.5;
+    } else {
+      // Overhead axe kick slams down from above at 220° -> KNOCKDOWN onto back in sleeping pose!
+      def.knockdown(att, dmg);
+      att.hitCooldown = 0.6;
+      shake(12, 0.28);
+      spawnParticles(def.x, def.y - 70 * sc, 20);
+      if (att.isPlayer) { att.comboCount++; att.comboTimer = 1.8; }
+    }
+    return;
+  }
+
+  // Spartan Kick colossal impact screen shake
+  if (att.state === 'spartanKick') {
+    shake(14, 0.32);
+    spawnParticles(def.x, def.y - 75 * sc, 18);
   }
 
   if (def.takeHit(dmg, kbk, att)) {
@@ -1097,7 +1151,7 @@ function drawHUD() {
 
   // Hint
   ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.font=`${Math.floor(10*sc)}px monospace`;
-  ctx.fillText('L-CLICK: Punch  |  R-CLICK: Kick  |  AIR+R-CLICK: Backflip Kick  |  FWD+R-CLICK: Spartan Kick  |  S+R-CLICK: Sweep',W/2,H-10);
+  ctx.fillText('L-CLICK: Punch  |  R-CLICK: Kick  |  AIR+R-CLICK: Front Flip Axe Kick  |  FWD+R-CLICK: Spartan Kick (4x KB)  |  S+R-CLICK: Sweep',W/2,H-10);
 }
 
 // ── Screens ─────────────────────────────────────────────────
@@ -1108,8 +1162,8 @@ function drawMenu() {
   ctx.font=`bold ${Math.floor(52*sc)}px monospace`; ctx.fillText('SHADOW FIGHT',W/2,H*0.26);
   ctx.font=`${Math.floor(14*sc)}px monospace`; ctx.fillText('WEB PROTOTYPE',W/2,H*0.35);
   ctx.fillStyle='#333'; ctx.font=`${Math.floor(12*sc)}px monospace`;
-  ctx.fillText('L-CLICK: Karate Punch  |  R-CLICK: Kick  |  AIR + R-CLICK: Backflip Kick (Heavy Knockback)',W/2,H*0.48);
-  ctx.fillText('FORWARD + R-CLICK: Spartan Kick (Leans back, long reach)',W/2,H*0.54);
+  ctx.fillText('L-CLICK: Karate Punch  |  R-CLICK: Kick  |  AIR + R-CLICK: Front Flip Axe Kick (Knocks Down at 220°!)',W/2,H*0.48);
+  ctx.fillText('FORWARD + R-CLICK: Spartan Kick (Leans back, 4x colossal knockback!)',W/2,H*0.54);
   ctx.fillText('S (Crouch) + R-CLICK: Low Sweep Kick (Knocks enemy onto ass for 1s!)',W/2,H*0.60);
   ctx.fillText('A/D: Move  ·  W: Jump  ·  S: Crouch (Dodge punches)  ·  SHIFT: Boxer Block',W/2,H*0.66);
   ctx.globalAlpha=0.55+Math.sin(Date.now()*0.004)*0.45;
