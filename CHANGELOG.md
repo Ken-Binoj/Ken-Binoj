@@ -31,12 +31,48 @@ This document tracks all features, mechanics, visual systems, and updates implem
 | **Move Left / Right** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with automatic walk cycle animation. |
 | **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive directional burst propelling character **`184px` (exactly half of Spartan kick knockback!)** with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Aerial leap with parabolic gravity physics. |
+| **Pause & Move Consequences** | `P` or `Escape` | Pauses match and opens full Move List modal with damage values and tactical consequences. Press P/ESC or click to resume. |
 
 ---
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.0 — Tactical Dash Move & Low-Health Enemy AI Behavior (Current)
+### Version 1.7.1 — In-Game Pause Menu & Enhanced AI Aggression Overhaul (Current)
+- **Interactive In-Game Pause Menu (`P` or `Escape`)**:
+  - Pressing `P` or `Escape` during combat immediately halts the game, freezing character physics, movement, particle decay, and the round timer.
+  - Renders a clean, high-contrast modal dialog over the frozen arena with zero external libraries.
+  - **Comprehensive Move List & Combat Consequences**:
+    - **Karate Straight Punch** (`L-Click`): 9 DMG · Direct linear piston strike with Hikite waist chambering. Fast recovery & combo starter. Whiffs completely if target crouches!
+    - **Low Crouch Punch** (`S + L-Click`): 9 DMG · Low Gedan Tsuki jab executed while staying crouched. Ducks under high punches while striking midsection.
+    - **Snap Kick** (`R-Click Neutral`): 12 DMG · High snap thrust kick with 152px reach. Excellent mid-range spacing and poke tool to halt advances.
+    - **Spartan Kick** (`Forward + R-Click`): 18 DMG · Torso leans back -40° and unleashes linear foot thrust. 4X COLOSSAL KNOCKBACK (368px) into arena walls!
+    - **Front Flip Axe Kick** (`Airborne + R-Click`): 18 DMG · 360° forward aerial flip; chops down at 220° rotation. Glides forward & KNOCKS FOE FLAT ON BACK for 1s!
+    - **Low Sweep Kick** (`S + R-Click`): 10 DMG · Low ground sweep with grounded hand plant. Ignores high guard! TRIPS enemy onto back for 1s.
+    - **Tactical Dash Move** (`Double-Tap A / D`): MOBILITY · Rapid burst propulsion (184px, half Spartan knockback). Shadow afterimages. Cancelable directly into any attack!
+    - **Boxer High Guard** (`Hold Shift`): DEFENSE · Peek-a-boo face guard absorbs 90% incoming damage. Mitigates knockback slide. Vulnerable to low sweep kicks!
+    - **Martial Arts Crouch** (`Hold S / Down`): DEFENSE · Low ducking stance lower than punch height. Passively evades all standing punches and high snap kicks.
+    - **Combat Tactics & Okizeme**: Explains how standing guards block high attacks, crouch blocks defend against low sweeps, and enraged CPU behaviors.
+  - **Seamless Resume**: Pressing `P`, `Escape`, or clicking anywhere on screen smoothly unpauses with delta-time synchronization (`lastTime = performance.now()`), avoiding any physics jump.
+
+- **Baseline Smart Tactical AI (Always Active at All Health Levels)**:
+  - The CPU no longer waits until below 50% HP to employ smart martial arts tactics; high-level fighting sense is now **always active by default**:
+    - **Reactive High Block**: Consistently guards incoming attacks with a 78% block rate.
+    - **Anti-Punch Ducking**: Automatically crouches to duck underneath standing high punches with 50% probability.
+    - **Evasive Backdash**: Proactively utilizes backdashes (`dash(-dir)`) when pressurized at close range or facing strikes.
+    - **Counter-Crouching**: Readies low sweep kicks and low crouch punches whenever the opponent ducks.
+    - **Anti-Air Counters**: High-guards or counters jump-ins with aerial Front Flip Axe Kicks or Spartan Kicks.
+
+- **Aggressive Enraged AI Mode (Active Below 50% HP)**:
+  - When CPU health falls below 50% (`enemy.hp < enemy.maxHp * 0.5`), the AI enters a relentless **Aggressive Mode**:
+    - **High APM & Fast Reactions**: Decision timer drops from `0.16-0.32s` to `0.07-0.15s`, chaining actions rapidly.
+    - **Elevated Chase Speed**: Sprint velocity increases to `270px/s`, maintaining constant forward pursuit.
+    - **Offensive Forward Dashes**: 70% chance at mid-range to dash forward (`dash(dir)`) directly into strike range and immediately chain into Spartan Kick, Front Flip Axe Kick, or jab combinations.
+    - **Relentless Close-Range Pressure**: Instead of retreating, constantly bombards the player with rapid punches, crouch jabs, sweep kicks, and Spartan kicks.
+    - **Wake-up Pressure (Okizeme)**: Instead of respecting knockdown distance, the aggressive AI rushes directly into point-blank range (`75-95px`) and buffers attacks to strike the instant the player stands up.
+
+---
+
+### Version 1.7.0 — Tactical Dash Move & Low-Health Enemy AI Behavior
 - **New Move — Directional Dash (`Double-Tap A / D` or `← / →`)**:
   - Tapping left or right twice within `280ms` triggers an explosive tactical dash burst in that direction (`dur = 0.20s`).
   - **Propulsion Distance**: Propels character **`184 * sc` pixels** — exactly **half the distance of the Spartan Kick knockback** (`368 * sc`)!

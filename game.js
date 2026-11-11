@@ -1012,6 +1012,7 @@ class Fighter {
 //  GAME STATE
 // ═══════════════════════════════════════════════════════════
 let gameState = 'menu';
+let isPaused = false;
 let playerWins = 0, enemyWins = 0;
 const WIN_ROUNDS = 2;
 let roundTimer = 99, roundTimerAcc = 0;
@@ -1025,6 +1026,7 @@ function initRound() {
   roundTimer = 99; roundTimerAcc = 0;
   countdown = 3; countdownTimer = 1;
   gameState = 'countdown';
+  isPaused = false;
   particles.length = 0;
   keys = {};
 }
@@ -1037,7 +1039,17 @@ const DOUBLE_TAP_WINDOW = 280; // ms
 document.addEventListener('keydown', e => {
   if (keys[e.code]) return;
   keys[e.code] = true;
-  if (gameState === 'fight') {
+
+  // Toggle Pause Menu with P or Escape during fight
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (gameState === 'fight') {
+      isPaused = !isPaused;
+      if (!isPaused) lastTime = performance.now();
+      return;
+    }
+  }
+
+  if (gameState === 'fight' && !isPaused) {
     const now = Date.now();
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
       if (now - lastTap.left < DOUBLE_TAP_WINDOW) {
@@ -1071,6 +1083,11 @@ document.addEventListener('keyup', e => {
 
 // Mouse: left = punch (or crouch punch if crouched), right = kick
 canvas.addEventListener('mousedown', e => {
+  if (isPaused) {
+    isPaused = false;
+    lastTime = performance.now();
+    return;
+  }
   if (gameState === 'fight') {
     if (e.button === 0) {
       if (player.crouching || player.state === 'crouch') {
@@ -1099,7 +1116,7 @@ canvas.addEventListener('mousedown', e => {
 });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-// ── AI (Tactical & Realistic) ──────────────────────────────
+// ── AI (Tactical & Realistic: Always Smart, Hyper-Aggressive under 50% HP) ──
 function updateAI(dt) {
   if (!enemy || gameState !== 'fight') return;
   if (enemy.state === 'knockdown') { enemy.aiMoveX = 0; return; }
@@ -1113,138 +1130,203 @@ function updateAI(dt) {
 
   enemy.aiTimer -= dt;
   if (enemy.aiTimer > 0) return;
-  enemy.aiTimer = rnd(0.18, 0.40);
+
+  const lowHp = enemy.hp < enemy.maxHp * 0.5; // Under 50% HP: Aggressive Berserk Mode!
+  // Fast decision cycle: normal smart tactical (0.16 - 0.32s), aggressive frenzy (0.07 - 0.15s)
+  enemy.aiTimer = lowHp ? rnd(0.07, 0.15) : rnd(0.16, 0.32);
+
   if (player.state === 'dead') { enemy.aiMoveX = 0; return; }
 
   const dist = Math.abs(player.x - enemy.x);
   const dir  = player.x > enemy.x ? 1 : -1;
-  const lowHp = enemy.hp < enemy.maxHp * 0.5; // Below 50% health: heavy blocking + frequent dashes!
+  const pAttacking = ['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(player.state);
 
-  // 1. RESPECT KNOCKDOWN: Don't attack invulnerable grounded player; space for wake-up
+  // 1. WAKE-UP / KNOCKDOWN BEHAVIOR:
   if (player.state === 'knockdown') {
-    if (dist > 140) enemy.aiMoveX = dir * 160;
-    else if (dist < 110) enemy.aiMoveX = -dir * 120;
-    else enemy.aiMoveX = 0;
+    if (lowHp) {
+      // Aggressive AI: Okizeme / Wake-up pressure!
+      // Rushes right into strike range (75-95px) and prepares to strike the moment player gets up!
+      if (dist > 95) enemy.aiMoveX = dir * 260;
+      else if (dist < 65) enemy.aiMoveX = -dir * 140;
+      else {
+        enemy.aiMoveX = 0;
+        // Prime low sweep kick or spartan kick right as wake-up completes
+        if (player.stateProgress > 0.70 && Math.random() < 0.60) {
+          enemy.attack(Math.random() < 0.50 ? 'sweepKick' : 'spartanKick');
+        }
+      }
+    } else {
+      // Smart AI spacing: respect knockdown invulnerability, hold tactical spacing
+      if (dist > 140) enemy.aiMoveX = dir * 160;
+      else if (dist < 110) enemy.aiMoveX = -dir * 120;
+      else enemy.aiMoveX = 0;
+    }
     return;
   }
 
-  // 2. DEFENSIVE BACKDASH: When HP < 50%, enemy dashes backwards away from pressure a lot more!
-  if (lowHp && enemy.onGround && dist < 170 && Math.random() < 0.52 && enemy.state !== 'dash') {
+  // 2. DEFENSIVE BACKDASH: Smart AI ALWAYS uses evasive backdash when pressed close
+  if (!lowHp && enemy.onGround && dist < 125 && Math.random() < 0.40 && enemy.state !== 'dash') {
     enemy.dash(-dir); // Evasive backdash!
     enemy.aiMoveX = 0;
     return;
   }
 
-  // 3. ANTI-AIR: If player is jumping at AI, counter with air Front Flip Axe Kick, block, or Spartan Kick!
+  // 3. ANTI-AIR DEFENSE: Smart AI ALWAYS reacts to airborne player
   if (!player.onGround && dist < 190) {
-    if (lowHp && Math.random() < 0.70) {
-      // Under 50% HP: reliably high-guard against incoming jump-ins
-      enemy.block(true);
-      setTimeout(() => enemy && enemy.block(false), rnd(350, 550));
-      return;
-    }
-    if (Math.random() < 0.50 && enemy.onGround) {
-      enemy.jump();
-      setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
-    } else if (Math.random() < 0.45) {
-      enemy.attack('spartanKick');
+    const roll = Math.random();
+    if (lowHp) {
+      // Aggressive: leap into air with counter flip kick or spartan kick
+      if (roll < 0.60 && enemy.onGround) {
+        enemy.jump();
+        setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 130);
+      } else {
+        enemy.attack('spartanKick');
+      }
+    } else {
+      // Smart AI: 75% block or anti-air kick
+      if (roll < 0.65) {
+        enemy.block(true);
+        setTimeout(() => enemy && enemy.block(false), rnd(350, 500));
+      } else if (enemy.onGround && roll < 0.85) {
+        enemy.jump();
+        setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
+      } else {
+        enemy.attack('spartanKick');
+      }
     }
     return;
   }
 
-  // 4. REACTIVE DEFENSE (BLOCKS A LOT MORE when HP < 50%!)
-  const pAttacking = ['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(player.state);
+  // 4. REACTIVE DEFENSE (Smart blocking and ducking ALWAYS active!)
   if (pAttacking && dist < 185) {
-    const blockChance = lowHp ? 0.82 : 0.35; // 82% block chance when HP < 50%!
-    if ((player.state === 'punch') && Math.random() < (lowHp ? 0.55 : 0.40) && enemy.onGround) {
-      // Duck under punches!
+    if (player.state === 'punch' && Math.random() < 0.50 && enemy.onGround) {
+      // Smart duck under high punches!
       enemy.crouch(true);
-      setTimeout(() => enemy && enemy.crouch(false), rnd(250, 450));
+      setTimeout(() => enemy && enemy.crouch(false), rnd(240, 420));
       return;
-    } else if (Math.random() < blockChance) {
-      // Block incoming attacks!
+    }
+
+    if (Math.random() < 0.78) {
+      // 78% High Guard block chance against incoming strikes!
       enemy.block(true);
-      setTimeout(() => enemy && enemy.block(false), lowHp ? rnd(400, 650) : rnd(250, 450));
+      setTimeout(() => enemy && enemy.block(false), rnd(300, 500));
       return;
-    } else if (lowHp && enemy.onGround && Math.random() < 0.50) {
-      // Sudden defensive backdash to dodge attack completely
+    } else if (enemy.onGround && Math.random() < 0.45 && enemy.state !== 'dash') {
+      // Defensive backdash away from incoming hit
       enemy.dash(-dir);
       return;
     }
   }
 
-  // 5. COUNTER CROUCH: If player is crouching, high punch will whiff!
+  // 5. COUNTER CROUCH: If player is crouching, high punch whiffs!
   if (player.state === 'crouch' || player.state === 'crouchPunch') {
     if (dist < 140) {
-      if (lowHp && Math.random() < 0.48) {
-        enemy.dash(-dir); // Backdash away from low sweep range!
+      if (lowHp) {
+        // Aggressive: low sweep or low jab immediately!
+        enemy.attack(Math.random() < 0.60 ? 'sweepKick' : 'crouchPunch');
       } else {
-        enemy.attack(Math.random() < 0.45 ? 'crouchPunch' : (Math.random() < 0.55 ? 'sweepKick' : 'spartanKick'));
+        if (Math.random() < 0.40) enemy.dash(-dir);
+        else enemy.attack(Math.random() < 0.50 ? 'sweepKick' : 'crouchPunch');
       }
     } else {
-      enemy.aiMoveX = dir * 180;
+      enemy.aiMoveX = dir * (lowHp ? 260 : 180);
     }
     return;
   }
 
-  // 6. OFFENSIVE DASH-IN (Enemy uses dash a lot more when HP < 50%!)
-  if (lowHp && enemy.onGround && dist > 140 && dist < 240 && Math.random() < 0.45 && enemy.state !== 'dash') {
-    enemy.dash(dir); // Burst forward into strike range!
+  // 6. OFFENSIVE DASH (Always used for spacing; MUCH MORE aggressive below 50% HP)
+  const dashChance = lowHp ? 0.70 : 0.38;
+  if (enemy.onGround && dist > 130 && dist < 250 && Math.random() < dashChance && enemy.state !== 'dash') {
+    enemy.dash(dir); // Fast forward burst!
     setTimeout(() => {
       if (enemy && enemy.state !== 'dead' && enemy.state !== 'knockdown' && enemy.state !== 'hurt') {
-        enemy.attack(Math.random() < 0.55 ? 'spartanKick' : 'punch');
+        // Aggressive follow-up immediately out of dash!
+        const atkRoll = Math.random();
+        if (atkRoll < 0.45) enemy.attack('spartanKick');
+        else if (atkRoll < 0.75) enemy.attack('sweepKick');
+        else enemy.attack('punch');
       }
     }, 110);
     return;
   }
 
-  // 7. TACTICAL SPACING & ATTACK STRATEGY
+  // 7. ATTACK & MOVEMENT STRATEGY (Relentless aggression when lowHp!)
   const roll = Math.random();
 
-  if (dist > 220) {
-    // Approach player
-    enemy.aiMoveX = dir * 200;
-  } else if (dist > 135 && dist <= 220) {
-    // Spartan kick zone or jump-in front flip axe kick!
-    if (roll < 0.40) {
-      enemy.aiMoveX = dir * 150;
-      setTimeout(() => { if (enemy) enemy.attack('spartanKick'); }, 100);
-    } else if (roll < 0.65 && enemy.onGround) {
-      enemy.jump();
-      setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
+  if (lowHp) {
+    // ═══════════════════════════════════════════════════════
+    //  AGGRESSIVE MODE (< 50% HP): Relentless Forward Pressure
+    // ═══════════════════════════════════════════════════════
+    if (dist > 200) {
+      // Sprint relentlessly towards player
+      enemy.aiMoveX = dir * 270;
+    } else if (dist > 120) {
+      // Mid-range: burst in with Spartan Kick, Jump Front Flip Axe Kick, or dash
+      if (roll < 0.45) {
+        enemy.aiMoveX = dir * 220;
+        setTimeout(() => { if (enemy) enemy.attack('spartanKick'); }, 80);
+      } else if (roll < 0.75 && enemy.onGround) {
+        enemy.jump();
+        setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 120);
+      } else {
+        enemy.dash(dir);
+      }
     } else {
-      enemy.aiMoveX = dir * 130;
-    }
-  } else if (dist < 80) {
-    // Close range: mix up block, low sweep, quick punch, crouch punch, or backdash
-    if (lowHp && roll < 0.45) {
-      enemy.block(true); // Turtle up at close range when hurt!
-      setTimeout(() => enemy && enemy.block(false), rnd(350, 550));
-    } else if (roll < 0.25) {
-      enemy.attack('punch');
-    } else if (roll < 0.48) {
-      enemy.attack('crouchPunch');
-    } else if (roll < 0.70) {
-      enemy.attack('sweepKick');
-    } else {
-      if (lowHp && enemy.onGround) enemy.dash(-dir);
-      else enemy.aiMoveX = -dir * 160;
+      // Point-blank melee range: relentless attacks, no backing down!
+      if (roll < 0.35) {
+        enemy.attack('punch');
+      } else if (roll < 0.60) {
+        enemy.attack('crouchPunch');
+      } else if (roll < 0.85) {
+        enemy.attack('sweepKick');
+      } else {
+        enemy.attack('spartanKick');
+      }
     }
   } else {
-    // Mid range mix-up
-    enemy.aiMoveX = 0;
-    if (roll < (lowHp ? 0.38 : 0.12)) {
-      enemy.block(true);
-      setTimeout(() => enemy && enemy.block(false), lowHp ? rnd(400, 600) : rnd(250, 400));
-    } else if (roll < 0.42) {
-      enemy.attack('punch');
-    } else if (roll < 0.68) {
-      enemy.attack(dist > 115 ? 'spartanKick' : 'kick');
-    } else if (roll < 0.82 && enemy.onGround) {
-      enemy.jump();
-      setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
+    // ═══════════════════════════════════════════════════════
+    //  STANDARD SMART TACTICAL MODE: Methodical spacing & counters
+    // ═══════════════════════════════════════════════════════
+    if (dist > 220) {
+      enemy.aiMoveX = dir * 190;
+    } else if (dist > 135) {
+      if (roll < 0.35) {
+        enemy.aiMoveX = dir * 150;
+        setTimeout(() => { if (enemy) enemy.attack('spartanKick'); }, 100);
+      } else if (roll < 0.60 && enemy.onGround) {
+        enemy.jump();
+        setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
+      } else {
+        enemy.aiMoveX = dir * 130;
+      }
+    } else if (dist < 80) {
+      if (roll < 0.25) {
+        enemy.attack('punch');
+      } else if (roll < 0.48) {
+        enemy.attack('crouchPunch');
+      } else if (roll < 0.70) {
+        enemy.attack('sweepKick');
+      } else if (roll < 0.88 && enemy.onGround) {
+        enemy.dash(-dir); // Evasive backdash
+      } else {
+        enemy.block(true);
+        setTimeout(() => enemy && enemy.block(false), rnd(300, 450));
+      }
     } else {
-      enemy.aiMoveX = (Math.random() < 0.5 ? 1 : -1) * 120;
+      // Mid-range mixup
+      enemy.aiMoveX = 0;
+      if (roll < 0.32) {
+        enemy.attack('punch');
+      } else if (roll < 0.58) {
+        enemy.attack(dist > 110 ? 'spartanKick' : 'kick');
+      } else if (roll < 0.76 && enemy.onGround) {
+        enemy.jump();
+        setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
+      } else if (roll < 0.90) {
+        enemy.attack('sweepKick');
+      } else {
+        enemy.aiMoveX = (Math.random() < 0.5 ? 1 : -1) * 120;
+      }
     }
   }
 }
@@ -1418,7 +1500,7 @@ function drawHUD() {
 
   // Hint
   ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.font=`${Math.floor(10*sc)}px monospace`;
-  ctx.fillText('L-CLICK: Punch (Crouched: Low Jab)  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  AIR+R-CLICK: Front Flip Axe  |  FWD+R-CLICK: Spartan',W/2,H-10);
+  ctx.fillText('L-CLICK: Punch (Crouched: Low Jab)  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  P: Pause & Move List',W/2,H-10);
 }
 
 // ── Screens ─────────────────────────────────────────────────
@@ -1429,15 +1511,196 @@ function drawMenu() {
   ctx.font=`bold ${Math.floor(52*sc)}px monospace`; ctx.fillText('SHADOW FIGHT',W/2,H*0.26);
   ctx.font=`${Math.floor(14*sc)}px monospace`; ctx.fillText('WEB PROTOTYPE',W/2,H*0.35);
   ctx.fillStyle='#333'; ctx.font=`${Math.floor(12*sc)}px monospace`;
-  ctx.fillText('L-CLICK: Karate Punch (Hold S: Low Crouch Jab)  |  R-CLICK: Kick  |  AIR + R-CLICK: Front Flip Axe Kick',W/2,H*0.46);
-  ctx.fillText('FORWARD + R-CLICK: Spartan Kick (Leans back, 4x colossal knockback!)',W/2,H*0.52);
-  ctx.fillText('S (Crouch) + R-CLICK: Low Sweep Kick  |  S (Crouch) + L-CLICK: Low Crouch Punch',W/2,H*0.58);
-  ctx.fillText('DOUBLE-TAP A / D: Dash Move (Fast burst, half Spartan knockback distance!)',W/2,H*0.64);
-  ctx.fillText('A/D: Move  ·  W: Jump  ·  S: Crouch (Dodge punches)  ·  SHIFT: Boxer Block',W/2,H*0.70);
+  ctx.fillText('L-CLICK: Karate Punch (Hold S: Low Crouch Jab)  |  R-CLICK: Kick  |  AIR + R-CLICK: Front Flip Axe Kick',W/2,H*0.45);
+  ctx.fillText('FORWARD + R-CLICK: Spartan Kick (Leans back, 4x colossal knockback!)',W/2,H*0.51);
+  ctx.fillText('S (Crouch) + R-CLICK: Low Sweep Kick  |  S (Crouch) + L-CLICK: Low Crouch Punch',W/2,H*0.57);
+  ctx.fillText('DOUBLE-TAP A / D: Dash Move (Fast burst, half Spartan knockback distance!)',W/2,H*0.63);
+  ctx.fillText('A/D: Move  ·  W: Jump  ·  S: Crouch (Dodge punches)  ·  SHIFT: Boxer Block  ·  P: Pause & Moves',W/2,H*0.69);
   ctx.globalAlpha=0.55+Math.sin(Date.now()*0.004)*0.45;
   ctx.fillStyle='#000'; ctx.font=`bold ${Math.floor(14*sc)}px monospace`;
   ctx.fillText('CLICK ANYWHERE OR PRESS ANY KEY TO START',W/2,H*0.82);
   ctx.globalAlpha=1;
+}
+
+function drawPauseMenu() {
+  const W = canvas.width, H = canvas.height;
+  const sc = Math.min(W / DW, H / 560);
+
+  // Translucent dark veil over frozen fight scene
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
+  ctx.fillRect(0, 0, W, H);
+
+  const modalW = Math.min(W * 0.94, 880 * sc);
+  const modalH = Math.min(H * 0.93, 510 * sc);
+  const modalX = (W - modalW) / 2;
+  const modalY = (H - modalH) / 2;
+
+  // Outer Box
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(modalX, modalY, modalW, modalH);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = Math.max(2.5, 3 * sc);
+  ctx.strokeRect(modalX, modalY, modalW, modalH);
+
+  // Inner border accent
+  ctx.lineWidth = 1;
+  ctx.strokeRect(modalX + 5 * sc, modalY + 5 * sc, modalW - 10 * sc, modalH - 10 * sc);
+
+  // Header
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#000000';
+  ctx.font = `900 ${Math.floor(22 * sc)}px monospace`;
+  ctx.fillText('PAUSED', W / 2, modalY + 28 * sc);
+
+  ctx.fillStyle = '#666666';
+  ctx.font = `bold ${Math.floor(10 * sc)}px monospace`;
+  ctx.fillText('MOVE LIST  &  COMBAT CONSEQUENCES', W / 2, modalY + 43 * sc);
+
+  // Header horizontal divider
+  ctx.strokeStyle = '#cccccc';
+  ctx.beginPath();
+  ctx.moveTo(modalX + 16 * sc, modalY + 50 * sc);
+  ctx.lineTo(modalX + modalW - 16 * sc, modalY + 50 * sc);
+  ctx.stroke();
+
+  // Vertical column divider
+  ctx.strokeStyle = '#e0e0e0';
+  ctx.beginPath();
+  ctx.moveTo(modalX + modalW / 2, modalY + 56 * sc);
+  ctx.lineTo(modalX + modalW / 2, modalY + modalH - 46 * sc);
+  ctx.stroke();
+
+  const colW = (modalW - 56 * sc) / 2;
+  const col1X = modalX + 18 * sc;
+  const col2X = modalX + modalW / 2 + 12 * sc;
+  const startY = modalY + 68 * sc;
+  const itemGap = 72 * sc;
+
+  const col1Moves = [
+    {
+      name: 'Karate Straight Punch',
+      input: 'L-CLICK',
+      badge: '9 DMG',
+      line1: 'Direct piston strike with Hikite waist chambering.',
+      line2: 'Fast recovery & combo starter. Whiffs if target crouches!'
+    },
+    {
+      name: 'Low Crouch Punch',
+      input: 'S + L-CLICK',
+      badge: '9 DMG',
+      line1: 'Low Gedan Tsuki punch executed while staying crouched.',
+      line2: 'Ducks under high punches while striking midsection.'
+    },
+    {
+      name: 'Snap Kick',
+      input: 'R-CLICK (Neutral)',
+      badge: '12 DMG',
+      line1: 'High snap thrust kick with 152px reach.',
+      line2: 'Excellent mid-range spacing and poke tool against advances.'
+    },
+    {
+      name: 'Spartan Kick',
+      input: 'FORWARD + R-CLICK',
+      badge: '18 DMG',
+      line1: 'Torso leans back -40° and unleashes linear foot thrust.',
+      line2: '4X COLOSSAL KNOCKBACK (368px) into arena walls!'
+    },
+    {
+      name: 'Front Flip Axe Kick',
+      input: 'AIRBORNE + R-CLICK',
+      badge: '18 DMG',
+      line1: '360° forward aerial flip; chops down at 220° rotation.',
+      line2: 'Glides forward & KNOCKS FOE FLAT ON BACK for 1s!'
+    }
+  ];
+
+  const col2Moves = [
+    {
+      name: 'Low Sweep Kick',
+      input: 'S + R-CLICK',
+      badge: '10 DMG',
+      line1: 'Low ground sweep with grounded hand plant.',
+      line2: 'Ignores high guard! TRIPS enemy onto back for 1s.'
+    },
+    {
+      name: 'Tactical Dash Move',
+      input: 'DOUBLE-TAP A / D',
+      badge: 'MOBILITY',
+      line1: 'Rapid burst propulsion (184px, half Spartan knockback).',
+      line2: 'Shadow afterimages. Can be cancelled into any attack!'
+    },
+    {
+      name: 'Boxer High Guard',
+      input: 'HOLD SHIFT',
+      badge: 'DEFENSE',
+      line1: 'Peek-a-boo face guard absorbs 90% incoming damage.',
+      line2: 'Mitigates knockback slide. Vulnerable to low sweep kicks!'
+    },
+    {
+      name: 'Martial Arts Crouch',
+      input: 'HOLD S / DOWN',
+      badge: 'DEFENSE',
+      line1: 'Low ducking stance lower than punch height.',
+      line2: 'Passively evades all standing punches and high kicks.'
+    },
+    {
+      name: 'Combat Tactics & AI',
+      input: 'ENRAGE INFO',
+      badge: 'TIPS',
+      line1: 'Enraged enemies (<50% HP) attack relentlessly & hound wakeups!',
+      line2: 'Standing guard stops high hits; crouch block stops sweeps!'
+    }
+  ];
+
+  function drawMoveItem(m, x, y) {
+    ctx.textAlign = 'left';
+    // Move Name
+    ctx.fillStyle = '#000000';
+    ctx.font = `bold ${Math.floor(11.5 * sc)}px monospace`;
+    ctx.fillText(m.name, x, y);
+
+    // Input tag
+    const nameWidth = ctx.measureText(m.name).width;
+    const tagX = x + nameWidth + 8 * sc;
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(tagX, y - 10 * sc, ctx.measureText(m.input).width + 8 * sc, 13 * sc);
+    ctx.strokeStyle = '#888888';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tagX, y - 10 * sc, ctx.measureText(m.input).width + 8 * sc, 13 * sc);
+    ctx.fillStyle = '#111111';
+    ctx.font = `bold ${Math.floor(9 * sc)}px monospace`;
+    ctx.fillText(m.input, tagX + 4 * sc, y - 1 * sc);
+
+    // Badge (Damage / Type) on right edge of column
+    ctx.textAlign = 'right';
+    const badgeX = x + colW - 6 * sc;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(badgeX - ctx.measureText(m.badge).width - 8 * sc, y - 10 * sc, ctx.measureText(m.badge).width + 8 * sc, 13 * sc);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${Math.floor(9 * sc)}px monospace`;
+    ctx.fillText(m.badge, badgeX - 4 * sc, y - 1 * sc);
+
+    // Description lines
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#333333';
+    ctx.font = `${Math.floor(10 * sc)}px monospace`;
+    ctx.fillText(m.line1, x, y + 14 * sc);
+    ctx.fillStyle = '#666666';
+    ctx.fillText(m.line2, x, y + 27 * sc);
+  }
+
+  col1Moves.forEach((m, i) => drawMoveItem(m, col1X, startY + i * itemGap));
+  col2Moves.forEach((m, i) => drawMoveItem(m, col2X, startY + i * itemGap));
+
+  // Footer Resume Button / Banner
+  const btnH = 26 * sc;
+  const btnY = modalY + modalH - btnH - 10 * sc;
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(modalX + 14 * sc, btnY, modalW - 28 * sc, btnH);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${Math.floor(11.5 * sc)}px monospace`;
+  ctx.fillText('▶  PRESS "P", "ESC", OR CLICK ANYWHERE TO RESUME FIGHT', W / 2, btnY + btnH * 0.68);
 }
 
 function drawCountdown() {
@@ -1515,6 +1778,18 @@ function loop(ts) {
   }
 
   if (gameState==='fight') {
+    if (isPaused) {
+      drawBackground();
+      player.draw();
+      enemy.draw();
+      drawParticles();
+      drawHUD();
+      drawPauseMenu();
+      ctx.restore();
+      requestAnimationFrame(loop);
+      return;
+    }
+
     if (!['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'crouch'].includes(player.state)) {
       let mv=false;
       if (keys['KeyA']||keys['ArrowLeft'])  { player.move(-220*dt); mv=true; }
