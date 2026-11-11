@@ -104,7 +104,13 @@ class Fighter {
   move(dx) {
     if (this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
     if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
-    if (this.state === 'crouch') return;
+    if (this.state === 'crouch') {
+      if (this.isPlayer && !(keys['KeyS'] || keys['ArrowDown'])) {
+        this.state = 'idle';
+      } else {
+        return;
+      }
+    }
     this.x = clamp(this.x + dx, 55, canvas.width - 55);
     if (Math.abs(dx) > 0.5 && this.onGround) this.state = 'walk';
   }
@@ -126,22 +132,29 @@ class Fighter {
 
   jump() {
     if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'crouch', 'dash'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
+    if (this.state === 'crouch') {
+      if (this.isPlayer && !(keys['KeyS'] || keys['ArrowDown'])) {
+        this.state = 'idle';
+      } else {
+        return;
+      }
+    }
     this.vy = -canvas.height * 0.9;
     this.onGround = false;
     this.state    = 'jump';
   }
 
   block(on) {
-    if (this.state === 'dead' || this.state === 'knockdown') return;
     this.blocking = on;
+    if (this.state === 'dead' || this.state === 'knockdown') return;
     if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'crouch', 'dash'].includes(this.state)) this.state = 'block';
     if (!on && this.state === 'block') this.state = 'idle';
   }
 
   crouch(on) {
-    if (this.state === 'dead' || this.state === 'knockdown') return;
     this.crouching = on;
+    if (this.state === 'dead' || this.state === 'knockdown') return;
     if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'block', 'dash'].includes(this.state)) this.state = 'crouch';
     if (!on && this.state === 'crouch') this.state = 'idle';
   }
@@ -199,14 +212,15 @@ class Fighter {
     return true;
   }
 
-  knockdown(attacker, customDmg = 10) {
+  knockdown(attacker, customDmg = 10, customKbk = null) {
     if (this.state === 'dead' || this.state === 'knockdown') return;
     this.hp = Math.max(0, this.hp - customDmg);
 
     // Smooth animated slide as feet are swept out (no instant teleporting!)
-    const sweepKbk = 60 * this.sc;
-    const sweepSlideDur = 0.26;
-    this.kbVx = (2 * sweepKbk / sweepSlideDur) * attacker.facing;
+    const sweepKbk = customKbk !== null ? customKbk : 60 * this.sc;
+    const sweepSlideDur = 0.32;
+    const dir = attacker ? (this.x >= attacker.x ? 1 : -1) : (this.facing > 0 ? -1 : 1);
+    this.kbVx = (2 * sweepKbk / sweepSlideDur) * dir;
     this.kbDecel = Math.abs(this.kbVx) / sweepSlideDur;
 
     this.state        = 'knockdown';
@@ -220,6 +234,20 @@ class Fighter {
   }
 
   update(dt, opp) {
+    // Player direct key synchronization (guarantees player NEVER gets stuck in crouch or block)
+    if (this.isPlayer) {
+      const downHeld = !!(keys['KeyS'] || keys['ArrowDown']);
+      this.crouching = downHeld;
+      if (this.state === 'crouch' && !downHeld) {
+        this.state = 'idle';
+      }
+      const blockHeld = !!(keys['ShiftLeft'] || keys['ShiftRight']);
+      this.blocking = blockHeld;
+      if (this.state === 'block' && !blockHeld) {
+        this.state = 'idle';
+      }
+    }
+
     if (this.atkCooldown  > 0) this.atkCooldown  -= dt;
     if (this.hitCooldown  > 0) this.hitCooldown  -= dt;
     if (this.stunTimer    > 0) this.stunTimer     -= dt;
@@ -295,9 +323,9 @@ class Fighter {
       if (this.stateElapsed >= this.stateDur) {
         if (!this.onGround) {
           this.state = 'jump';
-        } else if (this.crouching) {
+        } else if (this.crouching && (this.isPlayer ? (keys['KeyS'] || keys['ArrowDown']) : true)) {
           this.state = 'crouch';
-        } else if (this.blocking) {
+        } else if (this.blocking && (this.isPlayer ? (keys['ShiftLeft'] || keys['ShiftRight']) : true)) {
           this.state = 'block';
         } else {
           this.state = 'idle';
@@ -876,7 +904,6 @@ class Fighter {
       }
 
       case 'dead':
-        ctx.globalAlpha = 0.35;
         bodyLean = -90;
         bodyDip  = 58;
         fThigh = -76; fCalf = -10;
@@ -1112,9 +1139,24 @@ canvas.addEventListener('mousedown', e => {
     }
     return;
   }
-  playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+  if (gameState === 'roundEnd' || gameState === 'gameOver') {
+    nextRound();
+    return;
+  }
+  if (gameState === 'menu') {
+    playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+  }
 });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+window.addEventListener('blur', () => {
+  keys = {};
+  if (player) {
+    player.crouching = false;
+    player.blocking = false;
+    if (player.state === 'crouch' || player.state === 'block') player.state = 'idle';
+  }
+});
 
 // ── AI (Tactical & Realistic: Always Smart, Hyper-Aggressive under 50% HP) ──
 function updateAI(dt) {
@@ -1447,7 +1489,7 @@ function drawBackground() {
   for (const f of [player, enemy].filter(Boolean)) {
     ctx.fillStyle = 'rgba(0,0,0,0.07)';
     ctx.beginPath();
-    if (f.state === 'knockdown' && f.stateProgress > 0.20 && f.stateProgress < 0.80) {
+    if ((f.state === 'knockdown' && f.stateProgress > 0.20 && f.stateProgress < 0.80) || f.state === 'dead') {
       // Elongated shadow along the ground while lying on back in sleeping position
       const shadowX = f.x - f.facing * 20 * f.sc;
       ctx.ellipse(shadowX, H * FLOOR_FRAC + 5, 58 * f.sc, 8 * f.sc, 0, 0, Math.PI * 2);
@@ -1704,10 +1746,13 @@ function drawPauseMenu() {
 }
 
 function drawCountdown() {
-  const W=canvas.width, H=canvas.height, sc=W/DW;
-  ctx.fillStyle='#000'; ctx.textAlign='center';
-  ctx.font=`bold ${Math.floor(70*sc)}px monospace`;
-  ctx.fillText(countdown>0?countdown:'FIGHT!',W/2,H/2+20*sc);
+  const W = canvas.width, H = canvas.height, sc = W / DW;
+  ctx.fillStyle = '#000';
+  ctx.textAlign = 'center';
+  ctx.font = `bold ${Math.floor(22 * sc)}px monospace`;
+  ctx.fillText(`ROUND ${roundNum}`, W / 2, H / 2 - 36 * sc);
+  ctx.font = `bold ${Math.floor(70 * sc)}px monospace`;
+  ctx.fillText(countdown > 0 ? countdown : 'FIGHT!', W / 2, H / 2 + 25 * sc);
 }
 
 function drawRoundEnd() {
@@ -1715,7 +1760,8 @@ function drawRoundEnd() {
   ctx.fillStyle='#000'; ctx.textAlign='center';
   ctx.font=`bold ${Math.floor(42*sc)}px monospace`; ctx.fillText(resultText,W/2,H*0.4);
   ctx.fillStyle='#555'; ctx.font=`${Math.floor(13*sc)}px monospace`;
-  ctx.fillText('SPACE or Click to continue',W/2,H*0.55);
+  const prompt = (playerWins >= WIN_ROUNDS || enemyWins >= WIN_ROUNDS) ? 'SPACE or Click to continue' : `ROUND ${roundNum + 1} STARTING... (Click or SPACE)`;
+  ctx.fillText(prompt, W/2, H*0.55);
 }
 
 function drawGameOver() {
@@ -1730,27 +1776,129 @@ function drawGameOver() {
 }
 
 // ── Round logic ─────────────────────────────────────────────
+let roundEndHandled = false;
+
 function checkRoundEnd() {
-  const pDead=player.hp<=0||player.state==='dead';
-  const eDead=enemy.hp<=0||enemy.state==='dead';
-  const timeout=roundTimer<=0;
-  if (!pDead&&!eDead&&!timeout) return;
-  gameState='roundEnd';
+  if (gameState !== 'fight') return;
+  const pDead = player.hp <= 0 || player.state === 'dead';
+  const eDead = enemy.hp <= 0 || enemy.state === 'dead';
+  const timeout = roundTimer <= 0;
+  if (!pDead && !eDead && !timeout) return;
+
+  gameState = 'roundEnd';
+  roundEndHandled = false;
+
   if (timeout) {
-    if (player.hp>enemy.hp) { playerWins++; resultText='TIME OUT — YOU WIN!'; }
-    else if (enemy.hp>player.hp) { enemyWins++; resultText='TIME OUT — CPU WINS!'; }
-    else resultText='DRAW!';
-  } else if (pDead&&!eDead) { enemyWins++; resultText='CPU WINS!'; }
-  else if (eDead&&!pDead)   { playerWins++; resultText='YOU WIN!'; }
-  else                       { resultText='DOUBLE KO!'; }
-  if (playerWins>=WIN_ROUNDS||enemyWins>=WIN_ROUNDS)
-    setTimeout(()=>{ gameState='gameOver'; }, 2200);
+    if (player.hp > enemy.hp) { playerWins++; resultText = 'TIME OUT — YOU WIN!'; }
+    else if (enemy.hp > player.hp) { enemyWins++; resultText = 'TIME OUT — CPU WINS!'; }
+    else resultText = 'DRAW!';
+  } else if (pDead && !eDead) {
+    enemyWins++;
+    resultText = 'CPU WINS!';
+  } else if (eDead && !pDead) {
+    playerWins++;
+    resultText = 'YOU WIN!';
+  } else {
+    resultText = 'DOUBLE KO!';
+  }
+
+  if (playerWins >= WIN_ROUNDS || enemyWins >= WIN_ROUNDS) {
+    setTimeout(() => { if (gameState === 'roundEnd') gameState = 'gameOver'; }, 2200);
+  } else {
+    // Automatically advance to continuous Round 2 after 2.2 seconds if player doesn't press space/click
+    setTimeout(() => {
+      if (gameState === 'roundEnd' && !roundEndHandled) {
+        nextRound();
+      }
+    }, 2200);
+  }
 }
 
 function nextRound() {
-  if (gameState==='gameOver') { playerWins=0; enemyWins=0; roundNum=1; }
-  else roundNum++;
-  initRound();
+  roundEndHandled = true;
+  if (gameState === 'gameOver' || playerWins >= WIN_ROUNDS || enemyWins >= WIN_ROUNDS) {
+    playerWins = 0; enemyWins = 0; roundNum = 1;
+    initRound();
+    return;
+  }
+
+  // ── ROUND 2 & CONTINUOUS ROUNDS (ARENA PERSISTS, NO RESET!) ────────
+  roundNum++;
+  roundTimer = 99;
+  roundTimerAcc = 0;
+  countdown = 3;
+  countdownTimer = 1;
+  gameState = 'countdown';
+  isPaused = false;
+  keys = {};
+
+  // 1. Both health bars become full!
+  player.hp = player.maxHp;
+  enemy.hp  = enemy.maxHp;
+
+  // 2. Identify loser (who was dead on ground) and winner
+  const pWasDead = player.state === 'dead' || player.hp <= 0;
+  const eWasDead = enemy.state === 'dead' || enemy.hp <= 0;
+
+  let loser = null;
+  let winner = null;
+  if (pWasDead && !eWasDead) {
+    loser = player;
+    winner = enemy;
+  } else if (eWasDead && !pWasDead) {
+    loser = enemy;
+    winner = player;
+  }
+
+  if (loser && winner) {
+    // 3. The dead person wakes back up from knockdown!
+    // Transitions into wake-up pushing off floor back onto feet
+    loser.state = 'knockdown';
+    loser.stateDur = 1.6;
+    loser.stateElapsed = 0.50 * 1.6; // flat on back sleeping pose, then smoothly rises
+    loser.stunTimer = 1.6 - loser.stateElapsed;
+    loser.y = loser.floor;
+    loser.vy = 0;
+    loser.onGround = true;
+    loser.crouching = false;
+    loser.blocking = false;
+    loser.landedShake = true;
+
+    // Reset winner to grounded neutral
+    winner.state = 'idle';
+    winner.atkCooldown = 0;
+    winner.stunTimer = 0;
+    winner.y = winner.floor;
+    winner.vy = 0;
+    winner.onGround = true;
+    winner.crouching = false;
+    winner.blocking = false;
+
+    // Face each other
+    loser.facing = winner.x > loser.x ? 1 : -1;
+    winner.facing = loser.x > winner.x ? 1 : -1;
+
+    // 4. "if the winner is too close to loser while loser wakes up for round 2 the get huge knockback and knock down (no health loss)"
+    const dist = Math.abs(winner.x - loser.x);
+    const PROXIMITY_THRESHOLD = 155 * (canvas.width / DW);
+
+    if (dist < PROXIMITY_THRESHOLD) {
+      // Reversal wake-up shockwave explosion!
+      shake(15, 0.35);
+      spawnParticles(loser.x, loser.floor - 40, 26);
+
+      // Huge knockback (380 * sc) + knock down onto back with NO HEALTH LOSS (0 DMG)!
+      winner.knockdown(loser, 0, 380 * winner.sc);
+    }
+  } else {
+    // Timeout or mutual reset
+    player.state = 'idle';
+    enemy.state  = 'idle';
+    player.y = player.floor; player.vy = 0; player.onGround = true;
+    enemy.y  = enemy.floor;  enemy.vy  = 0; enemy.onGround  = true;
+    player.crouching = false; player.blocking = false;
+    enemy.crouching = false;  enemy.blocking = false;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1770,7 +1918,9 @@ function loop(ts) {
   if (gameState==='menu') { drawMenu(); ctx.restore(); requestAnimationFrame(loop); return; }
 
   if (gameState==='countdown') {
-    drawBackground(); player.draw(); enemy.draw(); drawHUD();
+    player.update(dt, enemy); enemy.update(dt, player);
+    updateParticles(dt);
+    drawBackground(); player.draw(); enemy.draw(); drawParticles(); drawHUD();
     countdownTimer-=dt;
     if (countdownTimer<=0) { countdown--; if (countdown<0) gameState='fight'; else countdownTimer=1; }
     drawCountdown();
@@ -1790,11 +1940,16 @@ function loop(ts) {
       return;
     }
 
-    if (!['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'crouch'].includes(player.state)) {
-      let mv=false;
-      if (keys['KeyA']||keys['ArrowLeft'])  { player.move(-220*dt); mv=true; }
-      if (keys['KeyD']||keys['ArrowRight']) { player.move( 220*dt); mv=true; }
-      if (!mv&&player.state==='walk') player.state='idle';
+    if (!['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block'].includes(player.state)) {
+      if (player.state === 'crouch' && (keys['KeyS'] || keys['ArrowDown'])) {
+        // Player is intentionally holding crouch
+      } else {
+        if (player.state === 'crouch') player.state = 'idle';
+        let mv=false;
+        if (keys['KeyA']||keys['ArrowLeft'])  { player.move(-220*dt); mv=true; }
+        if (keys['KeyD']||keys['ArrowRight']) { player.move( 220*dt); mv=true; }
+        if (!mv&&player.state==='walk') player.state='idle';
+      }
     }
 
     updateAI(dt);
@@ -1813,6 +1968,11 @@ function loop(ts) {
     roundTimerAcc+=dt;
     if (roundTimerAcc>=1) { roundTimerAcc=0; roundTimer--; }
     checkRoundEnd();
+  }
+
+  if (gameState === 'roundEnd') {
+    player.update(dt, enemy);
+    enemy.update(dt, player);
   }
 
   drawBackground(); player.draw(); enemy.draw();

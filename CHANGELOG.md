@@ -37,7 +37,28 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.1 — In-Game Pause Menu & Enhanced AI Aggression Overhaul (Current)
+### Version 1.7.2 — Continuous Arena Round 2, Wake-up Shockwave & Crouch Fix (Current)
+- **Permanent Crouch Fix (Never Stuck in Crouch Mode)**:
+  - **Frame-by-Frame Key State Synchronization**: Every frame in `Fighter.update()`, player crouching is synchronized directly with physical key states (`keys['KeyS'] || keys['ArrowDown']`). If the key is released at any point (even mid-attack, during hitstun, or during knockdown), crouching immediately clears to `idle`.
+  - **Attack-Recovery Guard**: When exiting an attack or knockdown state, the character only transitions back to `crouch` if the down key is actively being held at that exact moment.
+  - **Walk / Jump Override**: Pressing horizontal movement (`A` / `D`) or jumping (`W`) automatically breaks out of crouch if `S` is not held.
+  - **Window Blur Protection**: Added `window.blur` listener that instantly releases stuck keys and resets crouch/block states to neutral `idle`.
+  - **Unconditional Flag Assignment**: Fixed `crouch(on)` to set `this.crouching = on` immediately, avoiding dropped keyup releases while in knockdown/dead states.
+
+- **Seamless Continuous Arena for Round 2 (No Position Resets)**:
+  - When Round 1 finishes, the arena is **not reset**: neither fighter is destroyed or re-spawned at default side coordinates. Both fighters remain standing or lying exactly where their clash concluded.
+  - **Health Bars Refill to Full**: Both player and CPU health bars instantly refill to 100% max HP.
+  - **Dead Fighter Wakes Back Up from Knockdown**:
+    - The defeated fighter (who was lying flat on the mat in natural sleeping posture) automatically begins their wake-up animation, pushing up off the floor and rising to their feet.
+  - **Proximity Shockwave Reversal Knockback**:
+    - If the winner is standing too close to the fallen loser (`dist < 155px`) while the loser wakes up for Round 2, the loser's wake-up surge emits a massive kinetic shockwave.
+    - **Huge Knockback & Knockdown (Zero Health Loss)**: The hovering winner is blasted backwards with colossal knockback (`380 * sc`, identical to a Spartan Kick), skids across the floor, impacts the arena boundary or slams onto their rear/back in sleeping position, and then stands back up with **0 damage taken**.
+  - **Real-Time Countdown Execution**: During the `ROUND 2` countdown (`3 ... 2 ... 1 ... FIGHT!`), physics, character animation, and particle effects continuously run, creating a cinematic and fluid transition directly into the next round.
+  - **Smooth Round End Flow**: Automatically flows into Round 2 after 2.2 seconds, or advances immediately if the player presses Space or clicks.
+
+---
+
+### Version 1.7.1 — In-Game Pause Menu & Enhanced AI Aggression Overhaul
 - **Interactive In-Game Pause Menu (`P` or `Escape`)**:
   - Pressing `P` or `Escape` during combat immediately halts the game, freezing character physics, movement, particle decay, and the round timer.
   - Renders a clean, high-contrast modal dialog over the frozen arena with zero external libraries.
