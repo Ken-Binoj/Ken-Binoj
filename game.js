@@ -169,10 +169,10 @@ class Fighter {
     this.hp = Math.max(0, this.hp - 10);
     this.x  = clamp(this.x + 55 * attacker.facing, 55, canvas.width - 55);
     this.state        = 'knockdown';
-    this.stateDur     = 1.40; // ~0.3s fall + ~0.8s on floor (~1s on ground) + ~0.3s get up
+    this.stateDur     = 1.65; // ~0.33s fall + ~1.0s grounded in sleeping position + ~0.32s get up
     this.stateElapsed = 0;
     this.hitCooldown  = 0.6;
-    this.stunTimer    = 1.40;
+    this.stunTimer    = 1.65;
     this.landedShake  = false;
     spawnParticles(this.x, this.floor - 40, 10);
     if (this.hp <= 0) { this.state = 'dead'; this.vy = -canvas.height * 0.5; }
@@ -189,8 +189,8 @@ class Fighter {
       const sp = this.stateProgress;
       if (sp >= 0.20 && !this.landedShake) {
         this.landedShake = true;
-        shake(9, 0.22); // Screen shake on ass impact!
-        spawnParticles(this.x, this.floor, 18); // Landing dust burst
+        shake(10, 0.24); // Screen shake on ass impact!
+        spawnParticles(this.x - this.facing * 20, this.floor, 22); // Landing dust burst right where butt hits mat
       }
     }
 
@@ -544,56 +544,79 @@ class Fighter {
 
       case 'knockdown': {
         // Dynamic Knockdown Fall Animation:
-        // 1. Swept off feet: legs fly straight UP into the air
-        // 2. Slams hard on ass on the floor with screen shake & dust
-        // 3. Rolls back into relaxed sleeping position flat on floor for 1 sec
-        // 4. Smoothly pushes up and stands back on feet
+        // 1. Swept off feet (0 -> 0.20): Legs fly high UP into the air, torso leans backward
+        // 2. Slams hard on ass (0.20 -> 0.34): Butt impacts floor (shake & dust), legs kick up high from impact
+        // 3. Sleeping position flat on back (0.34 -> 0.80): Head, torso, hips, and legs rest flat along floor in natural sleeping pose
+        // 4. Wake up & push up (0.80 -> 1.0): Plants hands, tucks legs, smoothly rises back up to stance
+
         if (sp < 0.20) {
-          // Phase 1 (0 -> 0.20): Swept off feet! Legs fly high up into the air!
+          // Phase 1: Swept off feet! Legs fly high up into the air!
           const t = sp / 0.20;
-          bodyLean = lerp(0, 52, t);     // falling backward
-          bodyDip  = lerp(0, 50, t);     // dropping to floor
-          fThigh   = lerp(-5, -118, t);  // lead leg flies STRAIGHT UP towards the sky!
-          fCalf    = lerp( 5,   15, t);
-          bThigh   = lerp( 8, -102, t);  // back leg also flies up!
-          bCalf    = lerp( 5,   25, t);
-          fUpper   = lerp(-35, -55, t);  // arms flail backward
-          fFore    = lerp( 65,  20, t);
-          bUpper   = lerp(-15, -45, t);
-          bFore    = lerp( 50,  20, t);
-        } else if (sp < 0.32) {
-          // Phase 2 (0.20 -> 0.32): SLAMS ON ASS on the floor!
-          const t = (sp - 0.20) / 0.12;
-          bodyLean = lerp(52, 78, t);    // torso tilted on ass
-          bodyDip  = lerp(50, 74, t);    // ass firmly on the floor!
-          fThigh   = lerp(-118, -60, t); // legs still up in the air from impact
-          fCalf    = lerp(  15,  35, t);
-          bThigh   = lerp(-102, -45, t);
-          bCalf    = lerp(  25,  30, t);
-          fUpper   = lerp(-55,  15, t);  // arms brace floor
-          fFore    = lerp( 20,  10, t);
-          bUpper   = lerp(-45,  15, t);
-          bFore    = lerp( 20,  10, t);
-        } else if (sp < 0.76) {
-          // Phase 3 (0.32 -> 0.76): Relaxed SLEEPING POSITION flat on back (~1 full sec)
-          const t = Math.min(1, (sp - 0.32) / 0.12);
-          bodyLean = lerp(78, 90, t);    // flat on back
-          bodyDip  = 74;                 // flat on floor
-          fThigh   = lerp(-60, 0, t);    // legs settle flat on floor
-          fCalf    = lerp( 35, 0, t);
-          bThigh   = lerp(-45, 0, t);
-          bCalf    = lerp( 30, 0, t);
-          fUpper   = 10; fFore = 4;      // arms resting at sides
-          bUpper   = 10; bFore = 4;
+          const ease = t * t;
+          bodyLean = lerp(0, -52, ease);       // leaning BACKWARD
+          bodyDip  = lerp(0, 42, ease);        // dropping toward floor
+          fThigh   = lerp(-5, -125, ease);     // lead leg flies straight UP!
+          fCalf    = lerp(5, 20, ease);
+          bThigh   = lerp(8, -105, ease);      // back leg also swept high!
+          bCalf    = lerp(5, 25, ease);
+          // Arms flail backward to break fall
+          fUpper   = lerp(-35, -75, ease);
+          fFore    = lerp(65, 25, ease);
+          bUpper   = lerp(-15, -60, ease);
+          bFore    = lerp(50, 20, ease);
+        } else if (sp < 0.34) {
+          // Phase 2: SLAMS HARD ON ASS! Impact rebounds legs high into air
+          const t = (sp - 0.20) / 0.14;
+          bodyLean = lerp(-52, -80, t);        // torso rocking back from ass impact
+          bodyDip  = lerp(42, 58, t);          // ass firmly on the mat!
+          // Legs kick up to max vertical height at impact
+          fThigh   = lerp(-125, -135, Math.sin(t * Math.PI)); // peaks up in the air!
+          fCalf    = lerp(20, 28, t);
+          bThigh   = lerp(-105, -118, Math.sin(t * Math.PI));
+          bCalf    = lerp(25, 30, t);
+          // Hands slapping the mat / floor
+          fUpper   = lerp(-75, 12, t);
+          fFore    = lerp(25, 15, t);
+          bUpper   = lerp(-60, 10, t);
+          bFore    = lerp(20, 15, t);
+        } else if (sp < 0.80) {
+          // Phase 3: RELAXED SLEEPING POSITION FLAT ON BACK (~1 full sec grounded)
+          const t = Math.min(1, (sp - 0.34) / 0.10); // smooth settle into sleeping pose
+          bodyLean = lerp(-80, -90, t);        // torso flat on back (horizontal along floor)
+          bodyDip  = 58;                       // head, torso & hips resting on floor
+
+          // Legs settle down from air and lie relaxed along the floor
+          fThigh   = lerp(-135, -76, t);       // lead leg extended along floor
+          fCalf    = lerp(20, -10, t);         // knee slightly relaxed, heel on floor
+          bThigh   = lerp(-118, -70, t);       // back leg resting beside it
+          bCalf    = lerp(25, -8, t);
+
+          // Subtle sleeping breathing rhythm
+          const breathe = Math.sin((sp - 0.34) * 14) * 2;
+
+          // Arms resting in natural sleeping pose
+          // Front arm resting folded comfortably across the abdomen / chest
+          fUpper   = 28 + breathe;
+          fFore    = 80 - breathe;
+          // Back arm resting relaxed along the side on the floor
+          bUpper   = 8;
+          bFore    = 10;
         } else {
-          // Phase 4 (0.76 -> 1.0): Getting back up onto feet!
-          const t = (sp - 0.76) / 0.24;
-          bodyLean = lerp(90, 0, t);
-          bodyDip  = lerp(74, 0, t);
-          fThigh   = lerp(0, -5, t); fCalf = lerp(0, 5, t);
-          bThigh   = lerp(0,  8, t); bCalf = lerp(0, 5, t);
-          fUpper   = lerp(10, -35, t); fFore = lerp(4, 65, t);
-          bUpper   = lerp(10, -15, t); bFore = lerp(4, 50, t);
+          // Phase 4: WAKING UP & STANDING BACK UP onto feet
+          const t = (sp - 0.80) / 0.20;
+          const ease = t * (2 - t);            // smooth ease out
+          bodyLean = lerp(-90, 0, ease);       // rising from back to upright
+          bodyDip  = lerp(58, 0, ease);        // hips rising from floor
+          // Legs tucking in and planting feet firmly on ground
+          fThigh   = lerp(-76, -5, ease);
+          fCalf    = lerp(-10, 5, ease);
+          bThigh   = lerp(-70, 8, ease);
+          bCalf    = lerp(-8, 5, ease);
+          // Pushing up with hands and returning to guard stance
+          fUpper   = lerp(28, -35, ease);
+          fFore    = lerp(80, 65, ease);
+          bUpper   = lerp(8, -15, ease);
+          bFore    = lerp(10, 50, ease);
         }
         break;
       }
@@ -630,9 +653,12 @@ class Fighter {
 
       case 'dead':
         ctx.globalAlpha = 0.35;
-        bodyLean = 88;
-        fThigh = 25; fCalf = 0; bThigh = -15; bCalf = 0;
-        fUpper = -20; fFore = 30; bUpper = 15; bFore = 10;
+        bodyLean = -90;
+        bodyDip  = 58;
+        fThigh = -76; fCalf = -10;
+        bThigh = -70; bCalf = -8;
+        fUpper = 28;  fFore = 80;
+        bUpper = 8;   bFore = 10;
         break;
 
       case 'victory':
@@ -672,13 +698,14 @@ class Fighter {
     // head
     const headCY = shoulderY - hipY - HEAD_R - 2;
     ctx.beginPath(); ctx.arc(0, headCY, HEAD_R, 0, Math.PI * 2); ctx.fill();
-    // eye (sleeping slit if knocked down, otherwise glowing dot)
-    if (this.state === 'knockdown' && sp > 0.22 && sp < 0.78) {
+    // eye (sleeping slit if knocked down or defeated, otherwise alert glowing eye)
+    if ((this.state === 'knockdown' && sp > 0.20 && sp < 0.80) || this.state === 'dead') {
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(7, headCY - 3);
-      ctx.lineTo(14, headCY - 3);
+      // In -90° torso space, varying along Y produces a crisp horizontal line in world space parallel to floor
+      ctx.moveTo(11, headCY - 4);
+      ctx.lineTo(11, headCY + 3);
       ctx.stroke();
     } else {
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(11, headCY - 3, 5, 0, Math.PI * 2); ctx.fill();
@@ -1016,7 +1043,15 @@ function drawBackground() {
   ctx.beginPath(); ctx.moveTo(0, H*FLOOR_FRAC); ctx.lineTo(W, H*FLOOR_FRAC); ctx.stroke();
   for (const f of [player, enemy].filter(Boolean)) {
     ctx.fillStyle = 'rgba(0,0,0,0.07)';
-    ctx.beginPath(); ctx.ellipse(f.x, H*FLOOR_FRAC+5, 36, 8, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    if (f.state === 'knockdown' && f.stateProgress > 0.20 && f.stateProgress < 0.80) {
+      // Elongated shadow along the ground while lying on back in sleeping position
+      const shadowX = f.x - f.facing * 20 * f.sc;
+      ctx.ellipse(shadowX, H * FLOOR_FRAC + 5, 58 * f.sc, 8 * f.sc, 0, 0, Math.PI * 2);
+    } else {
+      ctx.ellipse(f.x, H * FLOOR_FRAC + 5, 36 * f.sc, 8 * f.sc, 0, 0, Math.PI * 2);
+    }
+    ctx.fill();
   }
 }
 

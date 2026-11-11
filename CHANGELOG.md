@@ -34,7 +34,28 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.5.1 — Fixes & Combat Tuning (Current)
+### Version 1.5.2 — Knockdown Sleeping Position Overhaul (Current)
+- **Natural Sleeping Position Flat on Back**:
+  - **Backward Fall Alignment**: Corrected torso lean from positive (which bent forward face-down) to negative (`bodyLean = -90°`), ensuring the fallen fighter lies completely flat on their back.
+  - **Ground Height Alignment (`bodyDip = 58`)**: Recalculated hip and head offsets so the back of the head, neck, torso, and buttocks rest naturally on top of the mat line with zero clipping below the floor.
+  - **Legs Flat Along Ground (Subterranean Clipping Fix)**:
+    - Fixed thighs pointing straight down underground (`0°`).
+    - Legs now extend forward along the floor (`fThigh = -76°`, `fCalf = -10°`, `bThigh = -70°`, `bCalf = -8°`) with heels resting directly on the floor line.
+  - **Sleeping Arms & Breathing Motion**:
+    - Front arm folds comfortably across the chest/abdomen (`fUpper = 28°`, `fFore = 80°`) with subtle chest rise-and-fall breathing (`breathe = sin(...) * 2`).
+    - Rear arm rests relaxed along the floor beside the body (`bUpper = 8°`, `bFore = 10°`).
+  - **Horizontal Sleeping Eye Slit**:
+    - Recalculated eye coordinate mapping in rotated torso space (`(11, headCY - 4)` to `(11, headCY + 3)`) so closed eyes render as a crisp, peaceful horizontal white line parallel to the ground.
+  - **Butt Slam Screen Shake & Impact Dust**:
+    - Butt slam triggers at `sp = 0.20` with enhanced camera impact shake (`shake(10, 0.24)`) and landing dust burst right where the rear impacts the floor (`x - facing * 20`).
+  - **Elongated Ground Shadow**:
+    - Ground shadow dynamically expands to an elongated ellipse (`58px`) while lying flat to cradle the full silhouette.
+  - **True 1-Second Grounded Duration**:
+    - Knockdown state duration tuned to `1.65s` (~0.33s sweep & flight, ~1.0s grounded in sleeping pose, ~0.32s wake-up push).
+
+---
+
+### Version 1.5.1 — Fixes & Combat Tuning
 - **Fixed Canvas Upside-Down Inversion**:
   - The aerial backflip somersault rotation (`charRot = -sp * 360°`) is now strictly contained within isolated character space (`ctx.save()` / `ctx.restore()`).
   - Completely resolved the canvas bug where the entire screen would flip upside down during mid-air kicks.
