@@ -2879,16 +2879,39 @@ function drawBackground() {
   ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(0, H * FLOOR_FRAC); ctx.lineTo(W, H * FLOOR_FRAC); ctx.stroke();
   for (const f of [player, enemy].filter(Boolean)) {
-    ctx.fillStyle = 'rgba(0,0,0,0.07)';
-    ctx.beginPath();
-    if ((f.state === 'knockdown' && f.stateProgress > 0.20 && f.stateProgress < 0.80) || f.state === 'dead') {
-      // Elongated shadow along the ground while lying on back in sleeping position
-      const shadowX = f.x - f.facing * 20 * f.sc;
-      ctx.ellipse(shadowX, H * FLOOR_FRAC + 5, 58 * f.sc, 8 * f.sc, 0, 0, Math.PI * 2);
+    const isDown = (f.state === 'knockdown' && f.stateProgress > 0.20 && f.stateProgress < 0.80) || f.state === 'dead';
+    const shadowX = isDown ? (f.x - f.facing * 20 * f.sc) : f.x;
+    const shadowY = H * FLOOR_FRAC + 5;
+    const heightOffGround = Math.max(0, f.floor - f.y);
+    const jumpScale = clamp(1 - (heightOffGround / (canvas.height * 0.45)) * 0.35, 0.65, 1);
+
+    if (f.isPlayer) {
+      // Player: Dark orange horizontally elongated oval shadow under feet (player identifier)
+      const baseRx = isDown ? (62 * f.sc) : (46 * f.sc);
+      const baseRy = isDown ? (8.5 * f.sc) : (7.5 * f.sc);
+      const rx = baseRx * jumpScale;
+      const ry = baseRy * jumpScale;
+
+      // Outer soft dark orange ambient halo
+      ctx.fillStyle = 'rgba(234, 88, 12, 0.28)';
+      ctx.beginPath();
+      ctx.ellipse(shadowX, shadowY, rx * 1.15, ry * 1.15, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner distinct dark orange oval core
+      ctx.fillStyle = 'rgba(194, 65, 12, 0.65)';
+      ctx.beginPath();
+      ctx.ellipse(shadowX, shadowY, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
     } else {
-      ctx.ellipse(f.x, H * FLOOR_FRAC + 5, 36 * f.sc, 8 * f.sc, 0, 0, Math.PI * 2);
+      // Enemy: Standard neutral dark shadow
+      const baseRx = isDown ? (58 * f.sc) : (36 * f.sc);
+      const baseRy = isDown ? (8 * f.sc) : (8 * f.sc);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+      ctx.beginPath();
+      ctx.ellipse(shadowX, shadowY, baseRx * jumpScale, baseRy * jumpScale, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
-    ctx.fill();
   }
 }
 

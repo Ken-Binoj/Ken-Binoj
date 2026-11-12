@@ -26,7 +26,7 @@ This dictionary serves as the master navigation index for [`game.js`](file:///c:
 | **16** | `L2363 - L2386` | **Ground Stomp ("Q") Attack System** | `triggerGroundStomp()` (hyper-armor, screen-wide floor slam, knockdown trigger) |
 | **17** | `L2387 - L2695` | **CPU Tactical AI Engine** | `updateAI()` (decision timer, Easy/Medium/Hard archetypes, reflex duck headbutt counters, dash movement, enrage frenzy <50% HP) |
 | **18** | `L2696 - L2864` | **Combat Hitbox Detection & Damage Pipeline** | `checkHits()` (duck headbutt dodge frames, Spartan kick knockback, sweep kick trips, blood spray spawn, knockdown counters) |
-| **19** | `L2865 - L2884` | **Arena Background Renderer** | `drawBackground()` (minimalist dojo gradient, floor line, arena perimeter boundary walls) |
+| **19** | `L2865 - L2908` | **Arena Background & Ground Shadows** | `drawBackground()` (minimalist floor line, player dark orange oval ground shadow, enemy neutral shadow) |
 | **20** | `L2885 - L2971` | **Heads-Up Display (HUD)** | `drawHUD()` (health bars, round victory pips, dynamic difficulty labels, [Q] Stomp prompts, round timer, bottom hint) |
 | **21** | `L2972 - L3212` | **Menu, Pause & Overlay Screens** | `drawMenu()` (difficulty cards + [M] Move List button), `drawPauseMenu()`, `drawCountdown()`, `drawRoundBanner()`, `drawGameOver()` |
 | **22** | `L3213 - L3338` | **Round Progression & Arena Persistence** | `checkRoundEnd()`, `startNextRoundContinuous()` (continuous arena reset, wake-up reversal shockwave on close proximity) |

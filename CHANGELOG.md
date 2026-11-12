@@ -40,7 +40,20 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.8.1 — Duck Headbutt Evasion Fix & Extended Invulnerability Window (Current)
+### Version 1.8.2 — Player Dark Orange Oval Ground Shadow & Visual Distinguisher (Current)
+- **Player Dark Orange Oval Ground Shadow**:
+  - **Instant Visual Player Identification**: The player now casts a distinctive horizontally elongated dark orange oval shadow directly beneath their feet on the arena floor.
+  - **Two-Tone Ambient Depth**:
+    - **Inner Core**: Rich dark burnt orange ellipse (`rgba(194, 65, 12, 0.65)`) with an elongated horizontal aspect ratio (`46px` radius horizontally by `7.5px` vertically).
+    - **Outer Halo**: Soft warm ambient dark orange glow (`rgba(234, 88, 12, 0.28)`) that smoothly frames the shadow.
+  - **Dynamic Jump & Knockdown Perspective**:
+    - The shadow dynamically scales down in size as the player leaps higher into the air, preserving vertical grounding and height perspective.
+    - When knocked down on the floor, the shadow smoothly elongates to `62px` along the mat.
+  - **Enemy Silhouette Contrast**: The CPU enemy maintains the subtle neutral dark shadow (`rgba(0, 0, 0, 0.12)`), making it effortless to identify and track your fighter at all times during rapid dashes, side swaps, and aerial cross-ups.
+
+---
+
+### Version 1.8.1 — Duck Headbutt Evasion Fix & Extended Invulnerability Window
 - **Resolved Attack Linger Whiff Bug**:
   - **The Root Cause**: Previously, when Duck Headbutt dodged a high punch or Spartan kick, the collision engine returned early without consuming the attacker's `hitCooldown`. Because Spartan kicks (0.62s duration) and flurry punch combos have long active frames, the lingering attack would immediately hit the defender the split-second the duck frames passed.
   - **Whiff Neutralization**: Dodged attacks now immediately trigger the attacker's `hitCooldown` (`0.45s` for Spartan kicks, `0.25s` for standing punches), fully neutralizing the swing so it whiffs harmlessly over the ducking fighter.
