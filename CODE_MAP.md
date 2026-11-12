@@ -1,0 +1,61 @@
+# 🗺️ Shadow Fight Web — Code Map & Architecture Dictionary
+
+This dictionary serves as the master navigation index for [`game.js`](file:///c:/Users/KEN/.gemini/antigravity-ide/scratch/Fight-html%20prototype/game.js). Use this guide to quickly locate any system, function, class, or mechanic without needing to search through the entire codebase.
+
+---
+
+## 📌 Master File Index (`game.js`)
+
+| Section # | Line Range | System Name | Key Functions / Variables |
+|---|---|---|---|
+| **01** | `L1 - L29` | **Canvas Setup & Responsive Scaling** | `canvas`, `ctx`, `DW (960)`, `DH (540)`, `FLOOR_FRAC (0.82)`, `resize()` |
+| **02** | `L30 - L88` | **Particle & Blood VFX Engine** | `spawnParticles()`, `spawnBloodSpray()`, `updateParticles()`, `drawParticles()` |
+| **03** | `L89 - L147` | **Seismic Shockwaves & Screen Shake** | `triggerGroundStompEffect()`, `updateGroundShockwaves()`, `drawGroundShockwaves()`, `shake()` |
+| **04** | `L148 - L200` | **Angle Convention & Fighter Constructor** | `class Fighter`, constructor properties (`hp`, `state`, `facing`, `stunTimer`, `dashGhosts`) |
+| **05** | `L201 - L265` | **Fighter Core Locomotion & State Triggers** | `move()`, `dash()`, `jump()`, `block()`, `crouch()`, `knockdown()`, `takeHit()` |
+| **06** | `L266 - L475` | **Combat State Machine & Attack Updates** | `attack()`, `update()`, combo cooldowns, stun decay, afterimages, knockdown wake-up |
+| **07** | `L476 - L730` | **Skeletal Kinematics & Rendering Pipeline** | `drawLimb()`, `drawTorso()`, `drawHead()`, `drawDizzyStars()`, `drawDashGhosts()` |
+| **08** | `L731 - L1406` | **Per-State Skeletal Joint Angle Curves** | Angle curves for `idle`, `walk`, `punch`, `duckHeadbutt`, `kick`, `spartanKick`, `sweepKick`, `flipKick`, `groundStomp`, `hurt`, `knockdown`, `dead` |
+| **09** | `L1407 - L1425` | **Global Game State Variables** | `gameState`, `difficulty`, `isPaused`, `menuView`, `roundNum`, `playerWins`, `enemyWins` |
+| **10** | `L1426 - L1563` | **Master Combat Moves Database** | `ALL_MOVES` (11 moves with categories, input tags, badges, damage, and tactical consequences) |
+| **11** | `L1564 - L1596` | **Match Lifecycle & Fighter Initialization** | `initRound()` (instantiates player and CPU fighters, applies difficulty color themes) |
+| **12** | `L1597 - L1729` | **Keyboard Input & Hotkey Handlers** | `keydown`, `keyup`, double-tap dash window, pause toggles (`P`/`ESC`), menu hotkeys (`1`,`2`,`3`,`M`,`ENTER`) |
+| **13** | `L1730 - L1888` | **Menu & Move List Modal Layout Generators** | `getMenuLayout()`, `getMoveListModalLayout()`, `getGameOverBtns()` |
+| **14** | `L1889 - L2110` | **Scrollable Move List Modal Renderer** | `drawScrollableMoveListModal()` (canvas clipping `ctx.clip()`, scrollbar track/thumb, overflow fade gradients) |
+| **15** | `L2111 - L2362` | **Mouse Interactions & Dragging Controls** | `wheel` (mouse wheel scrolling), `mousedown` (attacks, buttons, scrollbar jump/drag), `mousemove`, `mouseup` |
+| **16** | `L2363 - L2386` | **Ground Stomp ("Q") Attack System** | `triggerGroundStomp()` (hyper-armor, screen-wide floor slam, knockdown trigger) |
+| **17** | `L2387 - L2695` | **CPU Tactical AI Engine** | `updateAI()` (decision timer, Easy/Medium/Hard archetypes, reflex duck headbutt counters, dash movement, enrage frenzy <50% HP) |
+| **18** | `L2696 - L2864` | **Combat Hitbox Detection & Damage Pipeline** | `checkHits()` (duck headbutt dodge frames, Spartan kick knockback, sweep kick trips, blood spray spawn, knockdown counters) |
+| **19** | `L2865 - L2884` | **Arena Background Renderer** | `drawBackground()` (minimalist dojo gradient, floor line, arena perimeter boundary walls) |
+| **20** | `L2885 - L2971` | **Heads-Up Display (HUD)** | `drawHUD()` (health bars, round victory pips, dynamic difficulty labels, [Q] Stomp prompts, round timer, bottom hint) |
+| **21** | `L2972 - L3212` | **Menu, Pause & Overlay Screens** | `drawMenu()` (difficulty cards + [M] Move List button), `drawPauseMenu()`, `drawCountdown()`, `drawRoundBanner()`, `drawGameOver()` |
+| **22** | `L3213 - L3338` | **Round Progression & Arena Persistence** | `checkRoundEnd()`, `startNextRoundContinuous()` (continuous arena reset, wake-up reversal shockwave on close proximity) |
+| **23** | `L3339 - L3427` | **Main Game Loop & Frame Engine** | `loop()`, `requestAnimationFrame`, delta time clamping, screen shake transform, state router |
+
+---
+
+## 🔍 How to Find & Edit Key Features
+
+### 1. Adding or Modifying a Combat Move
+To edit or add a martial arts move, you only need to touch 4 specific regions:
+1. **Move Database & Documentation**: In `ALL_MOVES` (`L1426 - L1563`), add the move name, input key badge, damage rating, summary, and tactical consequences.
+2. **Animation Keyframes & Poses**: In the `Fighter.draw()` state switch (`L731 - L1406`), add the joint angles for head, torso, upper arm, forearm, thigh, and calf across animation progress `sp`.
+3. **Hit Detection & Damage**: In `checkHits()` (`L2696 - L2864`), add the hitbox distance, damage value, blood effect trigger, knockback impulse, or stun duration.
+4. **Input Trigger**: In `canvas.addEventListener('mousedown')` (`L2111 - L2362`) or `keydown` (`L1597 - L1729`), map the user key/button combination.
+
+### 2. Modifying CPU Difficulty & AI
+- **Difficulty Selection Cards & Colors**: `getMenuLayout()` (`L1730 - L1800`) and `initRound()` (`L1564 - L1596`).
+- **Tactical Decisions & Reaction Rates**: `updateAI()` (`L2387 - L2695`):
+  - *Easy*: Slower decision tick, 50% block, 25% duck, no enrage frenzy.
+  - *Medium*: Balanced 78% block, enrages below 50% HP.
+  - *Hard*: 95% High Guard, 88% punch ducks, 85% reflex Duck Headbutt counters to standing punches/Spartan kicks, dash-centric locomotion.
+
+### 3. Modifying Round Transitions & Reversal Mechanics
+- `startNextRoundContinuous()` (`L3220 - L3338`):
+  - Dead player wakes up with full health on floor without arena reload.
+  - Close proximity threshold (`160px`) triggers 380px knockback + floor knockdown (0 DMG).
+
+### 4. Modifying the Scrollable Move List Modal
+- **Layout & Metrics**: `getMoveListModalLayout()` (`L1801 - L1888`).
+- **Rendering & Clipping**: `drawScrollableMoveListModal()` (`L1889 - L2110`).
+- **Scrolling & Dragging**: Mouse `wheel`, `mousedown`, `mousemove` (`L2111 - L2362`) and `keydown` arrow navigation (`L1597 - L1729`).
