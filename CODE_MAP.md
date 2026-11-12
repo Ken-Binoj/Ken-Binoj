@@ -55,7 +55,13 @@ To edit or add a martial arts move, you only need to touch 4 specific regions:
   - Dead player wakes up with full health on floor without arena reload.
   - Close proximity threshold (`160px`) triggers 380px knockback + floor knockdown (0 DMG).
 
-### 4. Modifying the Scrollable Move List Modal
+### 4. Bidirectional Arena Combat & Screen-Side Swapping
+- **Downed Body Phasing**: `neitherDown` in `loop()` (`L3395 - L3410`) disables `PUSH_DIST` body collision when a fighter is down, allowing walking/jumping over.
+- **Facing Updates**: In `Fighter.update()` (`L560 - L575`), updates `facing` to face opponent, holding position during knockdown sleep (`sp < 0.80`) and attacking states.
+- **Direction-Adaptive Controls**: In `mousedown` (`L2155 - L2185`), computes `isFwd` and `isBack` relative to `player.facing`, adapting Spartan Kick (forward) and Duck Headbutt (backward) regardless of which side the player is on.
+
+### 5. Modifying the Scrollable Move List Modal
 - **Layout & Metrics**: `getMoveListModalLayout()` (`L1801 - L1888`).
 - **Rendering & Clipping**: `drawScrollableMoveListModal()` (`L1889 - L2110`).
 - **Scrolling & Dragging**: Mouse `wheel`, `mousedown`, `mousemove` (`L2111 - L2362`) and `keydown` arrow navigation (`L1597 - L1729`).
+

@@ -21,17 +21,17 @@ This document tracks all features, mechanics, visual systems, and updates implem
 | Action | Control | Description |
 |---|---|---|
 | **Rapid Punch Combo** | `Rapid Left Click (x1-5)` | Fast flurry punching with **alternating hands** (lead & back arms). 1st punch deals **9 DMG**; remaining 4 punches deal **2.25 DMG** (`9 / 4`). Max 5 punches followed by a **0.5s lockout**. Spawns **red blood spray**. |
-| **Duck Headbutt** | `A + Left Click` | Ducks low to **evade Spartan kicks & high punches**, then explodes forward with a **45° lean headbutt** (**14 DMG**). Confirmed hit **STUNS enemy for 1.5 seconds** with golden dizzy stars! |
+| **Duck Headbutt** | `Backward + Left Click` (`A` on left, `D` on right) | Ducks low to **evade Spartan kicks & high punches**, then explodes forward with a **45° lean headbutt** (**14 DMG**). Confirmed hit **STUNS enemy for 1.5 seconds** with golden dizzy stars! Directionally adapts when crossing sides! |
 | **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched** (**9 DMG**); ducks under high standing punches! Spawns **red blood**. |
 | **Normal Kick** | `Right Click` (Stationary) | Upward sweeping round/snap kick targeting mid/high zones (**12 DMG**). Spawns **red blood**. |
-| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault axe slam (**21 DMG**)! Knocks down opponent at 220° rotation with **explosive red blood spray**! |
-| **Spartan Kick** | `Moving Forward + Right Click` | Ferocious chest thrust kick (**18 DMG**); **4x colossal knockback (`368px`) with dust skidding! (No blood effect)**. |
+| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault axe slam (**21 DMG**)! Knocks down opponent at 220° rotation with **explosive red blood spray**! Automatically propels forward toward foe. |
+| **Spartan Kick** | `Forward + Right Click` (`D` on left, `A` on right) | Ferocious chest thrust kick (**18 DMG**); **4x colossal knockback (`368px`) with dust skidding! (No blood effect)**. Directionally adapts when crossing sides! |
 | **Low Sweep Kick** | `Crouch (S) + Right Click` | Ground-level sweep (**7 DMG**). **Trips unblocked opponents onto their ass! (No blood effect)**. |
 | **Crouch** | `S` or `Down Arrow` | Drops into a low martial arts crouch. **Passively ducks under all standing punches!** |
 | **Boxer High Guard Block** | `Left Shift` / `Shift` | Raises both fists and forearms tightly in front of the chin, nose, and eyes (peek-a-boo guard). Absorbs 90% of incoming damage and prevents sweep knockdowns. |
 | **Move Left / Right** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with automatic walk cycle animation. |
-| **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive directional burst propelling character **`184px` (exactly half of Spartan kick knockback!)** with shadow afterimages. |
-| **Jump** | `W` or `Up Arrow` | Aerial leap with parabolic gravity physics. |
+| **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive directional burst propelling character **`184px` (exactly half of Spartan kick knockback!)** with shadow afterimages. Adapts to forward burst or backdash based on facing! |
+| **Jump** | `W` or `Up Arrow` | Aerial leap with parabolic gravity physics. Can leap over opponents for cross-ups! |
 | **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after receiving 3 Spartan Kicks in 5s. **100% UNINTERRUPTIBLE hyper-armor!** Smashes floor: **KNOCKS DOWN OPPONENT WHEREVER THEY ARE ON SCREEN!** |
 | **Pause & Move List** | `P` or `Escape` | Pauses match and opens spacious scrollable Move List modal with damage values and tactical consequences. Press P/ESC or click Resume to resume. |
 | **Menu Move List & Guide** | `M` (On Menu Screen) | Opens the full scrollable Move List modal directly from the Main Menu. Press ESC, M, or click Back to return. |
@@ -40,7 +40,27 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.9 — Spacious Scrollable Move List & Main Menu Guide Integration (Current)
+### Version 1.8.0 — Bidirectional Arena Combat, Downed Body Crossing & Direction-Adaptive Controls (Current)
+- **Downed Fighter Crossing & Body Phasing**:
+  - **No More Invisible Body Walls**: When a fighter is knocked down (`knockdown`) or defeated (`dead`), the standing fighter is no longer repelled or pushed back by `PUSH_DIST` body collision.
+  - **Full Cross-Over Mobility**: Players and CPUs can freely walk, dash, or leap across the body lying on the mat to fight from either side of the arena.
+  - **Mid-Air Jump Cross-Ups**: Aerial jumping fighters can leap over opponents without horizontal repulsion, enabling tactical cross-up leaps.
+- **Dynamic Mutual Facing & Natural Wake-Up**:
+  - **Automatic Facing Tracking**: Standing fighters immediately flip (`facing = 1` or `-1`) to face the opponent as soon as they step or dash across them.
+  - **Grounded Knockdown Protection**: Downed fighters stay resting naturally on the floor without glitchy 180° mid-sleep flips. Upon waking up (`sp >= 0.80` or returning to standing `idle`), they dynamically turn to face the opponent and rise to their guard.
+  - **Continuous Arena Persistence**: Round 2 and Round 3 wake-ups smoothly face each other regardless of which side each combatant ended up on.
+- **Direction-Adaptive Controls**:
+  - **Relative Directional Mapping**:
+    - **Forward** is always toward the opponent (`D` from left side, `A` from right side).
+    - **Backward** is always away from the opponent (`A` from left side, `D` from right side).
+  - **Spartan Kick**: Executed via `Forward + R-CLICK` (`D + R-CLICK` on left, `A + R-CLICK` on right).
+  - **Duck Headbutt**: Executed via `Backward + L-CLICK` (`A + L-CLICK` on left, `D + L-CLICK` on right).
+  - **Tactical Dash Burst**: Double-tapping toward opponent executes forward burst; double-tapping away executes evasive backdash.
+  - **Real-Time Dynamic HUD Hint**: In-game bottom HUD hint automatically updates key prompts based on current facing direction (`A+L-CLICK / D+R-CLICK` on left side vs `D+L-CLICK / A+R-CLICK` on right side).
+
+---
+
+### Version 1.7.9 — Spacious Scrollable Move List & Main Menu Guide Integration
 - **Spacious Scrollable Move List in Pause Menu**:
   - **No More Cramped Layout**: Completely redesigned the Pause Menu move guide from a cramped, tiny 2-column fixed grid into a spacious, beautifully formatted single-column card stream.
   - **Interactive Canvas Scroll Bar**:

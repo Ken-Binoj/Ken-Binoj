@@ -9,17 +9,17 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 | Move | Key / Input | Description |
 |---|---|---|
 | **Rapid Punch Combo** | `Rapid Left Click (x1-5)` | Flurry punches alternating lead and rear hands (Hikite chamber). 1st punch 9 DMG; rest 2.25 DMG (`9 / 4`). Max 5 punches followed by 0.5s lockout. |
-| **Duck Headbutt** | `A + Left Click` | Ducks low to **evade Spartan kicks & high punches**, then explodes forward with a **45° lean headbutt** (**14 DMG**). Confirmed hit **STUNS enemy for 1.5 seconds** with golden dizzy stars! |
+| **Duck Headbutt** | `Backward + Left Click` (`A` on left, `D` on right) | Ducks low to **evade Spartan kicks & high punches**, then explodes forward with a **45° lean headbutt** (**14 DMG**). Confirmed hit **STUNS enemy for 1.5 seconds** with golden dizzy stars! Directionally adapts when crossing sides! |
 | **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched**; ducks under standing punches! |
 | **Normal Kick** | `Right Click` (Stationary) | Quick upward snap kick (`152px` reach). |
 | **Front Flip Axe Kick** | `Airborne + Right Click` | 360° forward somersault gliding toward enemy with downward axe slam (**21 DMG**). Connects at 220° & knocks down opponent with red blood spray! |
-| **Spartan Kick** | `Forward + Right Click` | Ferocious chest thrust kick (**18 DMG**), **fighter bends backward** (`-40°`), **4x massive animated knockback (`368px`) with dust skidding! (No blood)** |
+| **Spartan Kick** | `Forward + Right Click` (`D` on left, `A` on right) | Ferocious chest thrust kick (**18 DMG**), **fighter bends backward** (`-40°`), **4x massive animated knockback (`368px`) with dust skidding! (No blood)**. Directionally adapts when crossing sides! |
 | **Low Sweep Kick** | `S (Crouch) + Right Click` | Low ground sweep (**7 DMG**) — **trips unblocked enemies onto their rear into a 1-second knockdown! (No blood)** |
 | **Crouch** | `S` or `Down Arrow` | Low martial arts crouch. **Passively ducks under standing punches!** |
 | **Boxer High Guard Block** | `Left Shift` | Peek-a-boo guard in front of face (absorbs 90% dmg & prevents sweep trips). |
 | **Movement** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with walking animation. |
-| **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive burst propelling character `184px` (half of Spartan knockback!) with shadow afterimages. |
-| **Jump** | `W` or `Up Arrow` | Leap into the air with gravity physics. |
+| **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive burst propelling character `184px` (half of Spartan knockback!) with shadow afterimages. Adapts to forward or backward dash! |
+| **Jump** | `W` or `Up Arrow` | Leap into the air with gravity physics. Can leap over opponents for cross-ups! |
 | **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after taking 3 Spartan Kicks in 5s. **100% UNINTERRUPTIBLE hyper-armor!** Stomps the arena floor: **KNOCKS DOWN FOE ANYWHERE ON SCREEN!** |
 | **Pause & Move List** | `P` or `Escape` | Pauses match and opens spacious scrollable Move List modal with damage values and tactical consequences. Press P/ESC or click Resume. |
 | **Menu Move Guide** | `M` (On Menu Screen) | Opens the full scrollable Move List modal directly from the Main Menu. Press ESC, M, or click Back to return. |

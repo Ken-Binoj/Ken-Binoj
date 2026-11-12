@@ -563,7 +563,9 @@ class Fighter {
 
     this.walkCycle += dt * (this.state === 'walk' ? 8 : 1.5);
 
-    if (this.state !== 'dead' && this.state !== 'flipKick' && this.state !== 'dash') {
+    const isAttacking = ['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'dash', 'groundStomp'].includes(this.state);
+    const isGroundedKnockdown = (this.state === 'knockdown' && this.stateProgress < 0.80);
+    if (opp && this.state !== 'dead' && !isAttacking && !isGroundedKnockdown) {
       const dx = opp.x - this.x;
       if (Math.abs(dx) > 2) this.facing = dx > 0 ? 1 : -1;
     }
@@ -1442,12 +1444,12 @@ const ALL_MOVES = [
   {
     category: 'TACTICAL COUNTERS',
     name: 'Duck Headbutt',
-    input: 'A + L-CLICK',
+    input: 'BACK + L-CLICK (A / D)',
     badge: '14 DMG · 1.5s STUN',
     badgeBg: '#dc2626',
     summary: 'Ducks beneath high strikes, then surges forward into an explosive 45° skull strike.',
     bullets: [
-      '• Evasive Ducking Frames (0.38s): Completely dodges standing punches and Spartan kicks over your head.',
+      '• Directional Input: Hold Back (A from left side, D from right side) + L-CLICK. Dodges Spartan kicks & punches!',
       '• 45° Ram Strike: Deals 14 DMG with red blood and STUNS the enemy for 1.5 seconds with spinning dizzy stars!'
     ]
   },
@@ -1478,13 +1480,13 @@ const ALL_MOVES = [
   {
     category: 'WALL-BOUNCE POWER',
     name: 'Spartan Kick',
-    input: 'FORWARD + R-CLICK',
+    input: 'FORWARD + R-CLICK (D / A)',
     badge: '18 DMG · 4X KNOCKBACK',
     badgeBg: '#b91c1c',
     summary: 'Torso leans back 40° as heel delivers a devastating linear chest battering ram.',
     bullets: [
-      '• 4X Colossal Knockback (368px!): Hurls opponents across the arena into perimeter walls with skidding dust clouds.',
-      '• Deals 18 DMG with heavy screen shake. Vulnerable on startup to duck headbutts and low sweeps!'
+      '• Directional Input: Hold Forward towards enemy (D from left side, A from right side) + R-CLICK.',
+      '• 4X Colossal Knockback (368px!): Hurls opponents across the arena into perimeter walls with skidding dust clouds.'
     ]
   },
   {
@@ -2154,9 +2156,14 @@ canvas.addEventListener('mousedown', e => {
   }
 
   if (gameState === 'fight') {
+    const isFwd = (player.facing > 0 && (keys['KeyD'] || keys['ArrowRight'])) ||
+                  (player.facing < 0 && (keys['KeyA'] || keys['ArrowLeft']));
+    const isBack = (player.facing > 0 && (keys['KeyA'] || keys['ArrowLeft'])) ||
+                   (player.facing < 0 && (keys['KeyD'] || keys['ArrowRight']));
+
     if (e.button === 0) {
-      if (keys['KeyA'] || keys['ArrowLeft']) {
-        // While pressing "A" (or Left Arrow) + Punch: Duck Headbutt!
+      if (isBack) {
+        // Holding Backward (away from enemy) + Punch: Duck Headbutt!
         player.attack('duckHeadbutt');
       } else if (player.crouching || player.state === 'crouch') {
         player.attack('crouchPunch');
@@ -2172,10 +2179,8 @@ canvas.addEventListener('mousedown', e => {
         // Crouch + Right Click: Low Sweep Kick (trips unblocked enemies!)
         player.attack('sweepKick');
       } else {
-        // Moving towards enemy + Right Click: Spartan Kick!
-        const movingForward = (player.facing > 0 && (keys['KeyD'] || keys['ArrowRight'])) ||
-          (player.facing < 0 && (keys['KeyA'] || keys['ArrowLeft']));
-        player.attack(movingForward ? 'spartanKick' : 'kick');
+        // Moving towards enemy (Forward) + Right Click: Spartan Kick!
+        player.attack(isFwd ? 'spartanKick' : 'kick');
       }
     }
     return;
@@ -2964,9 +2969,11 @@ function drawHUD() {
   ctx.font = `${Math.floor(11 * sc)}px monospace`;
   ctx.fillText(`ROUND ${roundNum}`, W / 2, pad + barH + 16 * sc);
 
-  // Hint
+  // Dynamic Directional Hint (adjusts automatically based on player facing direction)
+  const hbKey = player && player.facing < 0 ? 'D' : 'A';
+  const spKey = player && player.facing < 0 ? 'A' : 'D';
   ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.font = `${Math.floor(10 * sc)}px monospace`;
-  ctx.fillText('L-CLICK: Punch  |  A+L-CLICK: Duck Headbutt (1.5s Stun)  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  P: Pause & Move List', W / 2, H - 10);
+  ctx.fillText(`L-CLICK: Punch  |  ${hbKey}+L-CLICK: Duck Headbutt (1.5s Stun)  |  ${spKey}+R-CLICK: Spartan Kick  |  DOUBLE-TAP: Dash  |  P: Pause & Move List`, W / 2, H - 10);
 }
 
 // ── Screens ─────────────────────────────────────────────────
@@ -3110,7 +3117,7 @@ function drawMenu() {
 
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.font = `${Math.floor(9 * sc)}px monospace`;
-  ctx.fillText('L-CLICK: Punch  |  A+L-CLICK: Duck Headbutt (1.5s Stun)  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  P: Pause & Move List', W / 2, H - 12);
+  ctx.fillText('L-CLICK: Punch  |  BACK+L-CLICK: Duck Headbutt (1.5s Stun)  |  FWD+R-CLICK: Spartan Kick  |  DOUBLE-TAP: Dash  |  P: Pause & Move List', W / 2, H - 12);
 }
 
 function drawPauseMenu() {
@@ -3392,7 +3399,9 @@ function loop(ts) {
     updateAI(dt);
 
     const dist = Math.abs(player.x - enemy.x);
-    if (dist < PUSH_DIST) {
+    const neitherDown = player.state !== 'knockdown' && player.state !== 'dead' &&
+                        enemy.state !== 'knockdown' && enemy.state !== 'dead';
+    if (neitherDown && player.onGround && enemy.onGround && dist < PUSH_DIST) {
       const push = (PUSH_DIST - dist) * 0.5 + 1;
       if (player.x < enemy.x) { player.x -= push; enemy.x += push; }
       else { player.x += push; enemy.x -= push; }
