@@ -40,7 +40,19 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.8.0 — Bidirectional Arena Combat, Downed Body Crossing & Direction-Adaptive Controls (Current)
+### Version 1.8.1 — Duck Headbutt Evasion Fix & Extended Invulnerability Window (Current)
+- **Resolved Attack Linger Whiff Bug**:
+  - **The Root Cause**: Previously, when Duck Headbutt dodged a high punch or Spartan kick, the collision engine returned early without consuming the attacker's `hitCooldown`. Because Spartan kicks (0.62s duration) and flurry punch combos have long active frames, the lingering attack would immediately hit the defender the split-second the duck frames passed.
+  - **Whiff Neutralization**: Dodged attacks now immediately trigger the attacker's `hitCooldown` (`0.45s` for Spartan kicks, `0.25s` for standing punches), fully neutralizing the swing so it whiffs harmlessly over the ducking fighter.
+  - Same whiff cooldown applied to standing punches ducked by normal crouch / crouch punch.
+- **Widened Invulnerability Window (+79% Duration)**:
+  - **Expanded Evasion Window**: Increased the invulnerability window against standing punches and Spartan kicks from `sp < 0.38` (210ms) to **`sp < 0.68` (380ms)**.
+  - **Full Attack Sequence Coverage**: Invulnerability now covers both the initial downward ducking coil AND the entire 45-degree forward strike surge, ensuring incoming high attacks cannot interrupt the headbutt before it connects.
+  - **Evasive Dust Feedback**: Clean whoosh particle effects spawn whenever a high punch or Spartan kick misses over the headbutting fighter.
+
+---
+
+### Version 1.8.0 — Bidirectional Arena Combat, Downed Body Crossing & Direction-Adaptive Controls
 - **Downed Fighter Crossing & Body Phasing**:
   - **No More Invisible Body Walls**: When a fighter is knocked down (`knockdown`) or defeated (`dead`), the standing fighter is no longer repelled or pushed back by `PUSH_DIST` body collision.
   - **Full Cross-Over Mobility**: Players and CPUs can freely walk, dash, or leap across the body lying on the mat to fight from either side of the arena.

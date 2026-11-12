@@ -1449,7 +1449,7 @@ const ALL_MOVES = [
     badgeBg: '#dc2626',
     summary: 'Ducks beneath high strikes, then surges forward into an explosive 45° skull strike.',
     bullets: [
-      '• Directional Input: Hold Back (A from left side, D from right side) + L-CLICK. Dodges Spartan kicks & punches!',
+      '• Extended Evasion Window (0 -> 0.68): Cleanly dodges standing punches & Spartan kicks throughout duck & strike!',
       '• 45° Ram Strike: Deals 14 DMG with red blood and STUNS the enemy for 1.5 seconds with spinning dizzy stars!'
     ]
   },
@@ -2774,12 +2774,17 @@ function checkHit(att, def) {
   if (att.facing * (def.x - att.x) < 0) return;
 
   // Crouching (or Crouch Punching) ducks under standing punches!
-  if (att.state === 'punch' && (def.state === 'crouch' || def.state === 'crouchPunch')) return;
+  if (att.state === 'punch' && (def.state === 'crouch' || def.state === 'crouchPunch')) {
+    att.hitCooldown = 0.25;
+    return;
+  }
 
-  // Duck Headbutt evasion: While in ducking frames (sp < 0.38), duck under punches AND Spartan kicks!
-  if (def.state === 'duckHeadbutt' && def.stateProgress < 0.38) {
+  // Duck Headbutt evasion: While in ducking and striking frames (sp < 0.68), duck under punches AND Spartan kicks!
+  if (def.state === 'duckHeadbutt' && def.stateProgress < 0.68) {
     if (att.state === 'punch' || att.state === 'spartanKick') {
-      return; // Cleanly dodges!
+      att.hitCooldown = (att.state === 'spartanKick') ? 0.45 : 0.25;
+      spawnParticles(def.x, def.y - 75 * sc, 4); // Clean evasive whoosh dust
+      return; // Cleanly dodges high punches and Spartan kicks!
     }
   }
 
