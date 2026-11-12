@@ -1432,154 +1432,162 @@ const ALL_MOVES = [
   {
     category: 'STRIKES & COMBOS',
     name: 'Rapid Punch Combo',
-    input: 'L-CLICK (x1-5)',
+    input: 'P1: V / L-CLICK · P2: -',
     badge: '9 / 2.25 DMG · BLOOD',
     badgeBg: '#000000',
     summary: 'High-speed flurry alternating rapidly between lead and rear fists.',
     bullets: [
-      '• 1st punch deals 9 DMG; following 4 chain punches deal 2.25 DMG (9 / 4) with red arterial blood spray.',
-      '• Max 5 punches per chain, followed by a mandatory 0.5s recovery cooldown. Whiffs completely if target crouches!'
+      '• P1 Key: V (or Left-Click) | P2 Key: - (Minus / Numpad-). Rapid taps chain up to 5 punches.',
+      '• 1st punch deals 9 DMG; following 4 chain punches deal 2.25 DMG (9 / 4). 0.5s recovery after 5 punches.'
     ]
   },
   {
     category: 'TACTICAL COUNTERS',
     name: 'Duck Headbutt',
-    input: 'BACK + L-CLICK (A / D)',
+    input: 'P1: Back + V · P2: Back + -',
     badge: '14 DMG · 1.5s STUN',
     badgeBg: '#dc2626',
     summary: 'Ducks beneath high strikes, then surges forward into an explosive 45° skull strike.',
     bullets: [
-      '• Extended Evasion Window (0 -> 0.68): Cleanly dodges standing punches & Spartan kicks throughout duck & strike!',
+      '• Directional Input: Hold Back (P1: A/D + V | P2: 4/6 + -). Dodges standing punches & Spartan kicks!',
       '• 45° Ram Strike: Deals 14 DMG with red blood and STUNS the enemy for 1.5 seconds with spinning dizzy stars!'
     ]
   },
   {
     category: 'LOW OFFENSE',
     name: 'Low Crouch Punch',
-    input: 'S + L-CLICK',
+    input: 'P1: S + V · P2: 5 + -',
     badge: '9 DMG · LOW HIT',
     badgeBg: '#1e293b',
     summary: 'Gedan Tsuki low body strike delivered while maintaining a full crouch posture.',
     bullets: [
-      '• Torso stays submerged below head level, evading high punches while striking opponent midsection.',
+      '• P1: Hold S + V | P2: Hold 5 + -. Torso stays submerged below head level, evading high punches.',
       '• Deals 9 DMG with arterial blood spray; fast frame recovery for safe close-quarter poke pressure.'
     ]
   },
   {
     category: 'MID POKES',
     name: 'Snap Thrust Kick',
-    input: 'R-CLICK (Neutral)',
+    input: 'P1: B / R-CLICK · P2: +',
     badge: '12 DMG · 152px REACH',
     badgeBg: '#1e293b',
     summary: 'Swift linear round thrust kick extending 152px outward at mid-body level.',
     bullets: [
-      '• Primary spacing and poke tool against advancing fighters; fast startup with solid pushback.',
+      '• P1 Key: B (or Right-Click) | P2 Key: + (Plus / Numpad+). Primary mid-range spacing and poke tool.',
       '• Deals 12 DMG with red blood spray and prevents aggressive dash-ins when properly timed.'
     ]
   },
   {
     category: 'WALL-BOUNCE POWER',
     name: 'Spartan Kick',
-    input: 'FORWARD + R-CLICK (D / A)',
+    input: 'P1: Fwd + B · P2: Fwd + +',
     badge: '18 DMG · 4X KNOCKBACK',
     badgeBg: '#b91c1c',
     summary: 'Torso leans back 40° as heel delivers a devastating linear chest battering ram.',
     bullets: [
-      '• Directional Input: Hold Forward towards enemy (D from left side, A from right side) + R-CLICK.',
+      '• Directional Input: Hold Forward towards enemy (P1: D/A + B | P2: 6/4 + +).',
       '• 4X Colossal Knockback (368px!): Hurls opponents across the arena into perimeter walls with skidding dust clouds.'
     ]
   },
   {
     category: 'AERIAL CRUSH',
     name: 'Front Flip Axe Kick',
-    input: 'AIRBORNE + R-CLICK',
+    input: 'P1: Air + B · P2: Air + +',
     badge: '21 DMG · FLATTENS FOE',
     badgeBg: '#7c2d12',
     summary: 'Full 360° airborne somersault bringing heel crashing downward at 220° rotation.',
     bullets: [
-      '• Massive 21 DMG (+3 DMG buff) with huge arterial blood explosion; ignores crouching defenders.',
+      '• P1: Jump + B | P2: Jump + +. Massive 21 DMG (+3 DMG buff) with huge arterial blood explosion.',
       '• Untechable Knockdown: Smashes opponent flat on their back for a full 1.0-second floor knockdown!'
     ]
   },
   {
     category: 'GUARD BREAK',
     name: 'Low Sweep Kick',
-    input: 'S + R-CLICK',
+    input: 'P1: S + B · P2: 5 + +',
     badge: '7 DMG · TRIPS ON ASS',
     badgeBg: '#0f766e',
     summary: 'Ground-level 360° spinning foot sweep with grounded hand plant.',
     bullets: [
-      '• Bypasses High Guard: Trips standing opponents directly onto the floor for a 1.0s knockdown.',
+      '• P1: Hold S + B | P2: Hold 5 + +. Bypasses High Guard: Trips standing opponents onto floor for 1.0s.',
       '• Deals 7 DMG (-3 DMG balance) with ground dust clouds. (No blood effect). Can be hopped over with jump!'
     ]
   },
   {
     category: 'DEFENSE',
     name: 'Martial Arts Crouch',
-    input: 'HOLD S / ↓ ARROW',
+    input: 'P1: Hold S · P2: Hold 5',
     badge: 'DEFENSE · DUCK HIGH',
     badgeBg: '#334155',
     summary: 'Deep crouching martial posture dropping fighter below standing punch plane.',
     bullets: [
-      '• Passively causes all standing punches and Spartan kicks to whiff over your head without block stun.',
+      '• P1: Hold S (or Down Arrow) | P2: Hold 5 (Numpad5). Passively ducks under all standing punches.',
       '• Seamlessly combos into Low Crouch Punch, Low Sweep Kick, or Duck Headbutt counter-attacks.'
     ]
   },
   {
     category: 'DEFENSE',
     name: 'Boxer High Guard Block',
-    input: 'HOLD SHIFT',
+    input: 'P1: Hold Shift · P2: Hold 0',
     badge: 'DEFENSE · 90% ABSORPTION',
     badgeBg: '#334155',
     summary: 'Peek-a-boo boxing guard with both forearms shielding chin, nose, and head.',
     bullets: [
-      '• Absorbs 90% of all incoming strike damage and completely mitigates knockback slide.',
+      '• P1: Hold Shift | P2: Hold 0 (Numpad0). Absorbs 90% incoming damage and stops knockback slide.',
       '• Highly effective against punches and kicks, but completely vulnerable to Low Sweep Kicks and Ground Stomp!'
     ]
   },
   {
     category: 'MOBILITY',
     name: 'Tactical Dash Burst',
-    input: 'DOUBLE-TAP A / D',
+    input: 'P1: Double-Tap A/D · P2: 4/6',
     badge: 'MOBILITY · 184px BURST',
     badgeBg: '#0284c7',
     summary: 'High-speed directional burst propulsion leaving transparent shadow afterimages.',
     bullets: [
-      '• Propels fighter 184px (exactly half of Spartan kick knockback) in 0.20s across the arena floor.',
-      '• Attack Cancelling: Can be cancelled instantly into any punch, kick, or headbutt for dynamic mixups.'
+      '• P1: Double-tap A / D | P2: Double-tap 4 / 6. Propels fighter 184px (half Spartan knockback) in 0.20s.',
+      '• Double-tap forward = rush burst; double-tap backward = evasive retreat. Can be cancelled into attacks!'
     ]
   },
   {
     category: 'ULTIMATE REVERSAL',
-    name: 'Ground Stomp ("Q")',
-    input: 'PRESS Q (When Ready)',
+    name: 'Ground Stomp ("Q" / "7")',
+    input: 'P1: Q · P2: 7',
     badge: 'ULTIMATE · UNINTERRUPTIBLE',
     badgeBg: '#000000',
     summary: 'Cataclysmic shockwave unlocked after receiving 3 Spartan Kicks or 3 KDs in 5 seconds.',
     bullets: [
-      '• 100% UNINTERRUPTIBLE: Complete hyper-armor throughout startup; cannot be flinched, interrupted, or knocked back!',
-      '• Screen-Wide Shockwave: Knocks down the opponent wherever they are standing on screen, opening them for retaliation!'
+      '• P1: Press Q | P2: Press 7. 100% UNINTERRUPTIBLE hyper-armor throughout startup; cannot be interrupted!',
+      '• Screen-Wide Shockwave: Knocks down the opponent wherever they are standing on screen!'
     ]
   }
 ];
 
 function initRound() {
   player = new Fighter(canvas.width * 0.25, true, 'PLAYER');
-  enemy = new Fighter(canvas.width * 0.75, false, 'CPU');
+  enemy = new Fighter(canvas.width * 0.75, false, difficulty === 'pvp' ? 'PLAYER 2' : 'CPU');
 
-  // Configure enemy appearance & traits by difficulty
-  if (difficulty === 'easy') {
+  // Configure enemy appearance & traits by difficulty / game mode
+  if (difficulty === 'pvp') {
+    enemy.mainColor = '#1d4ed8'; // Royal blue for Player 2
+    enemy.backColor = '#1e3a8a'; // Deep navy blue for P2 back limbs
+    enemy.displayName = 'P2 [BLUE]';
+    player.displayName = 'P1 [ORANGE]';
+  } else if (difficulty === 'easy') {
     enemy.mainColor = '#16a34a'; // Vibrant emerald green
     enemy.backColor = '#15803d'; // Deep green for back limbs
     enemy.displayName = 'CPU [EASY]';
+    player.displayName = 'PLAYER';
   } else if (difficulty === 'hard') {
     enemy.mainColor = '#dc2626'; // Vibrant crimson red
     enemy.backColor = '#991b1b'; // Deep dark red for back limbs
     enemy.displayName = 'CPU [HARD]';
+    player.displayName = 'PLAYER';
   } else {
     enemy.mainColor = '#000000'; // Classic black shadow (medium default)
     enemy.backColor = '#333333';
     enemy.displayName = 'CPU [MEDIUM]';
+    player.displayName = 'PLAYER';
   }
 
   roundTimer = 99; roundTimerAcc = 0;
@@ -1596,14 +1604,71 @@ function initRound() {
   roundBannerTimer = 0;
 }
 
+// ── Combat Attack Dispatchers ─────────────────────────────────
+function triggerPlayer1Punch() {
+  if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  const isBack = (player.facing > 0 && (keys['KeyA'] || keys['ArrowLeft'])) ||
+                 (player.facing < 0 && (keys['KeyD'] || keys['ArrowRight']));
+  if (isBack) {
+    player.attack('duckHeadbutt');
+  } else if (player.crouching || player.state === 'crouch') {
+    player.attack('crouchPunch');
+  } else {
+    player.attack('punch');
+  }
+}
+
+function triggerPlayer1Kick() {
+  if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  const isFwd = (player.facing > 0 && (keys['KeyD'] || keys['ArrowRight'])) ||
+                (player.facing < 0 && (keys['KeyA'] || keys['ArrowLeft']));
+  if (!player.onGround) {
+    player.attack('flipKick');
+  } else if (player.crouching || player.state === 'crouch') {
+    player.attack('sweepKick');
+  } else {
+    player.attack(isFwd ? 'spartanKick' : 'kick');
+  }
+}
+
+function triggerPlayer2Punch() {
+  if (!enemy || enemy.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  const isLeft = keys['Numpad4'] || keys['Digit4'] || keys['4'];
+  const isRight = keys['Numpad6'] || keys['Digit6'] || keys['6'];
+  const isBack = (enemy.facing > 0 && isLeft) || (enemy.facing < 0 && isRight);
+  if (isBack) {
+    enemy.attack('duckHeadbutt');
+  } else if (enemy.crouching || enemy.state === 'crouch') {
+    enemy.attack('crouchPunch');
+  } else {
+    enemy.attack('punch');
+  }
+}
+
+function triggerPlayer2Kick() {
+  if (!enemy || enemy.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  const isLeft = keys['Numpad4'] || keys['Digit4'] || keys['4'];
+  const isRight = keys['Numpad6'] || keys['Digit6'] || keys['6'];
+  const isFwd = (enemy.facing > 0 && isRight) || (enemy.facing < 0 && isLeft);
+  if (!enemy.onGround) {
+    enemy.attack('flipKick');
+  } else if (enemy.crouching || enemy.state === 'crouch') {
+    enemy.attack('sweepKick');
+  } else {
+    enemy.attack(isFwd ? 'spartanKick' : 'kick');
+  }
+}
+
 // ── Input ────────────────────────────────────────────────────
 let keys = {};
 let lastTap = { left: 0, right: 0 };
+let lastTapP2 = { left: 0, right: 0 };
 const DOUBLE_TAP_WINDOW = 280; // ms
 
 document.addEventListener('keydown', e => {
   if (keys[e.code]) return;
   keys[e.code] = true;
+  keys[e.key] = true;
 
   // Toggle Pause Menu with P or Escape during fight
   if (e.code === 'KeyP' || e.code === 'Escape') {
@@ -1661,6 +1726,8 @@ document.addEventListener('keydown', e => {
 
   if (gameState === 'fight' && !isPaused) {
     const now = Date.now();
+
+    // ── PLAYER 1 CONTROLS (Left Fighter) ──
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
       if (now - lastTap.left < DOUBLE_TAP_WINDOW) {
         player.dash(-1);
@@ -1685,6 +1752,60 @@ document.addEventListener('keydown', e => {
         triggerGroundStomp(player, enemy);
       }
     }
+    if (e.code === 'KeyV') {
+      triggerPlayer1Punch();
+    }
+    if (e.code === 'KeyB') {
+      triggerPlayer1Kick();
+    }
+
+    // ── PLAYER 2 CONTROLS (Multiplayer Mode) ──
+    if (difficulty === 'pvp' && enemy && enemy.hp > 0) {
+      // 4 = Move Left / Dash Left
+      if (e.code === 'Numpad4' || e.code === 'Digit4' || e.key === '4') {
+        if (now - lastTapP2.left < DOUBLE_TAP_WINDOW) {
+          enemy.dash(-1);
+          lastTapP2.left = 0;
+        } else {
+          lastTapP2.left = now;
+        }
+      }
+      // 6 = Move Right / Dash Right
+      if (e.code === 'Numpad6' || e.code === 'Digit6' || e.key === '6') {
+        if (now - lastTapP2.right < DOUBLE_TAP_WINDOW) {
+          enemy.dash(1);
+          lastTapP2.right = 0;
+        } else {
+          lastTapP2.right = now;
+        }
+      }
+      // 8 = Jump
+      if (e.code === 'Numpad8' || e.code === 'Digit8' || e.key === '8') {
+        enemy.jump();
+      }
+      // 5 = Crouch
+      if (e.code === 'Numpad5' || e.code === 'Digit5' || e.key === '5') {
+        enemy.crouch(true);
+      }
+      // 0 = Block
+      if (e.code === 'Numpad0' || e.code === 'Digit0' || e.key === '0') {
+        enemy.block(true);
+      }
+      // 7 = Ground Stomp
+      if (e.code === 'Numpad7' || e.code === 'Digit7' || e.key === '7') {
+        if (enemy.groundStompReady || enemy.reversalReady) {
+          triggerGroundStomp(enemy, player);
+        }
+      }
+      // - = Punch
+      if (e.code === 'NumpadSubtract' || e.code === 'Minus' || e.key === '-') {
+        triggerPlayer2Punch();
+      }
+      // + = Kick
+      if (e.code === 'NumpadAdd' || e.code === 'Equal' || e.key === '+' || e.key === '=') {
+        triggerPlayer2Kick();
+      }
+    }
   }
 
   if (gameState === 'menu' && menuView === 'main') {
@@ -1705,14 +1826,19 @@ document.addEventListener('keydown', e => {
       difficulty = 'hard';
       return;
     }
+    if (e.code === 'Digit4' || e.code === 'Numpad4') {
+      difficulty = 'pvp';
+      return;
+    }
+    const diffs = ['easy', 'medium', 'hard', 'pvp'];
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-      if (difficulty === 'hard') difficulty = 'medium';
-      else if (difficulty === 'medium') difficulty = 'easy';
+      const idx = diffs.indexOf(difficulty);
+      if (idx > 0) difficulty = diffs[idx - 1];
       return;
     }
     if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-      if (difficulty === 'easy') difficulty = 'medium';
-      else if (difficulty === 'medium') difficulty = 'hard';
+      const idx = diffs.indexOf(difficulty);
+      if (idx < diffs.length - 1) difficulty = diffs[idx + 1];
       return;
     }
     if (e.code === 'Enter' || e.code === 'Space') {
@@ -1724,9 +1850,15 @@ document.addEventListener('keydown', e => {
 
 document.addEventListener('keyup', e => {
   keys[e.code] = false;
-  if (!player) return;
-  if (e.code === 'KeyS' || e.code === 'ArrowDown') player.crouch(false);
-  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(false);
+  keys[e.key] = false;
+  if (player) {
+    if (e.code === 'KeyS' || e.code === 'ArrowDown') player.crouch(false);
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(false);
+  }
+  if (enemy && difficulty === 'pvp') {
+    if (e.code === 'Numpad5' || e.code === 'Digit5' || e.key === '5') enemy.crouch(false);
+    if (e.code === 'Numpad0' || e.code === 'Digit0' || e.key === '0') enemy.block(false);
+  }
 });
 
 // ── Menu and Button Layouts ──────────────────────────────────
@@ -1734,12 +1866,12 @@ function getMenuLayout() {
   const W = canvas.width, H = canvas.height;
   const sc = Math.min(W / DW, H / 560);
 
-  const gap = 16 * sc;
-  const cardW = Math.min(270 * sc, (W - 44 * sc - gap * 2) / 3);
-  const cardH = Math.min(205 * sc, H * 0.40);
-  const totalW = cardW * 3 + gap * 2;
+  const gap = 12 * sc;
+  const cardW = Math.min(214 * sc, (W - 40 * sc - gap * 3) / 4);
+  const cardH = Math.min(210 * sc, H * 0.42);
+  const totalW = cardW * 4 + gap * 3;
   const startX = (W - totalW) / 2;
-  const cardY = H * 0.31;
+  const cardY = H * 0.30;
 
   const cards = [
     {
@@ -1790,6 +1922,23 @@ function getMenuLayout() {
         '• Crimson Red Silhouette'
       ],
       x: startX + (cardW + gap) * 2,
+      y: cardY,
+      w: cardW,
+      h: cardH
+    },
+    {
+      id: 'pvp',
+      title: '2P VERSUS',
+      sub: 'LOCAL MULTIPLAYER',
+      color: '#2563eb',
+      accentBg: 'rgba(37, 99, 235, 0.08)',
+      bullets: [
+        '• Same-Keyboard 1v1 Battle',
+        '• P1 [Orange]: WASD + V, B',
+        '• P2 [Blue]: 8456 + -, +',
+        '• Blue P2 Silhouette & Shadow'
+      ],
+      x: startX + (cardW + gap) * 3,
       y: cardY,
       w: cardW,
       h: cardH
@@ -2156,32 +2305,11 @@ canvas.addEventListener('mousedown', e => {
   }
 
   if (gameState === 'fight') {
-    const isFwd = (player.facing > 0 && (keys['KeyD'] || keys['ArrowRight'])) ||
-                  (player.facing < 0 && (keys['KeyA'] || keys['ArrowLeft']));
-    const isBack = (player.facing > 0 && (keys['KeyA'] || keys['ArrowLeft'])) ||
-                   (player.facing < 0 && (keys['KeyD'] || keys['ArrowRight']));
-
     if (e.button === 0) {
-      if (isBack) {
-        // Holding Backward (away from enemy) + Punch: Duck Headbutt!
-        player.attack('duckHeadbutt');
-      } else if (player.crouching || player.state === 'crouch') {
-        player.attack('crouchPunch');
-      } else {
-        player.attack('punch');
-      }
+      triggerPlayer1Punch();
     }
     if (e.button === 2) {
-      if (!player.onGround) {
-        // Kick performed in the air -> Front Flip Axe Kick!
-        player.attack('flipKick');
-      } else if (player.crouching || player.state === 'crouch') {
-        // Crouch + Right Click: Low Sweep Kick (trips unblocked enemies!)
-        player.attack('sweepKick');
-      } else {
-        // Moving towards enemy (Forward) + Right Click: Spartan Kick!
-        player.attack(isFwd ? 'spartanKick' : 'kick');
-      }
+      triggerPlayer1Kick();
     }
     return;
   }
@@ -2886,7 +3014,7 @@ function drawBackground() {
     const jumpScale = clamp(1 - (heightOffGround / (canvas.height * 0.45)) * 0.35, 0.65, 1);
 
     if (f.isPlayer) {
-      // Player: Dark orange horizontally elongated oval shadow under feet (player identifier)
+      // Left player (Player 1): Dark orange horizontally elongated oval shadow under feet
       const baseRx = isDown ? (62 * f.sc) : (46 * f.sc);
       const baseRy = isDown ? (8.5 * f.sc) : (7.5 * f.sc);
       const rx = baseRx * jumpScale;
@@ -2904,13 +3032,33 @@ function drawBackground() {
       ctx.ellipse(shadowX, shadowY, rx, ry, 0, 0, Math.PI * 2);
       ctx.fill();
     } else {
-      // Enemy: Standard neutral dark shadow
-      const baseRx = isDown ? (58 * f.sc) : (36 * f.sc);
-      const baseRy = isDown ? (8 * f.sc) : (8 * f.sc);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
-      ctx.beginPath();
-      ctx.ellipse(shadowX, shadowY, baseRx * jumpScale, baseRy * jumpScale, 0, 0, Math.PI * 2);
-      ctx.fill();
+      if (difficulty === 'pvp') {
+        // Right player (Player 2) in Multiplayer: Dark blue horizontally elongated oval shadow
+        const baseRx = isDown ? (62 * f.sc) : (46 * f.sc);
+        const baseRy = isDown ? (8.5 * f.sc) : (7.5 * f.sc);
+        const rx = baseRx * jumpScale;
+        const ry = baseRy * jumpScale;
+
+        // Outer soft dark blue ambient halo
+        ctx.fillStyle = 'rgba(37, 99, 235, 0.28)';
+        ctx.beginPath();
+        ctx.ellipse(shadowX, shadowY, rx * 1.15, ry * 1.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner distinct dark blue oval core
+        ctx.fillStyle = 'rgba(29, 78, 216, 0.65)';
+        ctx.beginPath();
+        ctx.ellipse(shadowX, shadowY, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Enemy: Standard neutral dark shadow
+        const baseRx = isDown ? (58 * f.sc) : (36 * f.sc);
+        const baseRy = isDown ? (8 * f.sc) : (8 * f.sc);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+        ctx.beginPath();
+        ctx.ellipse(shadowX, shadowY, baseRx * jumpScale, baseRy * jumpScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 }
@@ -2933,19 +3081,31 @@ function drawHUD() {
   ctx.strokeStyle = '#000'; ctx.strokeRect(ex, pad, barW, barH);
 
   // Names
-  ctx.fillStyle = '#000'; ctx.font = `bold ${Math.floor(12 * sc)}px monospace`;
-  ctx.textAlign = 'left'; ctx.fillText('PLAYER', pad, pad + barH + 16 * sc);
+  ctx.font = `bold ${Math.floor(12 * sc)}px monospace`;
+  ctx.textAlign = 'left';
+  if (difficulty === 'pvp') {
+    ctx.fillStyle = '#c2410c'; // Dark orange
+    ctx.fillText('P1 [ORANGE]', pad, pad + barH + 16 * sc);
+  } else {
+    ctx.fillStyle = '#000';
+    ctx.fillText('PLAYER', pad, pad + barH + 16 * sc);
+  }
   ctx.textAlign = 'right';
-  ctx.fillStyle = enemy.mainColor || '#000';
-  ctx.fillText(enemy.displayName || 'CPU', W - pad, pad + barH + 16 * sc);
+  if (difficulty === 'pvp') {
+    ctx.fillStyle = '#1d4ed8'; // Dark blue
+    ctx.fillText('P2 [BLUE]', W - pad, pad + barH + 16 * sc);
+  } else {
+    ctx.fillStyle = enemy.mainColor || '#000';
+    ctx.fillText(enemy.displayName || 'CPU', W - pad, pad + barH + 16 * sc);
+  }
 
   // Win gems
   const gr = 6 * sc, gy = pad + barH + 32 * sc;
   for (let i = 0; i < WIN_ROUNDS; i++) {
-    ctx.fillStyle = i < playerWins ? '#000' : '#ccc';
+    ctx.fillStyle = i < playerWins ? (difficulty === 'pvp' ? '#c2410c' : '#000') : '#ccc';
     ctx.beginPath(); ctx.arc(pad + gr + i * 20 * sc, gy, gr, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.fillStyle = i < enemyWins ? '#000' : '#ccc';
+    ctx.fillStyle = i < enemyWins ? (difficulty === 'pvp' ? '#1d4ed8' : '#000') : '#ccc';
     ctx.beginPath(); ctx.arc(W - pad - gr - i * 20 * sc, gy, gr, 0, Math.PI * 2); ctx.fill();
     ctx.stroke();
   }
@@ -2970,15 +3130,16 @@ function drawHUD() {
     ctx.restore();
   }
 
-  // Ground Stomp Prompt below CPU Health Bar
+  // Ground Stomp Prompt below CPU / P2 Health Bar
   if (enemy && (enemy.groundStompReady || enemy.reversalReady)) {
     const pulse = 0.70 + Math.sin(Date.now() * 0.009) * 0.30;
     ctx.save();
     ctx.globalAlpha = pulse;
-    const badgeW = 160 * sc, badgeH = 20 * sc;
+    const badgeW = difficulty === 'pvp' ? 172 * sc : 160 * sc;
+    const badgeH = 20 * sc;
     const badgeX = W - pad - badgeW;
     const badgeY = pad + barH + 44 * sc;
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = difficulty === 'pvp' ? '#1d4ed8' : '#000000';
     ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
@@ -2986,7 +3147,7 @@ function drawHUD() {
     ctx.fillStyle = '#ffffff';
     ctx.font = `900 ${Math.floor(9.5 * sc)}px monospace`;
     ctx.textAlign = 'center';
-    ctx.fillText('💥 STOMP READY 💥', badgeX + badgeW / 2, badgeY + badgeH * 0.72);
+    ctx.fillText(difficulty === 'pvp' ? '💥 PRESS [7] STOMP! 💥' : '💥 STOMP READY 💥', badgeX + badgeW / 2, badgeY + badgeH * 0.72);
     ctx.restore();
   }
 
@@ -2997,11 +3158,16 @@ function drawHUD() {
   ctx.font = `${Math.floor(11 * sc)}px monospace`;
   ctx.fillText(`ROUND ${roundNum}`, W / 2, pad + barH + 16 * sc);
 
-  // Dynamic Directional Hint (adjusts automatically based on player facing direction)
-  const hbKey = player && player.facing < 0 ? 'D' : 'A';
-  const spKey = player && player.facing < 0 ? 'A' : 'D';
-  ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.font = `${Math.floor(10 * sc)}px monospace`;
-  ctx.fillText(`L-CLICK: Punch  |  ${hbKey}+L-CLICK: Duck Headbutt (1.5s Stun)  |  ${spKey}+R-CLICK: Spartan Kick  |  DOUBLE-TAP: Dash  |  P: Pause & Move List`, W / 2, H - 10);
+  // Dynamic Directional Hint (adjusts automatically based on player facing direction & mode)
+  if (difficulty === 'pvp') {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.font = `${Math.floor(9 * sc)}px monospace`;
+    ctx.fillText('P1 [ORANGE]: WASD · V Punch · B Kick · Shift Block · Q Stomp   |   P2 [BLUE]: 8456 · - Punch · + Kick · 0 Block · 7 Stomp   |   P: Pause', W / 2, H - 10);
+  } else {
+    const hbKey = player && player.facing < 0 ? 'D' : 'A';
+    const spKey = player && player.facing < 0 ? 'A' : 'D';
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.font = `${Math.floor(10 * sc)}px monospace`;
+    ctx.fillText(`V/L-CLICK: Punch  |  ${hbKey}+V: Duck Headbutt (1.5s Stun)  |  ${spKey}+B: Spartan Kick  |  DOUBLE-TAP: Dash  |  P: Pause & Move List`, W / 2, H - 10);
+  }
 }
 
 // ── Screens ─────────────────────────────────────────────────
@@ -3141,11 +3307,11 @@ function drawMenu() {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#888888';
   ctx.font = `${Math.floor(9.5 * sc)}px monospace`;
-  ctx.fillText('KEYS: [1] Easy  ·  [2] Medium (Default)  ·  [3] Hard  ·  [M] View Moves  ·  [ENTER] Start Match', W / 2, startBtn.y + startBtn.h + 20 * sc);
+  ctx.fillText('KEYS: [1] Easy  ·  [2] Medium  ·  [3] Hard  ·  [4] 2P Versus  ·  [M] Moves  ·  [ENTER] Start Match', W / 2, startBtn.y + startBtn.h + 20 * sc);
 
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.font = `${Math.floor(9 * sc)}px monospace`;
-  ctx.fillText('L-CLICK: Punch  |  BACK+L-CLICK: Duck Headbutt (1.5s Stun)  |  FWD+R-CLICK: Spartan Kick  |  DOUBLE-TAP: Dash  |  P: Pause & Move List', W / 2, H - 12);
+  ctx.fillText('P1 [ORANGE]: WASD + V/B (Punch/Kick) · Shift (Block) · Q (Stomp)   |   P2 [BLUE]: 8456 + -/+ (Punch/Kick) · 0 (Block) · 7 (Stomp)   |   P: Pause', W / 2, H - 12);
 }
 
 function drawPauseMenu() {
@@ -3208,16 +3374,32 @@ function drawRoundEnd() {
 
 function drawGameOver() {
   const W = canvas.width, H = canvas.height, sc = W / DW;
-  ctx.fillStyle = '#000'; ctx.textAlign = 'center';
-  ctx.font = `bold ${Math.floor(52 * sc)}px monospace`;
-  ctx.fillText(playerWins >= WIN_ROUNDS ? 'VICTORY!' : 'DEFEAT', W / 2, H * 0.34);
-  ctx.font = `bold ${Math.floor(18 * sc)}px monospace`;
-  ctx.fillText(`FINAL SCORE: ${playerWins} — ${enemyWins}`, W / 2, H * 0.45);
+  ctx.textAlign = 'center';
 
-  const diffLabel = difficulty.toUpperCase();
-  ctx.fillStyle = difficulty === 'easy' ? '#16a34a' : (difficulty === 'hard' ? '#dc2626' : '#555555');
-  ctx.font = `bold ${Math.floor(13 * sc)}px monospace`;
-  ctx.fillText(`[ DIFFICULTY: ${diffLabel} ]`, W / 2, H * 0.52);
+  if (difficulty === 'pvp') {
+    const p1Won = playerWins >= WIN_ROUNDS;
+    ctx.fillStyle = p1Won ? '#c2410c' : '#1d4ed8';
+    ctx.font = `bold ${Math.floor(52 * sc)}px monospace`;
+    ctx.fillText(p1Won ? 'PLAYER 1 WINS!' : 'PLAYER 2 WINS!', W / 2, H * 0.34);
+    ctx.font = `bold ${Math.floor(18 * sc)}px monospace`;
+    ctx.fillStyle = '#000000';
+    ctx.fillText(`FINAL SCORE: ${playerWins} — ${enemyWins}`, W / 2, H * 0.45);
+
+    ctx.fillStyle = '#2563eb';
+    ctx.font = `bold ${Math.floor(13 * sc)}px monospace`;
+    ctx.fillText('[ 2P MULTIPLAYER VERSUS ]', W / 2, H * 0.52);
+  } else {
+    ctx.fillStyle = '#000';
+    ctx.font = `bold ${Math.floor(52 * sc)}px monospace`;
+    ctx.fillText(playerWins >= WIN_ROUNDS ? 'VICTORY!' : 'DEFEAT', W / 2, H * 0.34);
+    ctx.font = `bold ${Math.floor(18 * sc)}px monospace`;
+    ctx.fillText(`FINAL SCORE: ${playerWins} — ${enemyWins}`, W / 2, H * 0.45);
+
+    const diffLabel = difficulty.toUpperCase();
+    ctx.fillStyle = difficulty === 'easy' ? '#16a34a' : (difficulty === 'hard' ? '#dc2626' : '#555555');
+    ctx.font = `bold ${Math.floor(13 * sc)}px monospace`;
+    ctx.fillText(`[ DIFFICULTY: ${diffLabel} ]`, W / 2, H * 0.52);
+  }
 
   // Clickable Rematch & Main Menu buttons
   const btns = getGameOverBtns();
@@ -3254,15 +3436,21 @@ function checkRoundEnd() {
   if (!pDead && !eDead && !timeout) return;
 
   if (timeout) {
-    if (player.hp > enemy.hp) { playerWins++; resultText = 'TIME OUT — PLAYER WINS!'; }
-    else if (enemy.hp > player.hp) { enemyWins++; resultText = 'TIME OUT — CPU WINS!'; }
-    else { resultText = 'ROUND DRAW!'; }
+    if (player.hp > enemy.hp) {
+      playerWins++;
+      resultText = difficulty === 'pvp' ? 'TIME OUT — PLAYER 1 WINS!' : 'TIME OUT — PLAYER WINS!';
+    } else if (enemy.hp > player.hp) {
+      enemyWins++;
+      resultText = difficulty === 'pvp' ? 'TIME OUT — PLAYER 2 WINS!' : 'TIME OUT — CPU WINS!';
+    } else {
+      resultText = 'ROUND DRAW!';
+    }
   } else if (pDead && !eDead) {
     enemyWins++;
-    resultText = 'CPU WINS ROUND!';
+    resultText = difficulty === 'pvp' ? 'PLAYER 2 WINS ROUND!' : 'CPU WINS ROUND!';
   } else if (eDead && !pDead) {
     playerWins++;
-    resultText = 'PLAYER WINS ROUND!';
+    resultText = difficulty === 'pvp' ? 'PLAYER 1 WINS ROUND!' : 'PLAYER WINS ROUND!';
   } else {
     resultText = 'DOUBLE KO!';
   }
@@ -3424,7 +3612,22 @@ function loop(ts) {
       }
     }
 
-    updateAI(dt);
+    if (difficulty === 'pvp') {
+      // Player 2 keyboard movement in 2-Player Versus Mode
+      if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp'].includes(enemy.state)) {
+        if (enemy.state === 'crouch' && (keys['Numpad5'] || keys['Digit5'] || keys['5'])) {
+          // P2 is intentionally holding crouch
+        } else {
+          if (enemy.state === 'crouch') enemy.state = 'idle';
+          let mv2 = false;
+          if (keys['Numpad4'] || keys['Digit4'] || keys['4']) { enemy.move(-220 * dt); mv2 = true; }
+          if (keys['Numpad6'] || keys['Digit6'] || keys['6']) { enemy.move(220 * dt); mv2 = true; }
+          if (!mv2 && enemy.state === 'walk') enemy.state = 'idle';
+        }
+      }
+    } else {
+      updateAI(dt);
+    }
 
     const dist = Math.abs(player.x - enemy.x);
     const neitherDown = player.state !== 'knockdown' && player.state !== 'dead' &&

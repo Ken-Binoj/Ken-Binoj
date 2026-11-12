@@ -17,20 +17,20 @@ This dictionary serves as the master navigation index for [`game.js`](file:///c:
 | **07** | `L476 - L730` | **Skeletal Kinematics & Rendering Pipeline** | `drawLimb()`, `drawTorso()`, `drawHead()`, `drawDizzyStars()`, `drawDashGhosts()` |
 | **08** | `L731 - L1406` | **Per-State Skeletal Joint Angle Curves** | Angle curves for `idle`, `walk`, `punch`, `duckHeadbutt`, `kick`, `spartanKick`, `sweepKick`, `flipKick`, `groundStomp`, `hurt`, `knockdown`, `dead` |
 | **09** | `L1407 - L1425` | **Global Game State Variables** | `gameState`, `difficulty`, `isPaused`, `menuView`, `roundNum`, `playerWins`, `enemyWins` |
-| **10** | `L1426 - L1563` | **Master Combat Moves Database** | `ALL_MOVES` (11 moves with categories, input tags, badges, damage, and tactical consequences) |
-| **11** | `L1564 - L1596` | **Match Lifecycle & Fighter Initialization** | `initRound()` (instantiates player and CPU fighters, applies difficulty color themes) |
-| **12** | `L1597 - L1729` | **Keyboard Input & Hotkey Handlers** | `keydown`, `keyup`, double-tap dash window, pause toggles (`P`/`ESC`), menu hotkeys (`1`,`2`,`3`,`M`,`ENTER`) |
-| **13** | `L1730 - L1888` | **Menu & Move List Modal Layout Generators** | `getMenuLayout()`, `getMoveListModalLayout()`, `getGameOverBtns()` |
-| **14** | `L1889 - L2110` | **Scrollable Move List Modal Renderer** | `drawScrollableMoveListModal()` (canvas clipping `ctx.clip()`, scrollbar track/thumb, overflow fade gradients) |
-| **15** | `L2111 - L2362` | **Mouse Interactions & Dragging Controls** | `wheel` (mouse wheel scrolling), `mousedown` (attacks, buttons, scrollbar jump/drag), `mousemove`, `mouseup` |
-| **16** | `L2363 - L2386` | **Ground Stomp ("Q") Attack System** | `triggerGroundStomp()` (hyper-armor, screen-wide floor slam, knockdown trigger) |
-| **17** | `L2387 - L2695` | **CPU Tactical AI Engine** | `updateAI()` (decision timer, Easy/Medium/Hard archetypes, reflex duck headbutt counters, dash movement, enrage frenzy <50% HP) |
-| **18** | `L2696 - L2864` | **Combat Hitbox Detection & Damage Pipeline** | `checkHits()` (duck headbutt dodge frames, Spartan kick knockback, sweep kick trips, blood spray spawn, knockdown counters) |
-| **19** | `L2865 - L2908` | **Arena Background & Ground Shadows** | `drawBackground()` (minimalist floor line, player dark orange oval ground shadow, enemy neutral shadow) |
-| **20** | `L2885 - L2971` | **Heads-Up Display (HUD)** | `drawHUD()` (health bars, round victory pips, dynamic difficulty labels, [Q] Stomp prompts, round timer, bottom hint) |
-| **21** | `L2972 - L3212` | **Menu, Pause & Overlay Screens** | `drawMenu()` (difficulty cards + [M] Move List button), `drawPauseMenu()`, `drawCountdown()`, `drawRoundBanner()`, `drawGameOver()` |
-| **22** | `L3213 - L3338` | **Round Progression & Arena Persistence** | `checkRoundEnd()`, `startNextRoundContinuous()` (continuous arena reset, wake-up reversal shockwave on close proximity) |
-| **23** | `L3339 - L3427` | **Main Game Loop & Frame Engine** | `loop()`, `requestAnimationFrame`, delta time clamping, screen shake transform, state router |
+| **10** | `L1426 - L1565` | **Master Combat Moves Database** | `ALL_MOVES` (11 moves with categories, P1 & P2 input tags, badges, damage, and tactical consequences) |
+| **11** | `L1566 - L1607` | **Match Lifecycle & Fighter Initialization** | `initRound()` (instantiates P1/P2 or CPU fighters, applies difficulty and PvP color themes) |
+| **12** | `L1608 - L1864` | **Combat Attack Dispatchers & Keyboard Input** | `triggerPlayer1Punch/Kick`, `triggerPlayer2Punch/Kick`, `keydown`, `keyup`, P1 `WASD+V,B,Shift,Q`, P2 `8456+-,+,0,7` |
+| **13** | `L1865 - L2022` | **Menu & Move List Modal Layout Generators** | `getMenuLayout()` (4 cards: Easy, Medium, Hard, 2P Versus), `getMoveListModalLayout()`, `getGameOverBtns()` |
+| **14** | `L2023 - L2254` | **Scrollable Move List Modal Renderer** | `drawScrollableMoveListModal()` (canvas clipping `ctx.clip()`, scrollbar track/thumb, overflow fade gradients) |
+| **15** | `L2255 - L2496` | **Mouse Interactions & Dragging Controls** | `wheel` (mouse wheel scrolling), `mousedown` (attacks, buttons, scrollbar jump/drag), `mousemove`, `mouseup` |
+| **16** | `L2497 - L2520` | **Ground Stomp ("Q" / "7") Attack System** | `triggerGroundStomp()` (hyper-armor, screen-wide floor slam, knockdown trigger) |
+| **17** | `L2521 - L2829` | **CPU Tactical AI Engine** | `updateAI()` (decision timer, Easy/Medium/Hard archetypes, reflex duck headbutt counters, dash movement, enrage frenzy <50% HP) |
+| **18** | `L2830 - L3003` | **Combat Hitbox Detection & Damage Pipeline** | `checkHits()` (duck headbutt dodge frames, Spartan kick knockback, sweep kick trips, blood spray spawn, knockdown counters) |
+| **19** | `L3004 - L3066` | **Arena Background & Ground Shadows** | `drawBackground()` (minimalist floor line, P1 dark orange oval ground shadow, P2 royal blue oval ground shadow in PvP, neutral CPU shadow) |
+| **20** | `L3067 - L3173` | **Heads-Up Display (HUD)** | `drawHUD()` (health bars, round victory gems, P1/P2/CPU labels, [Q]/[7] Stomp prompts, round timer, bottom dual control hint) |
+| **21** | `L3174 - L3430` | **Menu, Pause & Overlay Screens** | `drawMenu()` (4 mode cards + [M] Move List button), `drawPauseMenu()`, `drawCountdown()`, `drawRoundBanner()`, `drawGameOver()` |
+| **22** | `L3431 - L3565` | **Round Progression & Arena Persistence** | `checkRoundEnd()`, `startNextRoundContinuous()` (continuous arena reset, wake-up reversal shockwave on close proximity) |
+| **23** | `L3566 - L3667` | **Main Game Loop & Frame Engine** | `loop()`, P1/P2 keyboard locomotion, `updateAI()` bypass in PvP, delta time clamping, screen shake transform |
 
 ---
 

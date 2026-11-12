@@ -18,29 +18,82 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 🕹️ Controls Reference
 
-| Action | Control | Description |
+### 🟠 Player 1 (Left Fighter — Dark Orange Shadow)
+| Action | Key / Input | Description |
 |---|---|---|
-| **Rapid Punch Combo** | `Rapid Left Click (x1-5)` | Fast flurry punching with **alternating hands** (lead & back arms). 1st punch deals **9 DMG**; remaining 4 punches deal **2.25 DMG** (`9 / 4`). Max 5 punches followed by a **0.5s lockout**. Spawns **red blood spray**. |
-| **Duck Headbutt** | `Backward + Left Click` (`A` on left, `D` on right) | Ducks low to **evade Spartan kicks & high punches**, then explodes forward with a **45° lean headbutt** (**14 DMG**). Confirmed hit **STUNS enemy for 1.5 seconds** with golden dizzy stars! Directionally adapts when crossing sides! |
-| **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched** (**9 DMG**); ducks under high standing punches! Spawns **red blood**. |
-| **Normal Kick** | `Right Click` (Stationary) | Upward sweeping round/snap kick targeting mid/high zones (**12 DMG**). Spawns **red blood**. |
-| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault axe slam (**21 DMG**)! Knocks down opponent at 220° rotation with **explosive red blood spray**! Automatically propels forward toward foe. |
-| **Spartan Kick** | `Forward + Right Click` (`D` on left, `A` on right) | Ferocious chest thrust kick (**18 DMG**); **4x colossal knockback (`368px`) with dust skidding! (No blood effect)**. Directionally adapts when crossing sides! |
-| **Low Sweep Kick** | `Crouch (S) + Right Click` | Ground-level sweep (**7 DMG**). **Trips unblocked opponents onto their ass! (No blood effect)**. |
+| **Punch Combo** | `V` (or Left-Click) | Rapid flurry punches alternating lead and rear arms (Hikite chamber). 1st punch deals **9 DMG**; rest deal **2.25 DMG** (`9 / 4`) with arterial blood spray. Max 5 punches followed by 0.5s lockout. |
+| **Duck Headbutt** | `Back + V` (`A+V` on left, `D+V` on right) | Ducks low to **evade Spartan kicks & high punches**, then explodes forward with a **45° lean headbutt** (**14 DMG**). Confirmed hit **STUNS opponent for 1.5 seconds** with golden dizzy stars! |
+| **Low Crouch Punch** | `S (Crouch) + V` | Straight low jab executed **while staying fully crouched** (**9 DMG**); ducks under high standing punches! Spawns red blood spray. |
+| **Snap Thrust Kick** | `B` (or Right-Click) | Swift linear round thrust kick extending 152px outward at mid-body level (**12 DMG**). Spawns red blood spray. |
+| **Spartan Kick** | `Forward + B` (`D+B` on left, `A+B` on right) | Ferocious chest thrust kick (**18 DMG**); **4x colossal knockback (`368px`) with dust skidding! (No blood effect)**. Adapts directionally when crossing sides! |
+| **Front Flip Axe Kick** | `Airborne (W) + B` | Aerial 360° somersault axe slam (**21 DMG**)! Smashes opponent flat on their back for a 1.0s knockdown with **explosive red blood spray**! |
+| **Low Sweep Kick** | `S (Crouch) + B` | Ground-level 360° spinning foot sweep (**7 DMG**). **Trips unblocked opponents directly onto their ass! (No blood effect)**. |
 | **Crouch** | `S` or `Down Arrow` | Drops into a low martial arts crouch. **Passively ducks under all standing punches!** |
-| **Boxer High Guard Block** | `Left Shift` / `Shift` | Raises both fists and forearms tightly in front of the chin, nose, and eyes (peek-a-boo guard). Absorbs 90% of incoming damage and prevents sweep knockdowns. |
-| **Move Left / Right** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with automatic walk cycle animation. |
-| **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive directional burst propelling character **`184px` (exactly half of Spartan kick knockback!)** with shadow afterimages. Adapts to forward burst or backdash based on facing! |
+| **Boxer High Guard Block** | `Left Shift` / `Right Shift` | Raises peek-a-boo guard in front of face. Absorbs 90% of incoming damage and prevents sweep trips. |
+| **Move Left / Right** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with walking animation. |
+| **Dash Burst** | `Double-Tap A` / `D` | Explosive directional burst propelling character **`184px`** with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Aerial leap with parabolic gravity physics. Can leap over opponents for cross-ups! |
-| **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after receiving 3 Spartan Kicks in 5s. **100% UNINTERRUPTIBLE hyper-armor!** Smashes floor: **KNOCKS DOWN OPPONENT WHEREVER THEY ARE ON SCREEN!** |
-| **Pause & Move List** | `P` or `Escape` | Pauses match and opens spacious scrollable Move List modal with damage values and tactical consequences. Press P/ESC or click Resume to resume. |
+| **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks or 3 KDs in 5s) | **100% UNINTERRUPTIBLE hyper-armor!** Smashes arena floor: **KNOCKS DOWN OPPONENT WHEREVER THEY ARE ON SCREEN!** |
+
+### 🔵 Player 2 (Right Fighter — Dark Blue Shadow, 2P Multiplayer Mode)
+| Action | Key / Input | Description |
+|---|---|---|
+| **Punch Combo** | `-` (Minus / Numpad Subtract) | Rapid flurry punches alternating lead and rear arms. 1st punch 9 DMG; rest 2.25 DMG (`9 / 4`). Max 5 punches. |
+| **Duck Headbutt** | `Back + -` (`4+-` on right, `6+-` on left) | Ducks under Spartan kicks & standing punches, then surges into 45° headbutt (**14 DMG**). **STUNS opponent for 1.5s**! |
+| **Low Crouch Punch** | `5 (Crouch) + -` | Straight low body strike executed while crouched (**9 DMG**); ducks under high punches! |
+| **Snap Thrust Kick** | `+` (Plus / Equal / Numpad Add) | Swift linear round thrust kick extending 152px outward (**12 DMG**). |
+| **Spartan Kick** | `Forward + +` (`6++` on right, `4++` on left) | Ferocious chest thrust kick (**18 DMG**); **4x colossal knockback (`368px`) with dust skidding!** |
+| **Front Flip Axe Kick** | `Airborne (8) + +` | Aerial 360° somersault axe slam (**21 DMG**)! Flattens opponent onto back for 1.0s knockdown! |
+| **Low Sweep Kick** | `5 (Crouch) + +` | Ground-level foot sweep (**7 DMG**). **Trips unblocked opponents onto their ass!** |
+| **Crouch** | `5` (Numpad 5 or Digit 5) | Low martial arts crouch. **Passively ducks under all standing punches!** |
+| **Boxer High Guard Block** | `0` (Numpad 0 or Digit 0) | Peek-a-boo guard in front of face. Absorbs 90% incoming damage & blocks sweeps. |
+| **Move Left / Right** | `4` / `6` (Numpad or Digit) | Smooth lateral movement with walking animation. |
+| **Dash Burst** | `Double-Tap 4` / `6` | Explosive directional burst propelling character **`184px`** with shadow afterimages. |
+| **Jump** | `8` (Numpad 8 or Digit 8) | Aerial leap with parabolic gravity physics. Can leap over opponents for cross-ups! |
+| **Ground Stomp Attack** | `7` (Numpad 7 or Digit 7) | **100% UNINTERRUPTIBLE hyper-armor!** Smashes floor: **KNOCKS DOWN OPPONENT WHEREVER THEY ARE ON SCREEN!** |
+
+### ⚙️ General & Navigation Controls
+| Action | Key / Input | Description |
+|---|---|---|
+| **Pause & Move List** | `P` or `Escape` | Pauses match and opens spacious scrollable Move List modal with damage values and tactical consequences. |
 | **Menu Move List & Guide** | `M` (On Menu Screen) | Opens the full scrollable Move List modal directly from the Main Menu. Press ESC, M, or click Back to return. |
+| **Mode & Difficulty Selection** | `1`, `2`, `3`, `4` or Click | `1`: Easy, `2`: Medium (Default), `3`: Hard, `4`: 2P Versus (Local Multiplayer). |
 
 ---
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.8.2 — Player Dark Orange Oval Ground Shadow & Visual Distinguisher (Current)
+### Version 1.8.3 — Local 2-Player Same-Keyboard Multiplayer Mode with Orange & Blue Ground Shadows (Current)
+- **Local 2-Player Same-Keyboard Multiplayer ("2P VERSUS")**:
+  - **4th Mode Selection**: Added "2P VERSUS" mode card (`difficulty = 'pvp'`) to the Main Menu and hotkey `4` (along with `1` Easy, `2` Medium, `3` Hard).
+  - **AI Bypass in PvP**: When `pvp` mode is active, CPU AI loop (`updateAI`) is completely bypassed; both fighters are 100% human-controlled in real-time on a single keyboard!
+  - **Player 1 (Left Fighter — Orange Indicator)**:
+    - **Controls**: `WASD` movement, `V` Punch, `B` Kick, `Shift` Block, `Q` Stomp, Double-tap `A`/`D` Dash. Left-Click and Right-Click remain available as alternative punch/kick triggers.
+    - **Ground Shadow**: Distinctive horizontally elongated dark orange oval shadow under feet (`rgba(194, 65, 12, 0.65)` core + `rgba(234, 88, 12, 0.28)` ambient halo).
+    - **HUD**: Labeled `P1 [ORANGE]` with dark orange round victory gems and orange match victory banners.
+  - **Player 2 (Right Fighter — Blue Indicator)**:
+    - **Controls**:
+      - `8` (Numpad8 / Digit8): Jump
+      - `4` (Numpad4 / Digit4): Move Left / Double-tap Dash Left
+      - `6` (Numpad6 / Digit6): Move Right / Double-tap Dash Right
+      - `5` (Numpad5 / Digit5): Crouch (ducks under high standing punches)
+      - `0` (Numpad0 / Digit0): High Guard Block (absorbs 90% DMG & blocks sweeps)
+      - `7` (Numpad7 / Digit7): Ground Stomp (100% uninterruptible hyper-armor screen-wide knockdown)
+      - `-` (Minus / Numpad-): Punch Combo, Low Crouch Punch (`5 + -`), Duck Headbutt (`Back + -`)
+      - `+` (Plus / Numpad+ / Equal): Snap Kick, Spartan Kick (`Fwd + +`), Flip Axe Kick (`Jump + +`), Low Sweep Kick (`5 + +`)
+    - **Ground Shadow**: Distinctive royal blue horizontally elongated oval shadow under feet (`rgba(29, 78, 216, 0.65)` core + `rgba(37, 99, 235, 0.28)` ambient halo).
+    - **HUD**: Labeled `P2 [BLUE]` with royal blue health bar fill (`#1d4ed8`), royal blue round victory gems, and blue match victory banners.
+    - **Stomp Prompt**: Dynamic `💥 PRESS [7] STOMP! 💥` badge displayed beneath P2 health bar when 3 Spartan Kicks / KDs are received in 5s.
+  - **Adaptive Directional Mechanics for Both Players**:
+    - Both Player 1 and Player 2 dynamically compute `isFwd` and `isBack` based on their real-time relative positions (`player.x` vs `enemy.x`) and facing directions.
+    - Crossing sides seamlessly flips Spartan Kick and Duck Headbutt inputs for both players without glitching!
+  - **Updated Move List Modal & Menu HUD**:
+    - All 11 moves in `ALL_MOVES` master move list now display dual input annotations for both Player 1 and Player 2.
+    - Bottom controls bar displays both P1 and P2 full mappings for instant in-game reference.
+
+---
+
+### Version 1.8.2 — Player Dark Orange Oval Ground Shadow & Visual Distinguisher
 - **Player Dark Orange Oval Ground Shadow**:
   - **Instant Visual Player Identification**: The player now casts a distinctive horizontally elongated dark orange oval shadow directly beneath their feet on the arena floor.
   - **Two-Tone Ambient Depth**:
