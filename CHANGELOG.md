@@ -33,13 +33,41 @@ This document tracks all features, mechanics, visual systems, and updates implem
 | **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive directional burst propelling character **`184px` (exactly half of Spartan kick knockback!)** with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Aerial leap with parabolic gravity physics. |
 | **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after receiving 3 Spartan Kicks in 5s. **100% UNINTERRUPTIBLE hyper-armor!** Smashes floor: **KNOCKS DOWN OPPONENT WHEREVER THEY ARE ON SCREEN!** |
-| **Pause & Move Consequences** | `P` or `Escape` | Pauses match and opens full Move List modal with damage values and tactical consequences. Press P/ESC or click to resume. |
+| **Pause & Move List** | `P` or `Escape` | Pauses match and opens spacious scrollable Move List modal with damage values and tactical consequences. Press P/ESC or click Resume to resume. |
+| **Menu Move List & Guide** | `M` (On Menu Screen) | Opens the full scrollable Move List modal directly from the Main Menu. Press ESC, M, or click Back to return. |
 
 ---
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.8 — Uninterruptible "Q" Attacks, Duck Headbutt (1.5s Stun) & Hard Mode Dashing/Counters (Current)
+### Version 1.7.9 — Spacious Scrollable Move List & Main Menu Guide Integration (Current)
+- **Spacious Scrollable Move List in Pause Menu**:
+  - **No More Cramped Layout**: Completely redesigned the Pause Menu move guide from a cramped, tiny 2-column fixed grid into a spacious, beautifully formatted single-column card stream.
+  - **Interactive Canvas Scroll Bar**:
+    - High-contrast scrollbar track (`#f1f5f9` with `#cbd5e1` outline) and rounded scroll thumb (`#94a3b8` idle, `#000000` while dragging).
+    - Fully draggable thumb with click-to-jump track navigation.
+    - Smooth mouse wheel scrolling (`wheel` event) bounded within canvas clipping limits.
+    - Full keyboard scrolling support: `ArrowDown` / `ArrowUp` (line step), `PageDown` / `PageUp` (page step), and `Home` / `End` (instant top / bottom jump).
+  - **Canvas Viewport Clipping & Visual Polishing**:
+    - Strict hardware clipping prevents cards from spilling into modal headers or footers.
+    - Dynamic top and bottom gradient fades smoothly indicate overflow content when scrolled.
+  - **Spacious Card Information Architecture (All 11 Combat Techniques)**:
+    - **Header Row**: Move sequence number pill (`01` - `11`), bold move name (13px monospace), input key pill (e.g. `L-CLICK (x1-5)`, `A + L-CLICK`, `S + R-CLICK`), and high-visibility combat consequence badge (e.g. `14 DMG · 1.5s STUN`, `18 DMG · 4X KNOCKBACK`, `ULTIMATE · UNINTERRUPTIBLE`).
+    - **Summary Description**: Crisp bold sentence detailing the animation and martial arts mechanics.
+    - **Tactical Consequences & Frame Data**: Two distinct bullet points specifying exact damage values, frame advantages, hitstun durations, evasion phases, and counter-play.
+- **Move List Visible & Accessible in Main Menu**:
+  - **Main Menu Integration**: Added a prominent **`[ 📖 MOVE LIST & GUIDE [M] ]`** button side-by-side with **`[ ▶ START FIGHT [ENTER] ]`** on the startup title screen.
+  - **Direct Access Hotkey (`M`)**: Pressing `M` from the startup menu opens the scrollable move list guide instantly.
+  - **Modal Footer Actions in Menu View**:
+    - `[ ← BACK TO MAIN MENU [ ESC / M ] ]`: Instantly returns to the difficulty selection screen.
+    - `[ ▶ START FIGHT [ ENTER ] ]`: Starts the match immediately without needing to return to the previous screen first.
+- **Accidental Unpause Protection**:
+  - Clicking on the scrollbar track, dragging the thumb, or selecting card items during pause mode no longer accidentally unpauses the match.
+  - The fight resumes only when pressing `P`, `Escape`, clicking the explicit **"CLICK TO RESUME FIGHT"** footer banner, or clicking outside the modal veil.
+
+---
+
+### Version 1.7.8 — Uninterruptible "Q" Attacks, Duck Headbutt (1.5s Stun) & Hard Mode Dashing/Counters
 - **Uninterruptible "Q" Ground Stomp Attacks**:
   - **Full Hyper-Armor**: Both Player and CPU Ground Stomp ("Q") attacks are now completely uninterruptible.
   - **Damage Immunity to Flinch & Interruption**: Incoming strikes and sweep/flip kicks during the ground stomp will still apply damage, but will **never** interrupt the animation, trigger hitstun, cause knockback slide, or cause knockdowns.

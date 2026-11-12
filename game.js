@@ -1408,6 +1408,11 @@ class Fighter {
 //  GAME STATE
 // ═══════════════════════════════════════════════════════════
 let gameState = 'menu';
+let menuView = 'main'; // 'main' | 'moves'
+let moveScrollY = 0;
+let isDraggingScroll = false;
+let dragScrollStartY = 0;
+let dragScrollStartScroll = 0;
 let difficulty = 'medium'; // 'easy' | 'medium' (default) | 'hard'
 let isPaused = false;
 let playerWins = 0, enemyWins = 0;
@@ -1417,6 +1422,144 @@ let countdown = 3, countdownTimer = 0;
 let roundNum = 1, resultText = '';
 let roundBannerText = '', roundBannerTimer = 0;
 let player, enemy;
+
+// ═══════════════════════════════════════════════════════════
+//  COMPLETE COMBAT MOVES DATABASE (ALL 11 TECHNIQUES)
+// ═══════════════════════════════════════════════════════════
+const ALL_MOVES = [
+  {
+    category: 'STRIKES & COMBOS',
+    name: 'Rapid Punch Combo',
+    input: 'L-CLICK (x1-5)',
+    badge: '9 / 2.25 DMG · BLOOD',
+    badgeBg: '#000000',
+    summary: 'High-speed flurry alternating rapidly between lead and rear fists.',
+    bullets: [
+      '• 1st punch deals 9 DMG; following 4 chain punches deal 2.25 DMG (9 / 4) with red arterial blood spray.',
+      '• Max 5 punches per chain, followed by a mandatory 0.5s recovery cooldown. Whiffs completely if target crouches!'
+    ]
+  },
+  {
+    category: 'TACTICAL COUNTERS',
+    name: 'Duck Headbutt',
+    input: 'A + L-CLICK',
+    badge: '14 DMG · 1.5s STUN',
+    badgeBg: '#dc2626',
+    summary: 'Ducks beneath high strikes, then surges forward into an explosive 45° skull strike.',
+    bullets: [
+      '• Evasive Ducking Frames (0.38s): Completely dodges standing punches and Spartan kicks over your head.',
+      '• 45° Ram Strike: Deals 14 DMG with red blood and STUNS the enemy for 1.5 seconds with spinning dizzy stars!'
+    ]
+  },
+  {
+    category: 'LOW OFFENSE',
+    name: 'Low Crouch Punch',
+    input: 'S + L-CLICK',
+    badge: '9 DMG · LOW HIT',
+    badgeBg: '#1e293b',
+    summary: 'Gedan Tsuki low body strike delivered while maintaining a full crouch posture.',
+    bullets: [
+      '• Torso stays submerged below head level, evading high punches while striking opponent midsection.',
+      '• Deals 9 DMG with arterial blood spray; fast frame recovery for safe close-quarter poke pressure.'
+    ]
+  },
+  {
+    category: 'MID POKES',
+    name: 'Snap Thrust Kick',
+    input: 'R-CLICK (Neutral)',
+    badge: '12 DMG · 152px REACH',
+    badgeBg: '#1e293b',
+    summary: 'Swift linear round thrust kick extending 152px outward at mid-body level.',
+    bullets: [
+      '• Primary spacing and poke tool against advancing fighters; fast startup with solid pushback.',
+      '• Deals 12 DMG with red blood spray and prevents aggressive dash-ins when properly timed.'
+    ]
+  },
+  {
+    category: 'WALL-BOUNCE POWER',
+    name: 'Spartan Kick',
+    input: 'FORWARD + R-CLICK',
+    badge: '18 DMG · 4X KNOCKBACK',
+    badgeBg: '#b91c1c',
+    summary: 'Torso leans back 40° as heel delivers a devastating linear chest battering ram.',
+    bullets: [
+      '• 4X Colossal Knockback (368px!): Hurls opponents across the arena into perimeter walls with skidding dust clouds.',
+      '• Deals 18 DMG with heavy screen shake. Vulnerable on startup to duck headbutts and low sweeps!'
+    ]
+  },
+  {
+    category: 'AERIAL CRUSH',
+    name: 'Front Flip Axe Kick',
+    input: 'AIRBORNE + R-CLICK',
+    badge: '21 DMG · FLATTENS FOE',
+    badgeBg: '#7c2d12',
+    summary: 'Full 360° airborne somersault bringing heel crashing downward at 220° rotation.',
+    bullets: [
+      '• Massive 21 DMG (+3 DMG buff) with huge arterial blood explosion; ignores crouching defenders.',
+      '• Untechable Knockdown: Smashes opponent flat on their back for a full 1.0-second floor knockdown!'
+    ]
+  },
+  {
+    category: 'GUARD BREAK',
+    name: 'Low Sweep Kick',
+    input: 'S + R-CLICK',
+    badge: '7 DMG · TRIPS ON ASS',
+    badgeBg: '#0f766e',
+    summary: 'Ground-level 360° spinning foot sweep with grounded hand plant.',
+    bullets: [
+      '• Bypasses High Guard: Trips standing opponents directly onto the floor for a 1.0s knockdown.',
+      '• Deals 7 DMG (-3 DMG balance) with ground dust clouds. (No blood effect). Can be hopped over with jump!'
+    ]
+  },
+  {
+    category: 'DEFENSE',
+    name: 'Martial Arts Crouch',
+    input: 'HOLD S / ↓ ARROW',
+    badge: 'DEFENSE · DUCK HIGH',
+    badgeBg: '#334155',
+    summary: 'Deep crouching martial posture dropping fighter below standing punch plane.',
+    bullets: [
+      '• Passively causes all standing punches and Spartan kicks to whiff over your head without block stun.',
+      '• Seamlessly combos into Low Crouch Punch, Low Sweep Kick, or Duck Headbutt counter-attacks.'
+    ]
+  },
+  {
+    category: 'DEFENSE',
+    name: 'Boxer High Guard Block',
+    input: 'HOLD SHIFT',
+    badge: 'DEFENSE · 90% ABSORPTION',
+    badgeBg: '#334155',
+    summary: 'Peek-a-boo boxing guard with both forearms shielding chin, nose, and head.',
+    bullets: [
+      '• Absorbs 90% of all incoming strike damage and completely mitigates knockback slide.',
+      '• Highly effective against punches and kicks, but completely vulnerable to Low Sweep Kicks and Ground Stomp!'
+    ]
+  },
+  {
+    category: 'MOBILITY',
+    name: 'Tactical Dash Burst',
+    input: 'DOUBLE-TAP A / D',
+    badge: 'MOBILITY · 184px BURST',
+    badgeBg: '#0284c7',
+    summary: 'High-speed directional burst propulsion leaving transparent shadow afterimages.',
+    bullets: [
+      '• Propels fighter 184px (exactly half of Spartan kick knockback) in 0.20s across the arena floor.',
+      '• Attack Cancelling: Can be cancelled instantly into any punch, kick, or headbutt for dynamic mixups.'
+    ]
+  },
+  {
+    category: 'ULTIMATE REVERSAL',
+    name: 'Ground Stomp ("Q")',
+    input: 'PRESS Q (When Ready)',
+    badge: 'ULTIMATE · UNINTERRUPTIBLE',
+    badgeBg: '#000000',
+    summary: 'Cataclysmic shockwave unlocked after receiving 3 Spartan Kicks or 3 KDs in 5 seconds.',
+    bullets: [
+      '• 100% UNINTERRUPTIBLE: Complete hyper-armor throughout startup; cannot be flinched, interrupted, or knocked back!',
+      '• Screen-Wide Shockwave: Knocks down the opponent wherever they are standing on screen, opening them for retaliation!'
+    ]
+  }
+];
 
 function initRound() {
   player = new Fighter(canvas.width * 0.25, true, 'PLAYER');
@@ -1440,6 +1583,9 @@ function initRound() {
   roundTimer = 99; roundTimerAcc = 0;
   countdown = 3; countdownTimer = 1;
   gameState = 'countdown';
+  menuView = 'main';
+  moveScrollY = 0;
+  isDraggingScroll = false;
   isPaused = false;
   particles.length = 0;
   groundShockwaves.length = 0;
@@ -1461,9 +1607,54 @@ document.addEventListener('keydown', e => {
   if (e.code === 'KeyP' || e.code === 'Escape') {
     if (gameState === 'fight') {
       isPaused = !isPaused;
-      if (!isPaused) lastTime = performance.now();
+      if (isPaused) {
+        moveScrollY = 0;
+        isDraggingScroll = false;
+      } else {
+        lastTime = performance.now();
+      }
       return;
     }
+  }
+
+  // Keyboard scrolling when in Pause Menu or Menu Move List
+  if (isPaused || (gameState === 'menu' && menuView === 'moves')) {
+    const layout = getMoveListModalLayout(isPaused ? 'pause' : 'menu');
+    if (e.code === 'ArrowDown') {
+      moveScrollY = clamp(moveScrollY + 60 * layout.sc, 0, layout.maxScrollY);
+      return;
+    }
+    if (e.code === 'ArrowUp') {
+      moveScrollY = clamp(moveScrollY - 60 * layout.sc, 0, layout.maxScrollY);
+      return;
+    }
+    if (e.code === 'PageDown') {
+      moveScrollY = clamp(moveScrollY + layout.contentH * 0.75, 0, layout.maxScrollY);
+      return;
+    }
+    if (e.code === 'PageUp') {
+      moveScrollY = clamp(moveScrollY - layout.contentH * 0.75, 0, layout.maxScrollY);
+      return;
+    }
+    if (e.code === 'Home') {
+      moveScrollY = 0;
+      return;
+    }
+    if (e.code === 'End') {
+      moveScrollY = layout.maxScrollY;
+      return;
+    }
+    if (gameState === 'menu' && menuView === 'moves') {
+      if (e.code === 'Escape' || e.code === 'KeyM') {
+        menuView = 'main';
+        return;
+      }
+      if (e.code === 'Enter' || e.code === 'Space') {
+        playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+        return;
+      }
+    }
+    return;
   }
 
   if (gameState === 'fight' && !isPaused) {
@@ -1493,7 +1684,13 @@ document.addEventListener('keydown', e => {
       }
     }
   }
-  if (gameState === 'menu') {
+
+  if (gameState === 'menu' && menuView === 'main') {
+    if (e.code === 'KeyM') {
+      menuView = 'moves';
+      moveScrollY = 0;
+      return;
+    }
     if (e.code === 'Digit1' || e.code === 'Numpad1') {
       difficulty = 'easy';
       return;
@@ -1522,6 +1719,7 @@ document.addEventListener('keydown', e => {
     }
   }
 });
+
 document.addEventListener('keyup', e => {
   keys[e.code] = false;
   if (!player) return;
@@ -1596,13 +1794,283 @@ function getMenuLayout() {
     }
   ];
 
-  const btnW = Math.min(320 * sc, W * 0.65);
+  // Side-by-side action buttons: [ 📖 MOVE LIST & GUIDE [M] ] and [ ▶ START FIGHT [ENTER] ]
+  const btnW = Math.min(280 * sc, (W - 56 * sc) / 2);
   const btnH = Math.max(38, 44 * sc);
-  const btnX = (W - btnW) / 2;
+  const btnGap = 16 * sc;
+  const btnTotalW = btnW * 2 + btnGap;
+  const btnStartX = (W - btnTotalW) / 2;
   const btnY = cardY + cardH + 18 * sc;
-  const startBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
 
-  return { sc, cards, startBtn };
+  const movesBtn = { x: btnStartX, y: btnY, w: btnW, h: btnH };
+  const startBtn = { x: btnStartX + btnW + btnGap, y: btnY, w: btnW, h: btnH };
+
+  return { sc, cards, movesBtn, startBtn };
+}
+
+function getMoveListModalLayout(footerMode = 'pause') {
+  const W = canvas.width, H = canvas.height;
+  const sc = Math.min(W / DW, H / 560);
+
+  const modalW = Math.min(W * 0.94, 940 * sc);
+  const modalH = Math.min(H * 0.94, 530 * sc);
+  const modalX = (W - modalW) / 2;
+  const modalY = (H - modalH) / 2;
+
+  const headerH = 58 * sc;
+  const footerH = 46 * sc;
+  const padding = 14 * sc;
+
+  const contentX = modalX + padding;
+  const contentY = modalY + headerH;
+  const contentW = modalW - padding * 2;
+  const contentH = modalH - headerH - footerH - 6 * sc;
+
+  const scrollbarW = 12 * sc;
+  const cardW = contentW - scrollbarW - 12 * sc;
+  const cardH = 86 * sc;
+  const cardGap = 10 * sc;
+
+  const totalContentH = ALL_MOVES.length * (cardH + cardGap) - cardGap;
+  const maxScrollY = Math.max(0, totalContentH - contentH);
+
+  // Scrollbar
+  const trackX = contentX + contentW - scrollbarW;
+  const trackY = contentY;
+  const trackW = scrollbarW;
+  const trackH = contentH;
+
+  const thumbH = Math.max(34 * sc, (contentH / Math.max(contentH, totalContentH)) * trackH);
+  const thumbY = maxScrollY > 0 ? trackY + (moveScrollY / maxScrollY) * (trackH - thumbH) : trackY;
+
+  // Footer Buttons
+  let footerButtons = {};
+  if (footerMode === 'pause') {
+    const resumeBtnW = modalW - padding * 2;
+    const resumeBtnH = 34 * sc;
+    const resumeBtnY = modalY + modalH - resumeBtnH - 8 * sc;
+    footerButtons.resume = { x: modalX + padding, y: resumeBtnY, w: resumeBtnW, h: resumeBtnH };
+  } else {
+    // Menu mode: Back to Menu button & Start Fight button
+    const btnW = (modalW - padding * 2 - 14 * sc) / 2;
+    const btnH = 34 * sc;
+    const btnY = modalY + modalH - btnH - 8 * sc;
+    footerButtons.back = { x: modalX + padding, y: btnY, w: btnW, h: btnH };
+    footerButtons.start = { x: modalX + padding + btnW + 14 * sc, y: btnY, w: btnW, h: btnH };
+  }
+
+  return {
+    sc, modalX, modalY, modalW, modalH,
+    headerH, footerH, padding,
+    contentX, contentY, contentW, contentH,
+    cardW, cardH, cardGap, totalContentH, maxScrollY,
+    scrollbar: { trackX, trackY, trackW, trackH, thumbH, thumbY },
+    footerButtons
+  };
+}
+
+function drawScrollableMoveListModal(title, subtitle, footerMode = 'pause') {
+  const W = canvas.width, H = canvas.height;
+  const layout = getMoveListModalLayout(footerMode);
+  const sc = layout.sc;
+
+  // Translucent backdrop
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Modal Outer Box
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(layout.modalX, layout.modalY, layout.modalW, layout.modalH);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = Math.max(2.5, 3 * sc);
+  ctx.strokeRect(layout.modalX, layout.modalY, layout.modalW, layout.modalH);
+
+  // Inner subtle border accent
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.strokeRect(layout.modalX + 4 * sc, layout.modalY + 4 * sc, layout.modalW - 8 * sc, layout.modalH - 8 * sc);
+
+  // Header Left: Title & Subtitle
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#000000';
+  ctx.font = `900 ${Math.floor(19 * sc)}px monospace`;
+  ctx.fillText(title, layout.contentX + 2 * sc, layout.modalY + 26 * sc);
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = `bold ${Math.floor(10 * sc)}px monospace`;
+  ctx.fillText(subtitle, layout.contentX + 2 * sc, layout.modalY + 44 * sc);
+
+  // Header Right: Controls Guide Badge
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#0f172a';
+  ctx.font = `bold ${Math.floor(9.5 * sc)}px monospace`;
+  ctx.fillText('11 MOVES · SCROLL WHEEL / DRAG / ↑ ↓ KEYS', layout.modalX + layout.modalW - layout.padding - 4 * sc, layout.modalY + 36 * sc);
+
+  // Header separator line
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(layout.modalX + layout.padding, layout.contentY - 6 * sc);
+  ctx.lineTo(layout.modalX + layout.modalW - layout.padding, layout.contentY - 6 * sc);
+  ctx.stroke();
+
+  // Scrollable Content Viewport with Clipping
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(layout.contentX, layout.contentY, layout.cardW + 4 * sc, layout.contentH);
+  ctx.clip();
+
+  ALL_MOVES.forEach((m, idx) => {
+    const cardY = layout.contentY - moveScrollY + idx * (layout.cardH + layout.cardGap);
+    // Viewport Culling
+    if (cardY + layout.cardH < layout.contentY || cardY > layout.contentY + layout.contentH) return;
+
+    const cardX = layout.contentX;
+    const cardW = layout.cardW;
+    const cardH = layout.cardH;
+
+    // Card background
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(cardX, cardY, cardW, cardH);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = Math.max(1, 1.2 * sc);
+    ctx.strokeRect(cardX, cardY, cardW, cardH);
+
+    // Left category color stripe
+    ctx.fillStyle = m.badgeBg || '#000000';
+    ctx.fillRect(cardX, cardY, 4.5 * sc, cardH);
+
+    // Move index pill: e.g. "01"
+    const numText = (idx + 1 < 10 ? '0' : '') + (idx + 1);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(cardX + 10 * sc, cardY + 8 * sc, 22 * sc, 16 * sc);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#475569';
+    ctx.font = `bold ${Math.floor(8.5 * sc)}px monospace`;
+    ctx.fillText(numText, cardX + 21 * sc, cardY + 20 * sc);
+
+    // Move Title
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#0f172a';
+    ctx.font = `900 ${Math.floor(13 * sc)}px monospace`;
+    ctx.fillText(m.name, cardX + 38 * sc, cardY + 21 * sc);
+    const titleWidth = ctx.measureText(m.name).width;
+
+    // Input Key Badge Pill
+    const tagX = cardX + 44 * sc + titleWidth;
+    ctx.font = `bold ${Math.floor(9 * sc)}px monospace`;
+    const tagTextW = ctx.measureText(m.input).width;
+    const tagW = tagTextW + 12 * sc;
+    const tagH = 16 * sc;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(tagX, cardY + 8 * sc, tagW, tagH);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tagX, cardY + 8 * sc, tagW, tagH);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillText(m.input, tagX + 6 * sc, cardY + 20 * sc);
+
+    // Consequence / Damage Badge on far right
+    ctx.font = `900 ${Math.floor(9 * sc)}px monospace`;
+    const badgeTextW = ctx.measureText(m.badge).width;
+    const badgeW = badgeTextW + 14 * sc;
+    const badgeH = 18 * sc;
+    const badgeX = cardX + cardW - badgeW - 10 * sc;
+    ctx.fillStyle = m.badgeBg || '#000000';
+    ctx.fillRect(badgeX, cardY + 7 * sc, badgeW, badgeH);
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(m.badge, badgeX + badgeW / 2, cardY + 20 * sc);
+
+    // Summary Line
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#1e293b';
+    ctx.font = `bold ${Math.floor(10.5 * sc)}px monospace`;
+    ctx.fillText(m.summary, cardX + 12 * sc, cardY + 41 * sc);
+
+    // Bullet Points (Combat Consequences & Frame Data)
+    ctx.fillStyle = '#475569';
+    ctx.font = `${Math.floor(9.5 * sc)}px monospace`;
+    ctx.fillText(m.bullets[0], cardX + 12 * sc, cardY + 57 * sc);
+    ctx.fillText(m.bullets[1], cardX + 12 * sc, cardY + 72 * sc);
+  });
+
+  ctx.restore();
+
+  // Overflow Fade Gradients
+  if (moveScrollY > 4) {
+    const gradTop = ctx.createLinearGradient(0, layout.contentY, 0, layout.contentY + 16 * sc);
+    gradTop.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+    gradTop.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = gradTop;
+    ctx.fillRect(layout.contentX, layout.contentY, layout.cardW, 16 * sc);
+  }
+  if (moveScrollY < layout.maxScrollY - 4) {
+    const gradBot = ctx.createLinearGradient(0, layout.contentY + layout.contentH - 16 * sc, 0, layout.contentY + layout.contentH);
+    gradBot.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    gradBot.addColorStop(1, 'rgba(255, 255, 255, 0.95)');
+    ctx.fillStyle = gradBot;
+    ctx.fillRect(layout.contentX, layout.contentY, layout.cardW, 16 * sc);
+  }
+
+  // Scrollbar Track & Thumb
+  const sb = layout.scrollbar;
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fillRect(sb.trackX, sb.trackY, sb.trackW, sb.trackH);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(sb.trackX, sb.trackY, sb.trackW, sb.trackH);
+
+  // Scrollbar Thumb
+  ctx.fillStyle = isDraggingScroll ? '#000000' : '#94a3b8';
+  ctx.fillRect(sb.trackX + 2 * sc, sb.thumbY, sb.trackW - 4 * sc, sb.thumbH);
+  ctx.strokeStyle = isDraggingScroll ? '#000000' : '#64748b';
+  ctx.strokeRect(sb.trackX + 2 * sc, sb.thumbY, sb.trackW - 4 * sc, sb.thumbH);
+
+  // Footer separator
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(layout.modalX + layout.padding, layout.modalY + layout.modalH - layout.footerH);
+  ctx.lineTo(layout.modalX + layout.modalW - layout.padding, layout.modalY + layout.modalH - layout.footerH);
+  ctx.stroke();
+
+  // Footer Action Buttons
+  if (footerMode === 'pause') {
+    const btn = layout.footerButtons.resume;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${Math.floor(11.5 * sc)}px monospace`;
+    ctx.fillText('▶  CLICK TO RESUME FIGHT  [ OR PRESS P / ESC ]', btn.x + btn.w / 2, btn.y + btn.h * 0.65);
+  } else {
+    // Menu Mode: Back to Menu & Start Fight buttons
+    const backBtn = layout.footerButtons.back;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(backBtn.x, backBtn.y, backBtn.w, backBtn.h);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(backBtn.x, backBtn.y, backBtn.w, backBtn.h);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#000000';
+    ctx.font = `900 ${Math.floor(11 * sc)}px monospace`;
+    ctx.fillText('←  BACK TO MAIN MENU  [ ESC / M ]', backBtn.x + backBtn.w / 2, backBtn.y + backBtn.h * 0.65);
+
+    const startBtn = layout.footerButtons.start;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(startBtn.x, startBtn.y, startBtn.w, startBtn.h);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(startBtn.x, startBtn.y, startBtn.w, startBtn.h);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${Math.floor(11 * sc)}px monospace`;
+    ctx.fillText('▶  START FIGHT  [ ENTER ]', startBtn.x + startBtn.w / 2, startBtn.y + startBtn.h * 0.65);
+  }
 }
 
 function getGameOverBtns() {
@@ -1623,13 +2091,68 @@ function getRematchBtnRect() {
   return getGameOverBtns().rematch;
 }
 
+// Mouse Wheel Scrolling for Move List (Pause Menu & Main Menu Move List)
+canvas.addEventListener('wheel', e => {
+  if (isPaused || (gameState === 'menu' && menuView === 'moves')) {
+    e.preventDefault();
+    const layout = getMoveListModalLayout(isPaused ? 'pause' : 'menu');
+    moveScrollY = clamp(moveScrollY + e.deltaY, 0, layout.maxScrollY);
+  }
+}, { passive: false });
+
 // Mouse: left = punch (or crouch punch if crouched), right = kick
 canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+
+  // Handle Pause Menu Interactions
   if (isPaused) {
+    const layout = getMoveListModalLayout('pause');
+    const sb = layout.scrollbar;
+
+    // Check click on Scrollbar Track or Thumb
+    if (mx >= sb.trackX - 6 * layout.sc && mx <= sb.trackX + sb.trackW + 6 * layout.sc &&
+        my >= sb.trackY && my <= sb.trackY + sb.trackH) {
+      if (my >= sb.thumbY && my <= sb.thumbY + sb.thumbH) {
+        isDraggingScroll = true;
+        dragScrollStartY = my;
+        dragScrollStartScroll = moveScrollY;
+      } else {
+        const trackScrollableH = sb.trackH - sb.thumbH;
+        if (trackScrollableH > 0) {
+          const pct = clamp((my - sb.trackY - sb.thumbH / 2) / trackScrollableH, 0, 1);
+          moveScrollY = pct * layout.maxScrollY;
+        }
+        isDraggingScroll = true;
+        dragScrollStartY = my;
+        dragScrollStartScroll = moveScrollY;
+      }
+      return;
+    }
+
+    // Check click on Resume Button
+    const btn = layout.footerButtons.resume;
+    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+      isPaused = false;
+      lastTime = performance.now();
+      return;
+    }
+
+    // Clicking inside the cards content viewport: do not unpause
+    if (mx >= layout.modalX && mx <= layout.modalX + layout.modalW &&
+        my >= layout.modalY && my <= layout.modalY + layout.modalH) {
+      return;
+    }
+
+    // Clicking outside modal veil: resume fight
     isPaused = false;
     lastTime = performance.now();
     return;
   }
+
   if (gameState === 'fight') {
     if (e.button === 0) {
       if (keys['KeyA'] || keys['ArrowLeft']) {
@@ -1657,12 +2180,8 @@ canvas.addEventListener('mousedown', e => {
     }
     return;
   }
+
   if (gameState === 'gameOver') {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const mx = (e.clientX - rect.left) * scaleX;
-    const my = (e.clientY - rect.top) * scaleY;
     const btns = getGameOverBtns();
 
     if (mx >= btns.rematch.x && mx <= btns.rematch.x + btns.rematch.w &&
@@ -1672,17 +2191,54 @@ canvas.addEventListener('mousedown', e => {
     }
     if (mx >= btns.menu.x && mx <= btns.menu.x + btns.menu.w &&
         my >= btns.menu.y && my <= btns.menu.y + btns.menu.h) {
-      playerWins = 0; enemyWins = 0; roundNum = 1; gameState = 'menu';
+      playerWins = 0; enemyWins = 0; roundNum = 1; gameState = 'menu'; menuView = 'main';
       return;
     }
     return;
   }
+
   if (gameState === 'menu') {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const mx = (e.clientX - rect.left) * scaleX;
-    const my = (e.clientY - rect.top) * scaleY;
+    if (menuView === 'moves') {
+      const layout = getMoveListModalLayout('menu');
+      const sb = layout.scrollbar;
+
+      // Check click on Scrollbar Track or Thumb
+      if (mx >= sb.trackX - 6 * layout.sc && mx <= sb.trackX + sb.trackW + 6 * layout.sc &&
+          my >= sb.trackY && my <= sb.trackY + sb.trackH) {
+        if (my >= sb.thumbY && my <= sb.thumbY + sb.thumbH) {
+          isDraggingScroll = true;
+          dragScrollStartY = my;
+          dragScrollStartScroll = moveScrollY;
+        } else {
+          const trackScrollableH = sb.trackH - sb.thumbH;
+          if (trackScrollableH > 0) {
+            const pct = clamp((my - sb.trackY - sb.thumbH / 2) / trackScrollableH, 0, 1);
+            moveScrollY = pct * layout.maxScrollY;
+          }
+          isDraggingScroll = true;
+          dragScrollStartY = my;
+          dragScrollStartScroll = moveScrollY;
+        }
+        return;
+      }
+
+      // Check click on Back Button
+      const backBtn = layout.footerButtons.back;
+      if (mx >= backBtn.x && mx <= backBtn.x + backBtn.w && my >= backBtn.y && my <= backBtn.y + backBtn.h) {
+        menuView = 'main';
+        return;
+      }
+
+      // Check click on Start Fight Button
+      const startBtn = layout.footerButtons.start;
+      if (mx >= startBtn.x && mx <= startBtn.x + startBtn.w && my >= startBtn.y && my <= startBtn.y + startBtn.h) {
+        playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+        return;
+      }
+      return;
+    }
+
+    // Main Menu View
     const layout = getMenuLayout();
 
     // Check click on difficulty cards
@@ -1691,6 +2247,14 @@ canvas.addEventListener('mousedown', e => {
         difficulty = card.id;
         return;
       }
+    }
+
+    // Check click on Move List Button
+    const movesBtn = layout.movesBtn;
+    if (mx >= movesBtn.x && mx <= movesBtn.x + movesBtn.w && my >= movesBtn.y && my <= movesBtn.y + movesBtn.h) {
+      menuView = 'moves';
+      moveScrollY = 0;
+      return;
     }
 
     // Check click on Start Button
@@ -1709,6 +2273,32 @@ canvas.addEventListener('mousemove', e => {
   const mx = (e.clientX - rect.left) * scaleX;
   const my = (e.clientY - rect.top) * scaleY;
 
+  // Handle Dragging Scrollbar
+  if (isDraggingScroll) {
+    const layout = getMoveListModalLayout(isPaused ? 'pause' : 'menu');
+    const sb = layout.scrollbar;
+    const trackScrollableH = sb.trackH - sb.thumbH;
+    if (trackScrollableH > 0) {
+      const deltaY = my - dragScrollStartY;
+      moveScrollY = clamp(dragScrollStartScroll + (deltaY / trackScrollableH) * layout.maxScrollY, 0, layout.maxScrollY);
+    }
+    canvas.style.cursor = 'pointer';
+    return;
+  }
+
+  if (isPaused) {
+    const layout = getMoveListModalLayout('pause');
+    const sb = layout.scrollbar;
+    const btn = layout.footerButtons.resume;
+    if ((mx >= sb.trackX - 6 * layout.sc && mx <= sb.trackX + sb.trackW + 6 * layout.sc && my >= sb.trackY && my <= sb.trackY + sb.trackH) ||
+        (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h)) {
+      canvas.style.cursor = 'pointer';
+      return;
+    }
+    canvas.style.cursor = 'default';
+    return;
+  }
+
   if (gameState === 'gameOver') {
     const btns = getGameOverBtns();
     if ((mx >= btns.rematch.x && mx <= btns.rematch.x + btns.rematch.w && my >= btns.rematch.y && my <= btns.rematch.y + btns.rematch.h) ||
@@ -1719,7 +2309,23 @@ canvas.addEventListener('mousemove', e => {
     canvas.style.cursor = 'default';
     return;
   }
+
   if (gameState === 'menu') {
+    if (menuView === 'moves') {
+      const layout = getMoveListModalLayout('menu');
+      const sb = layout.scrollbar;
+      const backBtn = layout.footerButtons.back;
+      const startBtn = layout.footerButtons.start;
+      if ((mx >= sb.trackX - 6 * layout.sc && mx <= sb.trackX + sb.trackW + 6 * layout.sc && my >= sb.trackY && my <= sb.trackY + sb.trackH) ||
+          (mx >= backBtn.x && mx <= backBtn.x + backBtn.w && my >= backBtn.y && my <= backBtn.y + backBtn.h) ||
+          (mx >= startBtn.x && mx <= startBtn.x + startBtn.w && my >= startBtn.y && my <= startBtn.y + startBtn.h)) {
+        canvas.style.cursor = 'pointer';
+        return;
+      }
+      canvas.style.cursor = 'default';
+      return;
+    }
+
     const layout = getMenuLayout();
     for (const card of layout.cards) {
       if (mx >= card.x && mx <= card.x + card.w && my >= card.y && my <= card.y + card.h) {
@@ -1727,15 +2333,20 @@ canvas.addEventListener('mousemove', e => {
         return;
       }
     }
-    const btn = layout.startBtn;
-    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+    if ((mx >= layout.movesBtn.x && mx <= layout.movesBtn.x + layout.movesBtn.w && my >= layout.movesBtn.y && my <= layout.movesBtn.y + layout.movesBtn.h) ||
+        (mx >= layout.startBtn.x && mx <= layout.startBtn.x + layout.startBtn.w && my >= layout.startBtn.y && my <= layout.startBtn.y + layout.startBtn.h)) {
       canvas.style.cursor = 'pointer';
       return;
     }
     canvas.style.cursor = 'default';
     return;
   }
+
   canvas.style.cursor = 'crosshair';
+});
+
+window.addEventListener('mouseup', () => {
+  isDraggingScroll = false;
 });
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -2361,6 +2972,13 @@ function drawHUD() {
 // ── Screens ─────────────────────────────────────────────────
 function drawMenu() {
   const W = canvas.width, H = canvas.height;
+
+  if (menuView === 'moves') {
+    drawBackground();
+    drawScrollableMoveListModal('SHADOW FIGHT · COMBAT MOVE LIST', 'SPACIOUS MOVE GUIDE · DAMAGE VALUES & TACTICAL CONSEQUENCES', 'menu');
+    return;
+  }
+
   const layout = getMenuLayout();
   const sc = layout.sc;
 
@@ -2456,28 +3074,39 @@ function drawMenu() {
     }
   }
 
-  // Large Start Fight Button
-  const btn = layout.startBtn;
-  const pulse = 0.85 + Math.sin(Date.now() * 0.005) * 0.15;
+  // Left Button: View Move List & Guide [M]
+  const movesBtn = layout.movesBtn;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(movesBtn.x, movesBtn.y, movesBtn.w, movesBtn.h);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(movesBtn.x, movesBtn.y, movesBtn.w, movesBtn.h);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#000000';
+  ctx.font = `900 ${Math.floor(12.5 * sc)}px monospace`;
+  ctx.fillText('📖  MOVE LIST & GUIDE  [ M ]', movesBtn.x + movesBtn.w / 2, movesBtn.y + movesBtn.h * 0.64);
+
+  // Right Button: Start Fight [ENTER]
+  const startBtn = layout.startBtn;
+  const pulse = 0.88 + Math.sin(Date.now() * 0.005) * 0.12;
   ctx.save();
   ctx.globalAlpha = pulse;
   ctx.fillStyle = '#000000';
-  ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+  ctx.fillRect(startBtn.x, startBtn.y, startBtn.w, startBtn.h);
   ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
-
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(startBtn.x, startBtn.y, startBtn.w, startBtn.h);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffffff';
-  ctx.font = `900 ${Math.floor(13.5 * sc)}px monospace`;
-  ctx.fillText('▶  START FIGHT  [ CLICK / ENTER ]', btn.x + btn.w / 2, btn.y + btn.h * 0.64);
+  ctx.font = `900 ${Math.floor(12.5 * sc)}px monospace`;
+  ctx.fillText('▶  START FIGHT  [ ENTER ]', startBtn.x + startBtn.w / 2, startBtn.y + startBtn.h * 0.64);
   ctx.restore();
 
   // Keyboard navigation hint & quick move bar
   ctx.textAlign = 'center';
   ctx.fillStyle = '#888888';
   ctx.font = `${Math.floor(9.5 * sc)}px monospace`;
-  ctx.fillText('KEYS: [1] Easy  ·  [2] Medium (Default)  ·  [3] Hard  ·  [ENTER / SPACE] Start Match', W / 2, btn.y + btn.h + 20 * sc);
+  ctx.fillText('KEYS: [1] Easy  ·  [2] Medium (Default)  ·  [3] Hard  ·  [M] View Moves  ·  [ENTER] Start Match', W / 2, startBtn.y + startBtn.h + 20 * sc);
 
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.font = `${Math.floor(9 * sc)}px monospace`;
@@ -2485,191 +3114,7 @@ function drawMenu() {
 }
 
 function drawPauseMenu() {
-  const W = canvas.width, H = canvas.height;
-  const sc = Math.min(W / DW, H / 560);
-
-  // Translucent dark veil over frozen fight scene
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
-  ctx.fillRect(0, 0, W, H);
-
-  const modalW = Math.min(W * 0.94, 880 * sc);
-  const modalH = Math.min(H * 0.93, 510 * sc);
-  const modalX = (W - modalW) / 2;
-  const modalY = (H - modalH) / 2;
-
-  // Outer Box
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(modalX, modalY, modalW, modalH);
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = Math.max(2.5, 3 * sc);
-  ctx.strokeRect(modalX, modalY, modalW, modalH);
-
-  // Inner border accent
-  ctx.lineWidth = 1;
-  ctx.strokeRect(modalX + 5 * sc, modalY + 5 * sc, modalW - 10 * sc, modalH - 10 * sc);
-
-  // Header
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#000000';
-  ctx.font = `900 ${Math.floor(22 * sc)}px monospace`;
-  ctx.fillText('PAUSED', W / 2, modalY + 28 * sc);
-
-  ctx.fillStyle = '#666666';
-  ctx.font = `bold ${Math.floor(10 * sc)}px monospace`;
-  ctx.fillText('MOVE LIST  &  COMBAT CONSEQUENCES', W / 2, modalY + 43 * sc);
-
-  // Header horizontal divider
-  ctx.strokeStyle = '#cccccc';
-  ctx.beginPath();
-  ctx.moveTo(modalX + 16 * sc, modalY + 50 * sc);
-  ctx.lineTo(modalX + modalW - 16 * sc, modalY + 50 * sc);
-  ctx.stroke();
-
-  // Vertical column divider
-  ctx.strokeStyle = '#e0e0e0';
-  ctx.beginPath();
-  ctx.moveTo(modalX + modalW / 2, modalY + 56 * sc);
-  ctx.lineTo(modalX + modalW / 2, modalY + modalH - 46 * sc);
-  ctx.stroke();
-
-  const colW = (modalW - 56 * sc) / 2;
-  const col1X = modalX + 18 * sc;
-  const col2X = modalX + modalW / 2 + 12 * sc;
-  const startY = modalY + 58 * sc;
-  const itemGap = 65 * sc;
-
-  const col1Moves = [
-    {
-      name: 'Rapid Punch Combo',
-      input: 'L-CLICK (x1-5)',
-      badge: '9 / 2.25 DMG',
-      line1: 'Rapid alternating hands! First punch 9 DMG; rest 2.25 DMG.',
-      line2: 'Max 5 punches, then 0.5s lockout. Whiffs if foe crouches!'
-    },
-    {
-      name: 'Duck Headbutt',
-      input: 'A + L-CLICK',
-      badge: '14 DMG / 1.5s STUN',
-      line1: 'Ducks under punches & Spartan kicks! Explodes into 45° ram.',
-      line2: 'Headbutt connects: STUNS enemy for 1.5 seconds with dizzy stars!'
-    },
-    {
-      name: 'Low Crouch Punch',
-      input: 'S + L-CLICK',
-      badge: '9 DMG',
-      line1: 'Low Gedan Tsuki punch executed while staying crouched.',
-      line2: 'Ducks under high punches while striking midsection.'
-    },
-    {
-      name: 'Snap Kick',
-      input: 'R-CLICK (Neutral)',
-      badge: '12 DMG',
-      line1: 'High snap thrust kick with 152px reach.',
-      line2: 'Excellent mid-range spacing and poke tool against advances.'
-    },
-    {
-      name: 'Spartan Kick',
-      input: 'FORWARD + R-CLICK',
-      badge: '18 DMG',
-      line1: 'Torso leans back -40° and unleashes linear foot thrust.',
-      line2: '4X COLOSSAL KNOCKBACK (368px) into arena walls!'
-    },
-    {
-      name: 'Front Flip Axe Kick',
-      input: 'AIRBORNE + R-CLICK',
-      badge: '21 DMG',
-      line1: '360° forward aerial flip; chops down at 220° rotation.',
-      line2: 'Glides forward & KNOCKS FOE FLAT ON BACK for 1s! (+3 DMG)'
-    }
-  ];
-
-  const col2Moves = [
-    {
-      name: 'Low Sweep Kick',
-      input: 'S + R-CLICK',
-      badge: '7 DMG',
-      line1: 'Low ground sweep with grounded hand plant (-3 DMG).',
-      line2: 'Ignores high guard! TRIPS enemy onto back for 1s.'
-    },
-    {
-      name: 'Tactical Dash Move',
-      input: 'DOUBLE-TAP A / D',
-      badge: 'MOBILITY',
-      line1: 'Rapid burst propulsion (184px, half Spartan knockback).',
-      line2: 'Shadow afterimages. Can be cancelled into any attack!'
-    },
-    {
-      name: 'Boxer High Guard',
-      input: 'HOLD SHIFT',
-      badge: 'DEFENSE',
-      line1: 'Peek-a-boo face guard absorbs 90% incoming damage.',
-      line2: 'Mitigates knockback slide. Vulnerable to low sweep kicks!'
-    },
-    {
-      name: 'Martial Arts Crouch',
-      input: 'HOLD S / DOWN',
-      badge: 'DEFENSE',
-      line1: 'Low ducking stance lower than punch height.',
-      line2: 'Passively evades all standing punches and high kicks.'
-    },
-    {
-      name: 'Ground Stomp ("Q")',
-      input: 'RECEIVE 3 SPARTAN KICKS',
-      badge: 'UNINTERRUPTIBLE',
-      line1: 'Taking 3 Spartan Kicks (or 3 KDs) in 5s unlocks Ground Stomp.',
-      line2: 'UNINTERRUPTIBLE hyper-armor! Knocks down foe anywhere on screen!'
-    }
-  ];
-
-  function drawMoveItem(m, x, y) {
-    ctx.textAlign = 'left';
-    // Move Name
-    ctx.fillStyle = '#000000';
-    ctx.font = `bold ${Math.floor(11.5 * sc)}px monospace`;
-    ctx.fillText(m.name, x, y);
-
-    // Input tag
-    const nameWidth = ctx.measureText(m.name).width;
-    const tagX = x + nameWidth + 8 * sc;
-    ctx.fillStyle = '#f0f0f0';
-    ctx.fillRect(tagX, y - 10 * sc, ctx.measureText(m.input).width + 8 * sc, 13 * sc);
-    ctx.strokeStyle = '#888888';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(tagX, y - 10 * sc, ctx.measureText(m.input).width + 8 * sc, 13 * sc);
-    ctx.fillStyle = '#111111';
-    ctx.font = `bold ${Math.floor(9 * sc)}px monospace`;
-    ctx.fillText(m.input, tagX + 4 * sc, y - 1 * sc);
-
-    // Badge (Damage / Type) on right edge of column
-    ctx.textAlign = 'right';
-    const badgeX = x + colW - 6 * sc;
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(badgeX - ctx.measureText(m.badge).width - 8 * sc, y - 10 * sc, ctx.measureText(m.badge).width + 8 * sc, 13 * sc);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${Math.floor(9 * sc)}px monospace`;
-    ctx.fillText(m.badge, badgeX - 4 * sc, y - 1 * sc);
-
-    // Description lines
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#333333';
-    ctx.font = `${Math.floor(10 * sc)}px monospace`;
-    ctx.fillText(m.line1, x, y + 14 * sc);
-    ctx.fillStyle = '#666666';
-    ctx.fillText(m.line2, x, y + 27 * sc);
-  }
-
-  col1Moves.forEach((m, i) => drawMoveItem(m, col1X, startY + i * itemGap));
-  col2Moves.forEach((m, i) => drawMoveItem(m, col2X, startY + i * itemGap));
-
-  // Footer Resume Button / Banner
-  const btnH = 26 * sc;
-  const btnY = modalY + modalH - btnH - 10 * sc;
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(modalX + 14 * sc, btnY, modalW - 28 * sc, btnH);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${Math.floor(11.5 * sc)}px monospace`;
-  ctx.fillText('▶  PRESS "P", "ESC", OR CLICK ANYWHERE TO RESUME FIGHT', W / 2, btnY + btnH * 0.68);
+  drawScrollableMoveListModal('PAUSED · COMBAT MOVE LIST', 'SPACIOUS MOVE GUIDE · DAMAGE VALUES & TACTICAL CONSEQUENCES', 'pause');
 }
 
 function drawCountdown() {

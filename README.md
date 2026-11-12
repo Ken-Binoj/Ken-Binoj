@@ -21,7 +21,8 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 | **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive burst propelling character `184px` (half of Spartan knockback!) with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Leap into the air with gravity physics. |
 | **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after taking 3 Spartan Kicks in 5s. **100% UNINTERRUPTIBLE hyper-armor!** Stomps the arena floor: **KNOCKS DOWN FOE ANYWHERE ON SCREEN!** |
-| **Pause & Move List** | `P` or `Escape` | Pauses match and opens the Move List modal with combat consequences. Click anywhere or press P/ESC to resume. |
+| **Pause & Move List** | `P` or `Escape` | Pauses match and opens spacious scrollable Move List modal with damage values and tactical consequences. Press P/ESC or click Resume. |
+| **Menu Move Guide** | `M` (On Menu Screen) | Opens the full scrollable Move List modal directly from the Main Menu. Press ESC, M, or click Back to return. |
 
 ---
 
