@@ -205,7 +205,7 @@ class Fighter {
 
   move(dx) {
     if (this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash', 'groundStomp'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash', 'groundStomp'].includes(this.state)) return;
     if (this.state === 'crouch') {
       if (this.isPlayer && !(keys['KeyS'] || keys['ArrowDown'])) {
         this.state = 'idle';
@@ -219,7 +219,7 @@ class Fighter {
 
   dash(dir) {
     if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash', 'groundStomp'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash', 'groundStomp'].includes(this.state)) return;
     const dur = 0.20;
     this.state = 'dash';
     this.stateDur = dur;
@@ -234,7 +234,7 @@ class Fighter {
 
   jump() {
     if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
+    if (['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
     if (this.state === 'crouch') {
       if (this.isPlayer && !(keys['KeyS'] || keys['ArrowDown'])) {
         this.state = 'idle';
@@ -250,14 +250,14 @@ class Fighter {
   block(on) {
     this.blocking = on;
     if (this.state === 'dead' || this.state === 'knockdown') return;
-    if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'crouch', 'dash'].includes(this.state)) this.state = 'block';
+    if (on && this.onGround && !['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'crouch', 'dash', 'groundStomp'].includes(this.state)) this.state = 'block';
     if (!on && this.state === 'block') this.state = 'idle';
   }
 
   crouch(on) {
     this.crouching = on;
     if (this.state === 'dead' || this.state === 'knockdown') return;
-    if (on && this.onGround && !['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'block', 'dash'].includes(this.state)) this.state = 'crouch';
+    if (on && this.onGround && !['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'block', 'dash', 'groundStomp'].includes(this.state)) this.state = 'crouch';
     if (!on && this.state === 'crouch') this.state = 'idle';
   }
 
@@ -298,6 +298,7 @@ class Fighter {
     let dur = 0.28;
     if (type === 'punch') dur = 0.20; // Ultra snappy rapid flurry punches
     else if (type === 'crouchPunch') dur = 0.28; // Faster low punch!
+    else if (type === 'duckHeadbutt') dur = 0.56; // Duck under attacks & 45-deg lean forward headbutt!
     else if (type === 'kick') dur = 0.38; // Faster snappy kick!
     else if (type === 'spartanKick') dur = 0.62;
     else if (type === 'sweepKick') dur = 0.50;
@@ -329,6 +330,15 @@ class Fighter {
       if (this.spartanHitTimestamps.length >= 3) {
         this.groundStompReady = true;
       }
+    }
+
+    // Both "Q" Ground Stomp attacks are completely uninterruptible (hyper-armor)!
+    if (this.state === 'groundStomp') {
+      this.hp = Math.max(0, this.hp - dmg);
+      shake(5, 0.12);
+      spawnParticles(this.x, this.y - 80 * this.sc, 8);
+      if (this.hp <= 0) { this.state = 'dead'; this.vy = -canvas.height * 0.5; }
+      return true;
     }
 
     if (this.blocking) {
@@ -373,6 +383,8 @@ class Fighter {
 
   knockdown(attacker, customDmg = 10, customKbk = null) {
     if (this.state === 'dead' || this.state === 'knockdown') return;
+    // Both "Q" Ground Stomp attacks are completely uninterruptible!
+    if (this.state === 'groundStomp') return;
     this.hp = Math.max(0, this.hp - customDmg);
 
     // Track knockdown timestamp for 3 knockdowns in 5 seconds [Q] reversal
@@ -523,7 +535,12 @@ class Fighter {
       }
     }
 
-    if (['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'dash', 'groundStomp'].includes(this.state)) {
+    // Duck Headbutt forward momentum surge during 45-degree strike phase
+    if (this.state === 'duckHeadbutt' && this.stateProgress >= 0.38 && this.stateProgress < 0.62) {
+      this.x = clamp(this.x + this.facing * 190 * dt, 55, canvas.width - 55);
+    }
+
+    if (['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'dash', 'groundStomp'].includes(this.state)) {
       this.stateElapsed += dt;
       if (this.stateElapsed >= this.stateDur) {
         if (!this.onGround) {
@@ -1064,6 +1081,55 @@ class Fighter {
         break;
       }
 
+      case 'duckHeadbutt': {
+        // Duck Headbutt Attack:
+        // 0.0 -> 0.38: Deep martial arts duck (DODGES SPARTAN KICKS AND HIGH PUNCHES!)
+        // 0.38 -> 0.65: Explodes into 45-DEGREE LEAN FORWARD HEADBUTT!
+        // 0.65 -> 1.0: Recovery back to stance
+        if (sp < 0.38) {
+          const t = sp / 0.38;
+          // Deep ducking frames: body dips close to floor, coiling forward
+          bodyDip = lerp(0, 28, t);
+          bodyLean = lerp(0, 15, t);
+          fThigh = lerp(-5, -45, t);
+          fCalf = lerp(5, 82, t);
+          bThigh = lerp(8, 30, t);
+          bCalf = lerp(5, 68, t);
+          // Arms tucked tightly protecting chin
+          fUpper = lerp(-35, -20, t);
+          fFore = lerp(65, 82, t);
+          bUpper = lerp(-15, 0, t);
+          bFore = lerp(50, 78, t);
+        } else if (sp < 0.65) {
+          // 45-DEGREE LEAN FORWARD HEADBUTT EXPLOSION!
+          const t = (sp - 0.38) / 0.27;
+          bodyLean = 45; // Exactly 45 degree lean forward!
+          bodyDip = lerp(28, 6, t);
+          // Legs drive forcefully forward
+          fThigh = lerp(-45, -16, t);
+          fCalf = lerp(82, 32, t);
+          bThigh = lerp(30, -28, t);
+          bCalf = lerp(68, 12, t);
+          // Arms thrust back for ramming momentum
+          fUpper = 46; fFore = 22;
+          bUpper = 52; bFore = 26;
+        } else {
+          // Recovery from 45-degree lean back to neutral stance
+          const t = (sp - 0.65) / 0.35;
+          bodyLean = lerp(45, 0, t);
+          bodyDip = lerp(6, 0, t);
+          fThigh = lerp(-16, -5, t);
+          fCalf = lerp(32, 5, t);
+          bThigh = lerp(-28, 8, t);
+          bCalf = lerp(12, 5, t);
+          fUpper = lerp(46, -35, t);
+          fFore = lerp(22, 65, t);
+          bUpper = lerp(52, -15, t);
+          bFore = lerp(26, 50, t);
+        }
+        break;
+      }
+
       case 'crouch':
         bodyDip = 28;
         bodyLean = -15;
@@ -1258,6 +1324,27 @@ class Fighter {
 
     // 4) Combo badge (screen space, no health bar)
     if (this.comboCount >= 2) this._comboBadge(sc);
+
+    // 5) Dizzy / Stun stars while stunned from 1.5s Duck Headbutt
+    if (this.stunTimer > 0 && this.state === 'hurt' && this.state !== 'dead') {
+      const starAngle = (Date.now() * 0.007) % (Math.PI * 2);
+      const starRadius = 24 * sc;
+      const headTopY = this.y - 128 * sc;
+      for (let i = 0; i < 3; i++) {
+        const a = starAngle + (i * Math.PI * 2 / 3);
+        const sx = this.x + Math.cos(a) * starRadius;
+        const sy = headTopY + Math.sin(a) * (starRadius * 0.35);
+        ctx.save();
+        ctx.fillStyle = '#facc15'; // Bright golden yellow
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 3.5 * sc, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
   }
 
   // ── Double-jointed arm ──────────────────────────────────
@@ -1545,7 +1632,10 @@ canvas.addEventListener('mousedown', e => {
   }
   if (gameState === 'fight') {
     if (e.button === 0) {
-      if (player.crouching || player.state === 'crouch') {
+      if (keys['KeyA'] || keys['ArrowLeft']) {
+        // While pressing "A" (or Left Arrow) + Punch: Duck Headbutt!
+        player.attack('duckHeadbutt');
+      } else if (player.crouching || player.state === 'crouch') {
         player.attack('crouchPunch');
       } else {
         player.attack('punch');
@@ -1711,11 +1801,11 @@ function updateAI(dt) {
   // Decision cycles tuned per difficulty:
   // Easy: relaxed, forgiving (0.24 - 0.42s)
   // Medium: smart tactical (0.16 - 0.32s), aggressive frenzy (0.07 - 0.15s)
-  // Hard: twitch evasion reflexes (0.07 - 0.14s normal, 0.05 - 0.09s aggressive frenzy)
+  // Hard: twitch evasion reflexes & dash movement (0.06 - 0.12s normal, 0.04 - 0.08s aggressive frenzy)
   if (isEasy) {
     enemy.aiTimer = rnd(0.24, 0.42);
   } else if (isHard) {
-    enemy.aiTimer = lowHp ? rnd(0.05, 0.09) : rnd(0.07, 0.14);
+    enemy.aiTimer = lowHp ? rnd(0.04, 0.08) : rnd(0.06, 0.12);
   } else {
     enemy.aiTimer = lowHp ? rnd(0.07, 0.15) : rnd(0.16, 0.32);
   }
@@ -1724,15 +1814,37 @@ function updateAI(dt) {
 
   const dist = Math.abs(player.x - enemy.x);
   const dir = player.x > enemy.x ? 1 : -1;
-  const pAttacking = ['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(player.state);
+  const pAttacking = ['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(player.state);
 
-  // 1. WAKE-UP / KNOCKDOWN BEHAVIOR:
+  // 1. HARD MODE DASH-CENTRIC LOCOMOTION:
+  // "in hard mode the enemy should mostly move arround by dashing"
+  if (isHard && enemy.onGround && enemy.state !== 'dash') {
+    // If player is stunned from headbutt, rush in with forward dash!
+    if (player.stunTimer > 0 && dist > 115) {
+      enemy.dash(dir);
+      return;
+    }
+    // High-frequency dashing instead of walking:
+    if (dist > 150 && Math.random() < 0.85) {
+      enemy.dash(dir); // Forward burst dash!
+      return;
+    }
+    if (dist < 85 && Math.random() < 0.78) {
+      enemy.dash(-dir); // Evasive backdash!
+      return;
+    }
+  }
+
+  // 2. WAKE-UP / KNOCKDOWN BEHAVIOR:
   if (player.state === 'knockdown') {
     if (lowHp) {
       // Aggressive AI (Medium & Hard below 50% HP): Okizeme wake-up pressure!
-      if (dist > 95) enemy.aiMoveX = dir * 260;
-      else if (dist < 65) enemy.aiMoveX = -dir * 140;
-      else {
+      if (dist > 95) {
+        if (isHard && enemy.onGround && Math.random() < 0.70) enemy.dash(dir);
+        else enemy.aiMoveX = dir * 260;
+      } else if (dist < 65) {
+        enemy.aiMoveX = -dir * 140;
+      } else {
         enemy.aiMoveX = 0;
         if (player.stateProgress > 0.70 && Math.random() < 0.60) {
           enemy.attack(Math.random() < 0.50 ? 'sweepKick' : 'spartanKick');
@@ -1747,17 +1859,57 @@ function updateAI(dt) {
     return;
   }
 
-  // 2. DEFENSIVE BACKDASH & EVASION:
-  // Hard mode: EXTREMELY DODGY! Constantly skips back to maintain optimal spacing and avoid trades
+  // 3. REACTIVE COUNTER TO INCOMING ATTACKS (EXPERT DUCK HEADBUTT COUNTER IN HARD MODE):
+  // "in hard mode enemy should be really good at using this headbutt attack"
+  if (pAttacking && dist < (isHard ? 200 : 185)) {
+    // If player throws high punches or Spartan Kick:
+    if (player.state === 'punch' || player.state === 'spartanKick') {
+      // Hard mode: 85% chance to duck under strike with Duck Headbutt and counter-stun for 1.5s!
+      if (isHard && enemy.onGround && Math.random() < 0.85) {
+        enemy.attack('duckHeadbutt');
+        return;
+      }
+      // Medium mode: 35% chance to counter with Duck Headbutt
+      if (!isEasy && enemy.onGround && Math.random() < 0.35) {
+        enemy.attack('duckHeadbutt');
+        return;
+      }
+      // Duck punch into crouch
+      if (Math.random() < (isHard ? 0.90 : (isEasy ? 0.25 : 0.50)) && enemy.onGround) {
+        enemy.crouch(true);
+        setTimeout(() => enemy && enemy.crouch(false), rnd(240, 420));
+        return;
+      }
+    }
+
+    // Hard mode: lightning quick evasive backdash out of harm's way!
+    if (isHard && enemy.onGround && Math.random() < 0.80 && enemy.state !== 'dash') {
+      enemy.dash(-dir);
+      return;
+    }
+
+    // High Guard block rate: Hard = 95%, Medium = 78%, Easy = 50%
+    const blockChance = isHard ? 0.95 : (isEasy ? 0.50 : 0.78);
+    if (Math.random() < blockChance) {
+      enemy.block(true);
+      setTimeout(() => enemy && enemy.block(false), rnd(300, 500));
+      return;
+    } else if (enemy.onGround && Math.random() < (isEasy ? 0.20 : 0.45) && enemy.state !== 'dash') {
+      enemy.dash(-dir);
+      return;
+    }
+  }
+
+  // 4. DEFENSIVE BACKDASH & EVASION:
   const backdashDist = isHard ? 140 : 125;
-  const backdashChance = isHard ? 0.72 : (isEasy ? 0.20 : 0.40);
+  const backdashChance = isHard ? 0.75 : (isEasy ? 0.20 : 0.40);
   if (!lowHp && enemy.onGround && dist < backdashDist && Math.random() < backdashChance && enemy.state !== 'dash') {
     enemy.dash(-dir); // Evasive backdash!
     enemy.aiMoveX = 0;
     return;
   }
 
-  // 3. ANTI-AIR DEFENSE: Reacts to airborne player
+  // 5. ANTI-AIR DEFENSE: Reacts to airborne player
   if (!player.onGround && dist < 195) {
     const roll = Math.random();
     if (lowHp) {
@@ -1782,35 +1934,7 @@ function updateAI(dt) {
     return;
   }
 
-  // 4. REACTIVE DEFENSE (Smart blocking, ducking, and dodging incoming strikes)
-  if (pAttacking && dist < (isHard ? 200 : 185)) {
-    // Duck punch: Hard = 88%, Medium = 50%, Easy = 25%
-    const duckPunchChance = isHard ? 0.88 : (isEasy ? 0.25 : 0.50);
-    if (player.state === 'punch' && Math.random() < duckPunchChance && enemy.onGround) {
-      enemy.crouch(true);
-      setTimeout(() => enemy && enemy.crouch(false), rnd(240, 420));
-      return;
-    }
-
-    // Hard mode: lightning quick evasive backdash out of harm's way!
-    if (isHard && enemy.onGround && Math.random() < 0.75 && enemy.state !== 'dash') {
-      enemy.dash(-dir);
-      return;
-    }
-
-    // High Guard block rate: Hard = 95%, Medium = 78%, Easy = 50%
-    const blockChance = isHard ? 0.95 : (isEasy ? 0.50 : 0.78);
-    if (Math.random() < blockChance) {
-      enemy.block(true);
-      setTimeout(() => enemy && enemy.block(false), rnd(300, 500));
-      return;
-    } else if (enemy.onGround && Math.random() < (isEasy ? 0.20 : 0.45) && enemy.state !== 'dash') {
-      enemy.dash(-dir);
-      return;
-    }
-  }
-
-  // 5. COUNTER CROUCH: If player is crouching, high punch whiffs!
+  // 6. COUNTER CROUCH:
   if (player.state === 'crouch' || player.state === 'crouchPunch') {
     if (dist < 140) {
       if (lowHp) {
@@ -1824,54 +1948,81 @@ function updateAI(dt) {
         }
       }
     } else {
-      enemy.aiMoveX = dir * (lowHp ? 260 : 180);
+      if (isHard && enemy.onGround && Math.random() < 0.75) enemy.dash(dir);
+      else enemy.aiMoveX = dir * (lowHp ? 260 : 180);
     }
     return;
   }
 
-  // 6. OFFENSIVE DASH (Used for spacing; much more aggressive below 50% HP)
-  const dashChance = isHard ? (lowHp ? 0.75 : 0.55) : (lowHp ? 0.70 : (isEasy ? 0.20 : 0.38));
-  if (enemy.onGround && dist > 130 && dist < 250 && Math.random() < dashChance && enemy.state !== 'dash') {
+  // 7. OFFENSIVE DASH (Predominant in Hard mode, tactical in Medium/Easy)
+  const dashChance = isHard ? (lowHp ? 0.88 : 0.75) : (lowHp ? 0.70 : (isEasy ? 0.20 : 0.38));
+  if (enemy.onGround && dist > 130 && dist < 260 && Math.random() < dashChance && enemy.state !== 'dash') {
     enemy.dash(dir);
     setTimeout(() => {
       if (enemy && enemy.state !== 'dead' && enemy.state !== 'knockdown' && enemy.state !== 'hurt') {
         const atkRoll = Math.random();
-        if (atkRoll < 0.45) enemy.attack('spartanKick');
-        else if (atkRoll < 0.75) enemy.attack('sweepKick');
-        else enemy.attack('punch');
+        if (isHard && atkRoll < 0.45) {
+          enemy.attack('duckHeadbutt'); // Hard CPU follows up dash with 45° Duck Headbutt stun!
+        } else if (atkRoll < 0.70) {
+          enemy.attack('spartanKick');
+        } else if (atkRoll < 0.88) {
+          enemy.attack('sweepKick');
+        } else {
+          enemy.attack('punch');
+        }
       }
     }, 110);
     return;
   }
 
-  // 7. ATTACK & MOVEMENT STRATEGY
+  // 8. ATTACK & MOVEMENT STRATEGY
   const roll = Math.random();
+
+  // If player is currently stunned from Duck Headbutt: capitalize relentlessly!
+  if (player.stunTimer > 0) {
+    if (dist > 120 && enemy.onGround) {
+      enemy.dash(dir);
+    } else {
+      const punishRoll = Math.random();
+      if (punishRoll < 0.45) enemy.attack('spartanKick');
+      else if (punishRoll < 0.75 && enemy.onGround) {
+        enemy.jump();
+        setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 120);
+      } else {
+        enemy.attack('punch');
+      }
+    }
+    return;
+  }
 
   if (lowHp) {
     // ═══════════════════════════════════════════════════════
     //  AGGRESSIVE MODE (< 50% HP on Medium & Hard): Relentless Forward Pressure
     // ═══════════════════════════════════════════════════════
     if (dist > 200) {
-      enemy.aiMoveX = dir * (isHard ? 280 : 270);
+      if (isHard && enemy.onGround) enemy.dash(dir);
+      else enemy.aiMoveX = dir * (isHard ? 280 : 270);
     } else if (dist > 120) {
-      if (roll < 0.45) {
+      if (isHard && roll < 0.45) {
+        enemy.attack('duckHeadbutt');
+      } else if (roll < 0.70) {
         enemy.aiMoveX = dir * 220;
         setTimeout(() => { if (enemy) enemy.attack('spartanKick'); }, 80);
-      } else if (roll < 0.75 && enemy.onGround) {
+      } else if (roll < 0.88 && enemy.onGround) {
         enemy.jump();
         setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 120);
       } else {
         enemy.dash(dir);
       }
     } else {
-      // In Hard mode, mix relentless attacks with sudden evasive resets
-      if (isHard && Math.random() < 0.40 && enemy.onGround && enemy.state !== 'dash') {
-        enemy.dash(-dir);
-      } else if (roll < 0.35) {
-        enemy.attack('punch');
+      // In Hard mode, mix Duck Headbutt stuns, relentless strikes, and evasive dashes
+      if (isHard && roll < 0.42) {
+        enemy.attack('duckHeadbutt');
       } else if (roll < 0.60) {
+        enemy.attack('punch');
+      } else if (roll < 0.75) {
         enemy.attack('crouchPunch');
-      } else if (roll < 0.85) {
+      } else if (roll < 0.90) {
         enemy.attack('sweepKick');
       } else {
         enemy.attack('spartanKick');
@@ -1882,12 +2033,16 @@ function updateAI(dt) {
     //  STANDARD SMART TACTICAL MODE: Methodical spacing & counters
     // ═══════════════════════════════════════════════════════
     if (dist > 220) {
-      enemy.aiMoveX = dir * (isHard ? 200 : (isEasy ? 160 : 190));
+      if (isHard && enemy.onGround && Math.random() < 0.75) enemy.dash(dir);
+      else enemy.aiMoveX = dir * (isHard ? 200 : (isEasy ? 160 : 190));
     } else if (dist > 135) {
-      if (roll < (isEasy ? 0.25 : 0.35)) {
+      if (isHard && roll < 0.38) {
+        enemy.dash(dir);
+        setTimeout(() => { if (enemy) enemy.attack('duckHeadbutt'); }, 100);
+      } else if (roll < (isEasy ? 0.25 : 0.45)) {
         enemy.aiMoveX = dir * 150;
         setTimeout(() => { if (enemy) enemy.attack('spartanKick'); }, 100);
-      } else if (roll < (isEasy ? 0.45 : 0.60) && enemy.onGround) {
+      } else if (roll < (isEasy ? 0.45 : 0.65) && enemy.onGround) {
         enemy.jump();
         setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
       } else {
@@ -1895,33 +2050,33 @@ function updateAI(dt) {
       }
     } else if (dist < 80) {
       // Hard mode: constantly dodgy when player gets within 80px!
-      if (isHard && Math.random() < 0.68 && enemy.onGround && enemy.state !== 'dash') {
+      if (isHard && Math.random() < 0.70 && enemy.onGround && enemy.state !== 'dash') {
         enemy.dash(-dir); // Evasively dash away!
-      } else if (roll < 0.25) {
+      } else if (isHard && roll < 0.40) {
+        enemy.attack('duckHeadbutt'); // Stuns player for 1.5s!
+      } else if (roll < 0.55) {
         enemy.attack('punch');
-      } else if (roll < 0.48) {
+      } else if (roll < 0.72) {
         enemy.attack('crouchPunch');
-      } else if (roll < 0.70) {
+      } else if (roll < 0.88) {
         enemy.attack('sweepKick');
-      } else if (roll < 0.88 && enemy.onGround) {
-        enemy.dash(-dir);
       } else {
         enemy.block(true);
         setTimeout(() => enemy && enemy.block(false), rnd(300, 450));
       }
     } else {
       enemy.aiMoveX = 0;
-      if (roll < 0.32) {
+      if (isHard && roll < 0.38) {
+        enemy.attack('duckHeadbutt');
+      } else if (roll < 0.55) {
         enemy.attack('punch');
-      } else if (roll < 0.58) {
+      } else if (roll < 0.75) {
         enemy.attack(dist > 110 ? 'spartanKick' : 'kick');
-      } else if (roll < 0.76 && enemy.onGround) {
+      } else if (roll < 0.88 && enemy.onGround) {
         enemy.jump();
         setTimeout(() => { if (enemy && !enemy.onGround) enemy.attack('flipKick'); }, 140);
-      } else if (roll < 0.90) {
-        enemy.attack('sweepKick');
       } else {
-        enemy.aiMoveX = (Math.random() < 0.5 ? 1 : -1) * 120;
+        enemy.attack('sweepKick');
       }
     }
   }
@@ -1930,7 +2085,7 @@ function updateAI(dt) {
 // ── Hit detection ──────────────────────────────────────────
 // Combo increments ONLY on confirmed hit
 function checkHit(att, def) {
-  if (!['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(att.state)) return;
+  if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(att.state)) return;
   if (att.hitCooldown > 0) return;
   if (def.state === 'knockdown' || def.state === 'dead') return; // Cannot hit grounded target
   const sp = att.stateProgress;
@@ -1940,6 +2095,9 @@ function checkHit(att, def) {
   if (att.state === 'flipKick') {
     const rot = sp * 360;
     if (rot < 208 || rot > 236) return;
+  } else if (att.state === 'duckHeadbutt') {
+    // 45-degree lean forward headbutt strike phase
+    if (sp < 0.38 || sp > 0.66) return;
   } else {
     if (sp < 0.15 || sp > 0.88) return;
   }
@@ -1947,6 +2105,7 @@ function checkHit(att, def) {
   // Reach ranges:
   // - Normal punch: 132 * sc
   // - Crouch punch: 138 * sc
+  // - Duck headbutt: 145 * sc (45-degree forward lunge)
   // - Normal kick: 152 * sc
   // - Spartan kick: 192 * sc (massive reach & 4x colossal knockback: 368px!)
   // - Sweep kick: 160 * sc (low ground sweep)
@@ -1968,6 +2127,10 @@ function checkHit(att, def) {
     range = 138 * sc;
     dmg = 9;
     kbk = 44 * sc;
+  } else if (att.state === 'duckHeadbutt') {
+    range = 145 * sc;
+    dmg = 14;
+    kbk = 30 * sc;
   } else if (att.state === 'kick') {
     range = 152 * sc;
     dmg = 12;
@@ -1996,6 +2159,20 @@ function checkHit(att, def) {
 
   // Crouching (or Crouch Punching) ducks under standing punches!
   if (att.state === 'punch' && (def.state === 'crouch' || def.state === 'crouchPunch')) return;
+
+  // Duck Headbutt evasion: While in ducking frames (sp < 0.38), duck under punches AND Spartan kicks!
+  if (def.state === 'duckHeadbutt' && def.stateProgress < 0.38) {
+    if (att.state === 'punch' || att.state === 'spartanKick') {
+      return; // Cleanly dodges!
+    }
+  }
+
+  // Both "Q" Ground Stomp attacks are completely uninterruptible (hyper-armor)!
+  if (def.state === 'groundStomp') {
+    def.takeHit(dmg, 0, att);
+    att.hitCooldown = 0.5;
+    return;
+  }
 
   // Sweep kick special logic: trips unblocked opponents! (No blood effect)
   if (att.state === 'sweepKick') {
@@ -2029,6 +2206,30 @@ function checkHit(att, def) {
       spawnBlood(def.x, def.y - 70 * sc, att.facing, 26);
       spawnParticles(def.x, def.y - 70 * sc, 8);
       if (att.isPlayer) { att.comboCount++; att.comboTimer = 1.8; }
+    }
+    return;
+  }
+
+  // Duck Headbutt special logic: STUNS ENEMY FOR 1.5 SECONDS!
+  if (att.state === 'duckHeadbutt') {
+    const isBlocked = def.blocking;
+    if (isBlocked) {
+      def.takeHit(Math.floor(dmg * 0.20), 25 * sc, att);
+      att.hitCooldown = 0.5;
+    } else {
+      // 45-degree lean forward headbutt strikes enemy skull: 1.5s STUN!
+      def.hp = Math.max(0, def.hp - dmg);
+      def.stunTimer = 1.5; // Stunned for 1.5 seconds!
+      def.state = 'hurt';
+      def.stateDur = 1.5;
+      def.stateElapsed = 0;
+      def.hitCooldown = 0.6;
+      shake(15, 0.30);
+      spawnBlood(def.x, def.y - 75 * sc, att.facing, 24);
+      spawnParticles(def.x, def.y - 75 * sc, 12);
+      att.hitCooldown = 0.6;
+      if (att.isPlayer) { att.comboCount++; att.comboTimer = 2.2; }
+      if (def.hp <= 0) { def.state = 'dead'; def.vy = -canvas.height * 0.5; }
     }
     return;
   }
@@ -2154,7 +2355,7 @@ function drawHUD() {
 
   // Hint
   ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.font = `${Math.floor(10 * sc)}px monospace`;
-  ctx.fillText('L-CLICK: Punch (Crouched: Low Jab)  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  P: Pause & Move List', W / 2, H - 10);
+  ctx.fillText('L-CLICK: Punch  |  A+L-CLICK: Duck Headbutt (1.5s Stun)  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  P: Pause & Move List', W / 2, H - 10);
 }
 
 // ── Screens ─────────────────────────────────────────────────
@@ -2280,7 +2481,7 @@ function drawMenu() {
 
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.font = `${Math.floor(9 * sc)}px monospace`;
-  ctx.fillText('L-CLICK: Punch  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  HOLD S: Crouch  |  HOLD SHIFT: Block  |  P: Pause & Move List', W / 2, H - 12);
+  ctx.fillText('L-CLICK: Punch  |  A+L-CLICK: Duck Headbutt (1.5s Stun)  |  R-CLICK: Kick  |  DOUBLE-TAP A/D: Dash  |  P: Pause & Move List', W / 2, H - 12);
 }
 
 function drawPauseMenu() {
@@ -2334,8 +2535,8 @@ function drawPauseMenu() {
   const colW = (modalW - 56 * sc) / 2;
   const col1X = modalX + 18 * sc;
   const col2X = modalX + modalW / 2 + 12 * sc;
-  const startY = modalY + 68 * sc;
-  const itemGap = 72 * sc;
+  const startY = modalY + 58 * sc;
+  const itemGap = 65 * sc;
 
   const col1Moves = [
     {
@@ -2344,6 +2545,13 @@ function drawPauseMenu() {
       badge: '9 / 2.25 DMG',
       line1: 'Rapid alternating hands! First punch 9 DMG; rest 2.25 DMG.',
       line2: 'Max 5 punches, then 0.5s lockout. Whiffs if foe crouches!'
+    },
+    {
+      name: 'Duck Headbutt',
+      input: 'A + L-CLICK',
+      badge: '14 DMG / 1.5s STUN',
+      line1: 'Ducks under punches & Spartan kicks! Explodes into 45° ram.',
+      line2: 'Headbutt connects: STUNS enemy for 1.5 seconds with dizzy stars!'
     },
     {
       name: 'Low Crouch Punch',
@@ -2407,9 +2615,9 @@ function drawPauseMenu() {
     {
       name: 'Ground Stomp ("Q")',
       input: 'RECEIVE 3 SPARTAN KICKS',
-      badge: 'SCREEN-WIDE',
-      line1: 'Taking 3 Spartan Kicks in 5s unlocks [Q] Ground Stomp.',
-      line2: 'Violently slams the floor: KNOCKS DOWN FOE ANYWHERE!'
+      badge: 'UNINTERRUPTIBLE',
+      line1: 'Taking 3 Spartan Kicks (or 3 KDs) in 5s unlocks Ground Stomp.',
+      line2: 'UNINTERRUPTIBLE hyper-armor! Knocks down foe anywhere on screen!'
     }
   ];
 
@@ -2724,7 +2932,7 @@ function loop(ts) {
       return;
     }
 
-    if (!['punch', 'crouchPunch', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp'].includes(player.state)) {
+    if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp'].includes(player.state)) {
       if (player.state === 'crouch' && (keys['KeyS'] || keys['ArrowDown'])) {
         // Player is intentionally holding crouch
       } else {

@@ -9,6 +9,7 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 | Move | Key / Input | Description |
 |---|---|---|
 | **Rapid Punch Combo** | `Rapid Left Click (x1-5)` | Flurry punches alternating lead and rear hands (Hikite chamber). 1st punch 9 DMG; rest 2.25 DMG (`9 / 4`). Max 5 punches followed by 0.5s lockout. |
+| **Duck Headbutt** | `A + Left Click` | Ducks low to **evade Spartan kicks & high punches**, then explodes forward with a **45° lean headbutt** (**14 DMG**). Confirmed hit **STUNS enemy for 1.5 seconds** with golden dizzy stars! |
 | **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched**; ducks under standing punches! |
 | **Normal Kick** | `Right Click` (Stationary) | Quick upward snap kick (`152px` reach). |
 | **Front Flip Axe Kick** | `Airborne + Right Click` | 360° forward somersault gliding toward enemy with downward axe slam (**21 DMG**). Connects at 220° & knocks down opponent with red blood spray! |
@@ -19,7 +20,7 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 | **Movement** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with walking animation. |
 | **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive burst propelling character `184px` (half of Spartan knockback!) with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Leap into the air with gravity physics. |
-| **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after taking 3 Spartan Kicks in 5s. Stomps the arena floor: **KNOCKS DOWN FOE ANYWHERE ON SCREEN!** |
+| **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after taking 3 Spartan Kicks in 5s. **100% UNINTERRUPTIBLE hyper-armor!** Stomps the arena floor: **KNOCKS DOWN FOE ANYWHERE ON SCREEN!** |
 | **Pause & Move List** | `P` or `Escape` | Pauses match and opens the Move List modal with combat consequences. Click anywhere or press P/ESC to resume. |
 
 ---
@@ -32,7 +33,7 @@ Selectable on the interactive startup Menu Screen or via hotkeys `1`, `2`, `3`:
 |---|---|---|---|---|
 | **Easy** | 🟢 **Green** (`#16a34a`) | **-35% Damage** | **No Frenzy** (Stays calm) | Slower decision timer, 50% block, 25% duck. Great for beginners! |
 | **Medium (Default)** | ⚫ **Black** (`#000000`) | **100% Normal** | **Aggressive Frenzy** | Smart tactical blocking (78%), 50% duck, 40% backdashes, and okizeme. |
-| **Hard** | 🔴 **Red** (`#dc2626`) | **100% Normal** | **Aggressive Frenzy** | **Extremely dodgy & defensive!** 95% High Guard, 88% punch ducks, 72% evasive backdashes, twitch reflexes. |
+| **Hard** | 🔴 **Red** (`#dc2626`) | **100% Normal** | **Aggressive Frenzy** | **Extremely dodgy, moves by dashing & expert headbutt counters!** 95% High Guard, 88% punch ducks, 85% Duck Headbutt counters, frequent dashes, twitch reflexes. |
 
 ---
 

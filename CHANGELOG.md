@@ -21,24 +21,53 @@ This document tracks all features, mechanics, visual systems, and updates implem
 | Action | Control | Description |
 |---|---|---|
 | **Rapid Punch Combo** | `Rapid Left Click (x1-5)` | Fast flurry punching with **alternating hands** (lead & back arms). 1st punch deals **9 DMG**; remaining 4 punches deal **2.25 DMG** (`9 / 4`). Max 5 punches followed by a **0.5s lockout**. Spawns **red blood spray**. |
+| **Duck Headbutt** | `A + Left Click` | Ducks low to **evade Spartan kicks & high punches**, then explodes forward with a **45° lean headbutt** (**14 DMG**). Confirmed hit **STUNS enemy for 1.5 seconds** with golden dizzy stars! |
 | **Low Crouch Punch** | `S (Crouch) + Left Click` | Straight low jab executed **while staying fully crouched** (**9 DMG**); ducks under high standing punches! Spawns **red blood**. |
 | **Normal Kick** | `Right Click` (Stationary) | Upward sweeping round/snap kick targeting mid/high zones (**12 DMG**). Spawns **red blood**. |
-| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault axe slam. **Buffed to 21 DMG (+3 DMG)**! Knocks down opponent at 220° rotation with **explosive red blood spray**! |
+| **Front Flip Axe Kick** | `Airborne + Right Click` | Aerial somersault axe slam (**21 DMG**)! Knocks down opponent at 220° rotation with **explosive red blood spray**! |
 | **Spartan Kick** | `Moving Forward + Right Click` | Ferocious chest thrust kick (**18 DMG**); **4x colossal knockback (`368px`) with dust skidding! (No blood effect)**. |
-| **Low Sweep Kick** | `Crouch (S) + Right Click` | Ground-level sweep. **Reduced to 7 DMG (-3 DMG)**. **Trips unblocked opponents onto their ass! (No blood effect)**. |
+| **Low Sweep Kick** | `Crouch (S) + Right Click` | Ground-level sweep (**7 DMG**). **Trips unblocked opponents onto their ass! (No blood effect)**. |
 | **Crouch** | `S` or `Down Arrow` | Drops into a low martial arts crouch. **Passively ducks under all standing punches!** |
 | **Boxer High Guard Block** | `Left Shift` / `Shift` | Raises both fists and forearms tightly in front of the chin, nose, and eyes (peek-a-boo guard). Absorbs 90% of incoming damage and prevents sweep knockdowns. |
 | **Move Left / Right** | `A` / `D` or `Arrow Keys` | Smooth lateral movement with automatic walk cycle animation. |
 | **Dash Move** | `Double-Tap A` / `D` or `←` / `→` | Explosive directional burst propelling character **`184px` (exactly half of Spartan kick knockback!)** with shadow afterimages. |
 | **Jump** | `W` or `Up Arrow` | Aerial leap with parabolic gravity physics. |
-| **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after receiving 3 Spartan Kicks in 5 seconds! Smashes floor: **KNOCKS DOWN OPPONENT WHEREVER THEY ARE ON SCREEN!** |
+| **Ground Stomp Attack** | `Q` (After 3 Spartan Kicks in 5s) | Unlocked after receiving 3 Spartan Kicks in 5s. **100% UNINTERRUPTIBLE hyper-armor!** Smashes floor: **KNOCKS DOWN OPPONENT WHEREVER THEY ARE ON SCREEN!** |
 | **Pause & Move Consequences** | `P` or `Escape` | Pauses match and opens full Move List modal with damage values and tactical consequences. Press P/ESC or click to resume. |
 
 ---
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.7.7 — Interactive Menu Screen & Difficulty Levels (Easy, Medium, Hard) (Current)
+### Version 1.7.8 — Uninterruptible "Q" Attacks, Duck Headbutt (1.5s Stun) & Hard Mode Dashing/Counters (Current)
+- **Uninterruptible "Q" Ground Stomp Attacks**:
+  - **Full Hyper-Armor**: Both Player and CPU Ground Stomp ("Q") attacks are now completely uninterruptible.
+  - **Damage Immunity to Flinch & Interruption**: Incoming strikes and sweep/flip kicks during the ground stomp will still apply damage, but will **never** interrupt the animation, trigger hitstun, cause knockback slide, or cause knockdowns.
+  - **Mutual Ground Stomp Safety**: A fighter performing a ground stomp cannot be knocked down by the opponent's ground stomp shockwave.
+- **New Move: Duck Headbutt (`A + Left Click`)**:
+  - **Input Trigger**: Pressing `A` (or `←`) while Left Clicking performs the Duck Headbutt.
+  - **Ducking Evasion Phase (`sp < 0.38`)**:
+    - The fighter dips deeply (`bodyDip = 28px`), hips dropping close to the mat with arms tucked in.
+    - **Spartan Kick & High Punch Dodge**: While the ducking frames are active, incoming standing punches and Spartan kicks miss/whiff completely over the fighter's head!
+  - **45° Lean Forward Headbutt Strike (`sp >= 0.38` to `0.65`)**:
+    - The fighter explodes forward with a dramatic **45-degree forward torso lean** (`bodyLean = 45°`).
+    - Kinetic forward surge: advances `190px/s` forward into the opponent's guard.
+    - **1.5-Second Stun Effect**: A confirmed unblocked hit deals **14 DMG**, triggers screen shake, arterial red blood spray, and **stuns the victim for a full 1.5 seconds** (`stunTimer = 1.5s`, `stateDur = 1.5s`).
+  - **Visual Stun Feedback**:
+    - Stunned fighters display three revolving golden yellow stars (`#facc15`) orbiting their head while incapacitated.
+- **Hard Mode CPU Enhancements**:
+  - **Mastery of Duck Headbutt Counters**:
+    - When the player initiates standing punches or a Spartan kick within range (`dist < 190px`), Hard CPU recognizes the high attack and counters with Duck Headbutt (**85% reaction rate**), ducking underneath the strike and punishing with a 1.5-second stun!
+    - Hard CPU also integrates the 45° headbutt as a primary offensive strike in close-to-mid quarters (40% close-range roll, 45% out-of-dash follow-up).
+    - Ruthless punish follow-up: When the player is stunned, Hard CPU dashes in to capitalize with Spartan Kicks, Jump Axe Kicks, or rapid flurries.
+  - **Dash-Centric Locomotion**:
+    - In Hard mode, the CPU predominantly moves and repositions across the arena by **dashing** (`dash(dir)` forward burst, `dash(-dir)` evasive backdash) rather than slowly walking.
+- **UI & Controls Display**:
+  - Updated in-game HUD bottom hint, startup Menu Screen footer, and Pause Menu Move List with the new `Duck Headbutt` move and `UNINTERRUPTIBLE` Ground Stomp badge.
+
+---
+
+### Version 1.7.7 — Interactive Menu Screen & Difficulty Levels (Easy, Medium, Hard)
 - **Interactive Menu Screen & Difficulty Selection**:
   - **Menu UI & Architecture**: Redesigned the startup flow with an interactive Menu Screen featuring title typography, responsive layout scaling, quick move hints, and three clickable difficulty cards.
   - **Input Controls**:
