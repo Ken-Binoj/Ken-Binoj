@@ -1565,132 +1565,132 @@ const ALL_MOVES = [
   {
     category: 'STRIKES & COMBOS',
     name: 'Rapid Punch Combo',
-    input: 'P1: V / L-CLICK · P2: -',
+    input: 'V / L-CLICK (or PUNCH Button)',
     badge: '9 / 2.25 DMG · BLOOD',
     badgeBg: '#000000',
     summary: 'High-speed flurry alternating rapidly between lead and rear fists.',
     bullets: [
-      '• P1 Key: V (or Left-Click) | P2 Key: - (Minus / Numpad-). Rapid taps chain up to 5 punches.',
-      '• 1st punch deals 9 DMG; following 4 chain punches deal 2.25 DMG (9 / 4). 0.5s recovery after 5 punches.'
+      '• Rapidly tap V, Left-Click, or [PUNCH] button to chain a lightning flurry of up to 5 punches.',
+      '• 1st punch deals 9 DMG; following 4 chain punches deal 2.25 DMG each. 0.5s recovery after 5 punches.'
     ]
   },
   {
     category: 'TACTICAL COUNTERS',
     name: 'Duck Headbutt',
-    input: 'P1: Back + V · P2: Back + -',
+    input: 'Back + V (or Joy Back + PUNCH)',
     badge: '14 DMG · 1.5s STUN',
     badgeBg: '#dc2626',
     summary: 'Ducks beneath high strikes, then surges forward into an explosive 45° skull strike.',
     bullets: [
-      '• Directional Input: Hold Back (P1: A/D + V | P2: 4/6 + -). Dodges standing punches & Spartan kicks!',
+      '• Directional Input: Hold Back (A or D away from foe) and press V or [PUNCH]. Dodges punches & Spartan kicks!',
       '• 45° Ram Strike: Deals 14 DMG with red blood and STUNS the enemy for 1.5 seconds with spinning dizzy stars!'
     ]
   },
   {
     category: 'LOW OFFENSE',
     name: 'Low Crouch Punch',
-    input: 'P1: S + V · P2: 5 + -',
+    input: 'S + V (or Down + PUNCH)',
     badge: '9 DMG · LOW HIT',
     badgeBg: '#1e293b',
     summary: 'Gedan Tsuki low body strike delivered while maintaining a full crouch posture.',
     bullets: [
-      '• P1: Hold S + V | P2: Hold 5 + -. Torso stays submerged below head level, evading high punches.',
+      '• Hold S (or Down Arrow / Joy Down) + V or [PUNCH]. Torso stays submerged below head level.',
       '• Deals 9 DMG with arterial blood spray; fast frame recovery for safe close-quarter poke pressure.'
     ]
   },
   {
     category: 'MID POKES',
     name: 'Snap Thrust Kick',
-    input: 'P1: B / R-CLICK · P2: +',
+    input: 'B / R-CLICK (or KICK Button)',
     badge: '12 DMG · 152px REACH',
     badgeBg: '#1e293b',
     summary: 'Swift linear round thrust kick extending 152px outward at mid-body level.',
     bullets: [
-      '• P1 Key: B (or Right-Click) | P2 Key: + (Plus / Numpad+). Primary mid-range spacing and poke tool.',
-      '• Deals 12 DMG with red blood spray and prevents aggressive dash-ins when properly timed.'
+      '• Press B, Right-Click, or [KICK] button. Primary mid-range spacing and poke tool (152px reach).',
+      '• Deals 12 DMG with red blood spray and interrupts aggressive forward dashes when properly timed.'
     ]
   },
   {
     category: 'WALL-BOUNCE POWER',
     name: 'Spartan Kick',
-    input: 'P1: Fwd + B · P2: Fwd + +',
+    input: 'Fwd + B (or Joy Fwd + KICK)',
     badge: '18 DMG · 4X KNOCKBACK',
     badgeBg: '#b91c1c',
     summary: 'Torso leans back 40° as heel delivers a devastating linear chest battering ram.',
     bullets: [
-      '• Directional Input: Hold Forward towards enemy (P1: D/A + B | P2: 6/4 + +).',
+      '• Directional Input: Hold Forward towards enemy (D or A / Joy Fwd) and press B or [KICK].',
       '• 4X Colossal Knockback (368px!): Hurls opponents across the arena into perimeter walls with skidding dust clouds.'
     ]
   },
   {
     category: 'AERIAL CRUSH',
     name: 'Front Flip Axe Kick',
-    input: 'P1: Air + B · P2: Air + +',
+    input: 'Air + B (Jump + KICK)',
     badge: '21 DMG · FLATTENS FOE',
     badgeBg: '#7c2d12',
     summary: 'Full 360° airborne somersault bringing heel crashing downward at 220° rotation.',
     bullets: [
-      '• P1: Jump + B | P2: Jump + +. Massive 21 DMG (+3 DMG buff) with huge arterial blood explosion.',
-      '• Untechable Knockdown: Smashes opponent flat on their back for a full 1.0-second floor knockdown!'
+      '• Airborne Execution: Press W (or push Joystick Up) to leap, then press B or [KICK] while in mid-air.',
+      '• Untechable Knockdown: Deals 21 massive DMG and smashes opponent flat on their back for a 1.0s floor knockdown!'
     ]
   },
   {
     category: 'GUARD BREAK',
     name: 'Low Sweep Kick',
-    input: 'P1: S + B · P2: 5 + +',
+    input: 'S + B (or Down + KICK)',
     badge: '7 DMG · TRIPS ON ASS',
     badgeBg: '#0f766e',
     summary: 'Ground-level 360° spinning foot sweep with grounded hand plant.',
     bullets: [
-      '• P1: Hold S + B | P2: Hold 5 + +. Bypasses High Guard: Trips standing opponents onto floor for 1.0s.',
-      '• Deals 7 DMG (-3 DMG balance) with ground dust clouds. (No blood effect). Can be hopped over with jump!'
+      '• Hold S (or Down Arrow / Joy Down) + B or [KICK]. Ground-level 360° spinning foot sweep.',
+      '• Bypasses High Guard: Trips standing opponents onto floor for 1.0s. Deals 7 DMG with ground dust clouds.'
     ]
   },
   {
     category: 'DEFENSE',
     name: 'Martial Arts Crouch',
-    input: 'P1: Hold S · P2: Hold 5',
+    input: 'Hold S (or Joystick Down)',
     badge: 'DEFENSE · DUCK HIGH',
     badgeBg: '#334155',
     summary: 'Deep crouching martial posture dropping fighter below standing punch plane.',
     bullets: [
-      '• P1: Hold S (or Down Arrow) | P2: Hold 5 (Numpad5). Passively ducks under all standing punches.',
+      '• Hold S (or Down Arrow / pull Joystick Down). Deep martial crouch; passively ducks under all standing punches.',
       '• Seamlessly combos into Low Crouch Punch, Low Sweep Kick, or Duck Headbutt counter-attacks.'
     ]
   },
   {
     category: 'DEFENSE',
     name: 'Boxer High Guard Block',
-    input: 'P1: Hold Shift · P2: Hold 0',
+    input: 'Hold Shift (or BLOCK Button)',
     badge: 'DEFENSE · 90% ABSORPTION',
     badgeBg: '#334155',
     summary: 'Peek-a-boo boxing guard with both forearms shielding chin, nose, and head.',
     bullets: [
-      '• P1: Hold Shift | P2: Hold 0 (Numpad0). Absorbs 90% incoming damage and stops knockback slide.',
-      '• Highly effective against punches and kicks, but completely vulnerable to Low Sweep Kicks and Ground Stomp!'
+      '• Hold Shift or hold the [BLOCK] button. Peek-a-boo guard absorbing 90% incoming damage.',
+      '• Negates knockback slide; highly effective against punches and kicks, but vulnerable to Sweeps & Ground Stomp!'
     ]
   },
   {
     category: 'MOBILITY',
     name: 'Tactical Dash Burst',
-    input: 'P1: Double-Tap A/D · P2: 4/6',
+    input: 'Double-Tap A/D (or Joy Side Double-Tap)',
     badge: 'MOBILITY · 184px BURST',
     badgeBg: '#0284c7',
     summary: 'High-speed directional burst propulsion leaving transparent shadow afterimages.',
     bullets: [
-      '• P1: Double-tap A / D | P2: Double-tap 4 / 6. Propels fighter 184px (half Spartan knockback) in 0.20s.',
-      '• Double-tap forward = rush burst; double-tap backward = evasive retreat. Can be cancelled into attacks!'
+      '• Double-tap A (Left) / D (Right), or double-tap sides of joystick. Propels fighter 184px in 0.20s.',
+      '• Double-tap forward = rush burst; double-tap backward = evasive retreat. Leaves shadow afterimages!'
     ]
   },
   {
     category: 'ULTIMATE REVERSAL',
-    name: 'Ground Stomp ("Q" / "7")',
-    input: 'P1: Q · P2: 7',
+    name: 'Ground Stomp ("Q")',
+    input: 'Q (or STOMP Button)',
     badge: 'ULTIMATE · UNINTERRUPTIBLE',
     badgeBg: '#000000',
     summary: 'Cataclysmic shockwave unlocked after receiving 3 Spartan Kicks or 3 KDs in 5 seconds.',
     bullets: [
-      '• P1: Press Q | P2: Press 7. 100% UNINTERRUPTIBLE hyper-armor throughout startup; cannot be interrupted!',
+      '• Press Q (or tap pop-up [STOMP] button above joystick when ready). 100% UNINTERRUPTIBLE hyper-armor!',
       '• Screen-Wide Shockwave: Knocks down the opponent wherever they are standing on screen!'
     ]
   }
@@ -2131,8 +2131,8 @@ function getMoveListModalLayout(footerMode = 'pause') {
   const modalX = (W - modalW) / 2;
   const modalY = (H - modalH) / 2;
 
-  const headerH = 58 * sc;
-  const footerH = 46 * sc;
+  const headerH = 62 * sc;
+  const footerH = 50 * sc;
   const padding = 14 * sc;
 
   const contentX = modalX + padding;
@@ -2142,8 +2142,8 @@ function getMoveListModalLayout(footerMode = 'pause') {
 
   const scrollbarW = 12 * sc;
   const cardW = contentW - scrollbarW - 12 * sc;
-  const cardH = 86 * sc;
-  const cardGap = 10 * sc;
+  const cardH = 106 * sc;
+  const cardGap = 12 * sc;
 
   const totalContentH = ALL_MOVES.length * (cardH + cardGap) - cardGap;
   const maxScrollY = Math.max(0, totalContentH - contentH);
@@ -2161,14 +2161,14 @@ function getMoveListModalLayout(footerMode = 'pause') {
   let footerButtons = {};
   if (footerMode === 'pause') {
     const resumeBtnW = modalW - padding * 2;
-    const resumeBtnH = 34 * sc;
-    const resumeBtnY = modalY + modalH - resumeBtnH - 8 * sc;
+    const resumeBtnH = 38 * sc;
+    const resumeBtnY = modalY + modalH - resumeBtnH - 7 * sc;
     footerButtons.resume = { x: modalX + padding, y: resumeBtnY, w: resumeBtnW, h: resumeBtnH };
   } else {
     // Menu mode: Back to Menu button & Start Fight button
     const btnW = (modalW - padding * 2 - 14 * sc) / 2;
-    const btnH = 34 * sc;
-    const btnY = modalY + modalH - btnH - 8 * sc;
+    const btnH = 38 * sc;
+    const btnY = modalY + modalH - btnH - 7 * sc;
     footerButtons.back = { x: modalX + padding, y: btnY, w: btnW, h: btnH };
     footerButtons.start = { x: modalX + padding + btnW + 14 * sc, y: btnY, w: btnW, h: btnH };
   }
@@ -2204,21 +2204,21 @@ function drawScrollableMoveListModal(title, subtitle, footerMode = 'pause') {
   ctx.strokeStyle = '#e2e8f0';
   ctx.strokeRect(layout.modalX + 4 * sc, layout.modalY + 4 * sc, layout.modalW - 8 * sc, layout.modalH - 8 * sc);
 
-  // Header Left: Title & Subtitle
+  // Header Left: Title & Subtitle (Larger prominent typography)
   ctx.textAlign = 'left';
   ctx.fillStyle = '#000000';
-  ctx.font = `900 ${Math.floor(19 * sc)}px monospace`;
-  ctx.fillText(title, layout.contentX + 2 * sc, layout.modalY + 26 * sc);
+  ctx.font = `900 ${Math.max(18, Math.floor(22 * sc))}px monospace`;
+  ctx.fillText(title, layout.contentX + 2 * sc, layout.modalY + 28 * sc);
 
   ctx.fillStyle = '#64748b';
-  ctx.font = `bold ${Math.floor(10 * sc)}px monospace`;
-  ctx.fillText(subtitle, layout.contentX + 2 * sc, layout.modalY + 44 * sc);
+  ctx.font = `bold ${Math.max(11, Math.floor(12.5 * sc))}px monospace`;
+  ctx.fillText(subtitle, layout.contentX + 2 * sc, layout.modalY + 48 * sc);
 
   // Header Right: Controls Guide Badge
   ctx.textAlign = 'right';
   ctx.fillStyle = '#0f172a';
-  ctx.font = `bold ${Math.floor(9.5 * sc)}px monospace`;
-  ctx.fillText('11 MOVES · SCROLL WHEEL / DRAG / ↑ ↓ KEYS', layout.modalX + layout.modalW - layout.padding - 4 * sc, layout.modalY + 36 * sc);
+  ctx.font = `bold ${Math.max(10.5, Math.floor(12 * sc))}px monospace`;
+  ctx.fillText('11 MOVES · SCROLL WHEEL / DRAG / ↑ ↓ KEYS', layout.modalX + layout.modalW - layout.padding - 4 * sc, layout.modalY + 38 * sc);
 
   // Header separator line
   ctx.strokeStyle = '#cbd5e1';
@@ -2247,66 +2247,71 @@ function drawScrollableMoveListModal(title, subtitle, footerMode = 'pause') {
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(cardX, cardY, cardW, cardH);
     ctx.strokeStyle = '#cbd5e1';
-    ctx.lineWidth = Math.max(1, 1.2 * sc);
+    ctx.lineWidth = Math.max(1, 1.4 * sc);
     ctx.strokeRect(cardX, cardY, cardW, cardH);
 
     // Left category color stripe
     ctx.fillStyle = m.badgeBg || '#000000';
-    ctx.fillRect(cardX, cardY, 4.5 * sc, cardH);
+    ctx.fillRect(cardX, cardY, 5 * sc, cardH);
 
-    // Move index pill: e.g. "01"
+    // Move index pill: e.g. "01" (Enlarged)
     const numText = (idx + 1 < 10 ? '0' : '') + (idx + 1);
+    const pillW = 26 * sc;
+    const pillH = 20 * sc;
     ctx.fillStyle = '#e2e8f0';
-    ctx.fillRect(cardX + 10 * sc, cardY + 8 * sc, 22 * sc, 16 * sc);
+    ctx.fillRect(cardX + 12 * sc, cardY + 10 * sc, pillW, pillH);
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#475569';
-    ctx.font = `bold ${Math.floor(8.5 * sc)}px monospace`;
-    ctx.fillText(numText, cardX + 21 * sc, cardY + 20 * sc);
+    ctx.fillStyle = '#334155';
+    ctx.font = `bold ${Math.max(10, Math.floor(11.5 * sc))}px monospace`;
+    ctx.fillText(numText, cardX + 12 * sc + pillW / 2, cardY + 10 * sc + pillH * 0.72);
 
-    // Move Title
+    // Move Title (Prominent larger font!)
     ctx.textAlign = 'left';
     ctx.fillStyle = '#0f172a';
-    ctx.font = `900 ${Math.floor(13 * sc)}px monospace`;
-    ctx.fillText(m.name, cardX + 38 * sc, cardY + 21 * sc);
+    ctx.font = `900 ${Math.max(15, Math.floor(17 * sc))}px monospace`;
+    const titleX = cardX + 46 * sc;
+    ctx.fillText(m.name, titleX, cardY + 25 * sc);
     const titleWidth = ctx.measureText(m.name).width;
 
-    // Input Key Badge Pill
-    const tagX = cardX + 44 * sc + titleWidth;
-    ctx.font = `bold ${Math.floor(9 * sc)}px monospace`;
+    // Input Key Badge Pill (Prominent larger font and generous padding)
+    const tagX = titleX + titleWidth + 12 * sc;
+    ctx.font = `bold ${Math.max(11, Math.floor(12.5 * sc))}px monospace`;
     const tagTextW = ctx.measureText(m.input).width;
-    const tagW = tagTextW + 12 * sc;
-    const tagH = 16 * sc;
+    const tagW = tagTextW + 16 * sc;
+    const tagH = 22 * sc;
+    const tagY = cardY + 9 * sc;
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(tagX, cardY + 8 * sc, tagW, tagH);
+    ctx.fillRect(tagX, tagY, tagW, tagH);
     ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(tagX, cardY + 8 * sc, tagW, tagH);
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(tagX, tagY, tagW, tagH);
     ctx.fillStyle = '#0f172a';
-    ctx.fillText(m.input, tagX + 6 * sc, cardY + 20 * sc);
+    ctx.fillText(m.input, tagX + 8 * sc, tagY + tagH * 0.72);
 
-    // Consequence / Damage Badge on far right
-    ctx.font = `900 ${Math.floor(9 * sc)}px monospace`;
+    // Consequence / Damage Badge on far right (Prominent larger font!)
+    ctx.font = `900 ${Math.max(11, Math.floor(12.5 * sc))}px monospace`;
     const badgeTextW = ctx.measureText(m.badge).width;
-    const badgeW = badgeTextW + 14 * sc;
-    const badgeH = 18 * sc;
-    const badgeX = cardX + cardW - badgeW - 10 * sc;
+    const badgeW = badgeTextW + 18 * sc;
+    const badgeH = 24 * sc;
+    const badgeX = cardX + cardW - badgeW - 12 * sc;
+    const badgeY = cardY + 8 * sc;
     ctx.fillStyle = m.badgeBg || '#000000';
-    ctx.fillRect(badgeX, cardY + 7 * sc, badgeW, badgeH);
+    ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
-    ctx.fillText(m.badge, badgeX + badgeW / 2, cardY + 20 * sc);
+    ctx.fillText(m.badge, badgeX + badgeW / 2, badgeY + badgeH * 0.72);
 
-    // Summary Line
+    // Summary Line (Larger font, clear contrast)
     ctx.textAlign = 'left';
     ctx.fillStyle = '#1e293b';
-    ctx.font = `bold ${Math.floor(10.5 * sc)}px monospace`;
-    ctx.fillText(m.summary, cardX + 12 * sc, cardY + 41 * sc);
+    ctx.font = `bold ${Math.max(12, Math.floor(14 * sc))}px monospace`;
+    ctx.fillText(m.summary, cardX + 14 * sc, cardY + 52 * sc);
 
-    // Bullet Points (Combat Consequences & Frame Data)
+    // Bullet Points (Combat Consequences & Frame Data - enlarged & spacious)
     ctx.fillStyle = '#475569';
-    ctx.font = `${Math.floor(9.5 * sc)}px monospace`;
-    ctx.fillText(m.bullets[0], cardX + 12 * sc, cardY + 57 * sc);
-    ctx.fillText(m.bullets[1], cardX + 12 * sc, cardY + 72 * sc);
+    ctx.font = `${Math.max(11, Math.floor(12.5 * sc))}px monospace`;
+    ctx.fillText(m.bullets[0], cardX + 14 * sc, cardY + 72 * sc);
+    ctx.fillText(m.bullets[1], cardX + 14 * sc, cardY + 91 * sc);
   });
 
   ctx.restore();
@@ -2359,7 +2364,7 @@ function drawScrollableMoveListModal(title, subtitle, footerMode = 'pause') {
     ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${Math.floor(11.5 * sc)}px monospace`;
+    ctx.font = `900 ${Math.max(12, Math.floor(13.5 * sc))}px monospace`;
     ctx.fillText('▶  CLICK TO RESUME FIGHT  [ OR PRESS P / ESC ]', btn.x + btn.w / 2, btn.y + btn.h * 0.65);
   } else {
     // Menu Mode: Back to Menu & Start Fight buttons
@@ -2371,7 +2376,7 @@ function drawScrollableMoveListModal(title, subtitle, footerMode = 'pause') {
     ctx.strokeRect(backBtn.x, backBtn.y, backBtn.w, backBtn.h);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#000000';
-    ctx.font = `900 ${Math.floor(11 * sc)}px monospace`;
+    ctx.font = `900 ${Math.max(11.5, Math.floor(13 * sc))}px monospace`;
     ctx.fillText('←  BACK TO MAIN MENU  [ ESC / M ]', backBtn.x + backBtn.w / 2, backBtn.y + backBtn.h * 0.65);
 
     const startBtn = layout.footerButtons.start;
@@ -2382,7 +2387,7 @@ function drawScrollableMoveListModal(title, subtitle, footerMode = 'pause') {
     ctx.strokeRect(startBtn.x, startBtn.y, startBtn.w, startBtn.h);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${Math.floor(11 * sc)}px monospace`;
+    ctx.font = `900 ${Math.max(11.5, Math.floor(13 * sc))}px monospace`;
     ctx.fillText('▶  START FIGHT  [ ENTER ]', startBtn.x + startBtn.w / 2, startBtn.y + startBtn.h * 0.65);
   }
 }

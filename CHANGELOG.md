@@ -82,7 +82,24 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.8.4 — Mobile Phone Interface, Orientation Guard & Virtual 8-Way Touch Controls (Current)
+### Version 1.8.5 — Streamlined Move List (Removed P2 Clutter) & High-Legibility Typography (Current)
+- **Streamlined Move List Inputs (Removed Player 2 Clutter)**:
+  - Cleaned all 11 moves in `ALL_MOVES`: stripped out all cluttered `P2: -`, `P2: +`, `P2: 5`, `P2: 7`, `P2: 4/6` control tags from both the title badges and the description bullet points.
+  - Controls are now presented cleanly with primary inputs: Keyboard (`V`, `B`, `Shift`, `Q`, `WASD`), Mouse (Left-Click / Right-Click), and Mobile Touch buttons (`[PUNCH]`, `[KICK]`, `[BLOCK]`, `[STOMP]`, Joystick).
+  - Player 2 controls remain cleanly documented in the 2P Versus mode card on the Main Menu and in the combat HUD/pause footer when 2P Versus mode is active.
+- **Enlarged Typography & Expanded Move List Cards**:
+  - **Expanded Card Dimensions**: Increased individual card height from `86 * sc` to `106 * sc` with a `12 * sc` gap, giving ample room for larger text without any cramping.
+  - **Move Titles**: Scaled up from `13 * sc` to `Math.max(15, Math.floor(17 * sc))` in bold 900 weight.
+  - **Input Key Badges**: Scaled up from `9 * sc` to `Math.max(11, Math.floor(12.5 * sc))` with a taller badge container (`22 * sc`) and comfortable horizontal padding.
+  - **Damage & Tactical Badges**: Scaled up from `9 * sc` to `Math.max(11, Math.floor(12.5 * sc))` with a taller badge container (`24 * sc`).
+  - **Summary Descriptions**: Scaled up from `10.5 * sc` to `Math.max(12, Math.floor(14 * sc))` in crisp slate text.
+  - **Combat Consequence Bullet Points**: Scaled up from `9.5 * sc` to `Math.max(11, Math.floor(12.5 * sc))` with generous line spacing (`+72 * sc` and `+91 * sc`).
+  - **Modal Header & Footer**: Header title enlarged to `Math.max(18, 22 * sc)`; footer action buttons enlarged to `Math.max(12, 13.5 * sc)` with taller touch targets (`38 * sc`).
+  - **Mobile Responsive Guards**: `Math.max(...)` bounds guarantee that text remains sharp, prominent, and comfortably readable across all phone screens in landscape mode as well as high-resolution desktop monitors.
+
+---
+
+### Version 1.8.4 — Mobile Phone Interface, Orientation Guard & Virtual 8-Way Touch Controls
 - **Mandatory Mobile Landscape Prompt Overlay**:
   - **Orientation Detection**: Automatically detects mobile portrait orientation and activates a clean full-screen overlay (`#rotateOverlay`).
   - **Smooth Rotation Animation**: Features an animated rotating smartphone SVG diagram demonstrating the 90-degree transition from portrait to landscape mode.
