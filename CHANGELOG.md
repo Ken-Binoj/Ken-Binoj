@@ -112,6 +112,10 @@ This document tracks all features, mechanics, visual systems, and updates implem
   - Tapping on-screen `⏸` button opens the spacious Move List modal during combat.
   - Swipe up/down inside the modal to scroll through all moves and damage stats.
   - Tap difficulty cards directly on the Main Menu to switch modes.
+- **Top-Level Variable Initialization Bugfix**:
+  - Fixed `Uncaught ReferenceError: Cannot access 'DW' before initialization` which occurred when `resize()` ran during initial script load and called `updateTouchLayout()` before `DW` was declared.
+  - Re-ordered all fundamental game constants (`DW`, `GRAVITY`, `FLOOR_FRAC`, `PUSH_DIST`) to the very top of `game.js` before `resize()` is invoked.
+  - Added safety guard in `updateTouchLayout()` to prevent premature execution before `touchControls` is parsed.
 
 ---
 

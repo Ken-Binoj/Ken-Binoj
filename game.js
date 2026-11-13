@@ -7,6 +7,15 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+const DW = 900;
+const GRAVITY = 1600;
+const FLOOR_FRAC = 0.82;
+const PUSH_DIST = 55;
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a, b) => a + Math.random() * (b - a);
+const lerp = (a, b, t) => a + (b - a) * t;
+
 let isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 let showTouchControls = isTouchDevice;
 
@@ -51,15 +60,6 @@ window.addEventListener('orientationchange', () => {
     if (enemy) enemy.y = canvas.height * FLOOR_FRAC;
   }, 120);
 });
-
-const GRAVITY = 1600;
-const FLOOR_FRAC = 0.82;
-const PUSH_DIST = 55;
-const DW = 900;
-
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const rnd = (a, b) => a + Math.random() * (b - a);
-const lerp = (a, b, t) => a + (b - a) * t;
 
 // ── Particles & Blood Effects ─────────────────────────────────
 const particles = [];
@@ -2365,6 +2365,7 @@ const touchControls = {
 };
 
 function updateTouchLayout() {
+  if (typeof touchControls === 'undefined' || !touchControls.joystick) return;
   const W = canvas.width, H = canvas.height;
   const sc = Math.min(W / DW, H / 500);
 
