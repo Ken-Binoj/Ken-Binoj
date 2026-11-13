@@ -1,0 +1,19 @@
+{
+  "name": "shadow-fight-web",
+  "version": "1.8.5",
+  "description": "Shadow Fight Web - HTML5 Canvas & WebRTC Online Multiplayer Prototype",
+  "main": "signaling-server.js",
+  "scripts": {
+    "start": "node signaling-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "keywords": [
+    "fighting-game",
+    "canvas",
+    "webrtc"
+  ],
+  "author": "Ken",
+  "license": "MIT"
+}
