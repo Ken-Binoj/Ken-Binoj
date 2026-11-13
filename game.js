@@ -340,9 +340,11 @@ class Fighter {
 
   move(dx) {
     if (this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
+    if (this.blocking || this.state === 'block') return; // High guard blocks walking; guard posture takes priority!
     if (['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash', 'groundStomp'].includes(this.state)) return;
     if (this.state === 'crouch') {
-      if (this.isPlayer && !(keys['KeyS'] || keys['ArrowDown'])) {
+      const isTouchDown = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.joystick && touchControls.joystick.down);
+      if (this.isPlayer && !(keys['KeyS'] || keys['ArrowDown'] || isTouchDown)) {
         this.state = 'idle';
       } else {
         return;
@@ -354,6 +356,7 @@ class Fighter {
 
   dash(dir) {
     if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
+    if (this.blocking || this.state === 'block') return;
     if (['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash', 'groundStomp'].includes(this.state)) return;
     const dur = 0.20;
     this.state = 'dash';
@@ -369,6 +372,7 @@ class Fighter {
 
   jump() {
     if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
+    if (this.blocking || this.state === 'block') return; // Cannot jump while holding guard
     if (['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
     if (this.state === 'crouch') {
       const isTouchDown = (typeof showTouchControls !== 'undefined' && showTouchControls && touchControls && touchControls.joystick && touchControls.joystick.down);
@@ -2695,7 +2699,8 @@ function onTouchBlockStart() {
 
 function onTouchBlockEnd() {
   if (!player) return;
-  if (!keys['ShiftLeft'] && !keys['ShiftRight']) {
+  const isTouchBlock = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.buttons && touchControls.buttons.block && touchControls.buttons.block.pressed);
+  if (!keys['ShiftLeft'] && !keys['ShiftRight'] && !isTouchBlock) {
     player.block(false);
   }
 }
@@ -2955,17 +2960,19 @@ function onTouchStart(e) {
       }
 
       // 3. Check Block Button (Right cluster, top-left)
-      if (Math.hypot(tx - btns.block.x, ty - btns.block.y) <= btns.block.r * 1.35) {
+      const blockHitR = Math.max(btns.block.r * 1.55, 46 * sc);
+      if (Math.hypot(tx - btns.block.x, ty - btns.block.y) <= blockHitR) {
         btns.block.pressed = true;
         btns.block.touchId = t.identifier;
-        if (gameState === 'fight') {
+        if (gameState === 'fight' || gameState === 'countdown') {
           onTouchBlockStart();
         }
         continue;
       }
 
       // 4. Check Punch Button (Right cluster, top-right)
-      if (Math.hypot(tx - btns.punch.x, ty - btns.punch.y) <= btns.punch.r * 1.35) {
+      const punchHitR = Math.max(btns.punch.r * 1.55, 46 * sc);
+      if (Math.hypot(tx - btns.punch.x, ty - btns.punch.y) <= punchHitR) {
         btns.punch.pressed = true;
         btns.punch.touchId = t.identifier;
         if (gameState === 'fight') {
@@ -2975,7 +2982,8 @@ function onTouchStart(e) {
       }
 
       // 5. Check Kick Button (Right cluster, bottom center)
-      if (Math.hypot(tx - btns.kick.x, ty - btns.kick.y) <= btns.kick.r * 1.35) {
+      const kickHitR = Math.max(btns.kick.r * 1.55, 48 * sc);
+      if (Math.hypot(tx - btns.kick.x, ty - btns.kick.y) <= kickHitR) {
         btns.kick.pressed = true;
         btns.kick.touchId = t.identifier;
         if (gameState === 'fight') {
@@ -3036,6 +3044,23 @@ function onTouchMove(e) {
     if (t.identifier === touchControls.joystick.touchId) {
       updateJoystick(tx, ty);
       continue;
+    }
+
+    if (gameState === 'fight' || gameState === 'countdown') {
+      const btns = touchControls.buttons;
+      const sc = Math.min(canvas.width / DW, canvas.height / 500);
+      if (t.identifier === btns.block.touchId) {
+        const dist = Math.hypot(tx - btns.block.x, ty - btns.block.y);
+        if (dist <= Math.max(btns.block.r * 2.0, 60 * sc)) {
+          btns.block.pressed = true;
+          if (player) player.block(true);
+        } else {
+          btns.block.pressed = false;
+          btns.block.touchId = null;
+          onTouchBlockEnd();
+        }
+        continue;
+      }
     }
   }
 }

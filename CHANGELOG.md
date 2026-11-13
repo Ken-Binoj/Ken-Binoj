@@ -82,11 +82,15 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.8.6 — Mobile Continuous Crouch, Scaled Jump Physics & Single-Hit Punch Integrity (Current)
+### Version 1.8.6 — Mobile Continuous Crouch, Boxer Guard Fix, Scaled Jump Physics & Single-Hit Punch Integrity (Current)
 - **Continuous Mobile Joystick Crouch Fix**:
   - Resolved bug where holding the virtual joystick down did not keep the fighter in continuous crouch.
   - In `Fighter.update()`, the desktop keyboard sync was evaluating `keys['KeyS']` as false every frame, immediately overriding the mobile joystick and resetting the fighter to idle.
   - Linked `touchControls.joystick.down` directly into `downHeld` across `update()` and `loop()`, ensuring continuous ducking whenever the joystick is pulled down.
+- **Mobile High Guard (BLOCK) Priority & Touch Tracking Fix**:
+  - **Priority Guard Lock**: Previously, whenever the user pressed `BLOCK` on mobile, any slight off-center resting of the left thumb on the virtual joystick triggered `player.move(dx)`, which immediately set `this.state = 'walk'`. This broke the boxer high guard pose and state every single frame. Added a priority guard lock to `move()`, `dash()`, and `jump()` so that raising high guard takes precedence over lateral walking until released.
+  - **Generous Touch Target & TouchMove Hold**: Expanded the block button's hitbox from `1.35x` to `Math.max(r * 1.55, 46 * sc)` and added tracking in `onTouchMove` so holding down the thumb retains 100% continuous high guard even if the thumb shifts slightly.
+  - **Damage Absorption Synchronization**: Verified that `isTouchBlock` feeds directly into `this.blocking`, absorbing 90% of incoming strikes with the peek-a-boo boxer guard.
 - **Dynamically Scaled Jump Height & Airborne Airtime**:
   - On mobile smartphones in landscape mode, `canvas.height` is typically 360px–390px (compared to 562px on desktop).
   - With fixed gravity (`1600`) and unscaled jump velocity, fighters on phones had less than half the peak jump clearance and only 0.40s airtime, causing aerial jump kicks (`flipKick`, duration 0.68s) to hit the ground before the attack finished.
