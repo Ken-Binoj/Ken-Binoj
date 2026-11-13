@@ -8,29 +8,29 @@ This dictionary serves as the master navigation index for [`game.js`](file:///c:
 
 | Section # | Line Range | System Name | Key Functions / Variables |
 |---|---|---|---|
-| **01** | `L1 - L48` | **Canvas Setup, Orientation Guard & Mobile Scaling** | `canvas`, `ctx`, `isTouchDevice`, `checkOrientation()`, `resize()`, `DW (900)`, `FLOOR_FRAC (0.82)` |
-| **02** | `L49 - L107` | **Particle & Blood VFX Engine** | `spawnParticles()`, `spawnBlood()`, `updateParticles()`, `drawParticles()` |
-| **03** | `L108 - L166` | **Seismic Shockwaves & Screen Shake** | `triggerGroundStompEffect()`, `updateGroundShockwaves()`, `drawGroundShockwaves()`, `shake()` |
-| **04** | `L167 - L219` | **Angle Convention & Fighter Constructor** | `class Fighter`, constructor properties (`hp`, `state`, `facing`, `stunTimer`, `dashGhosts`) |
-| **05** | `L220 - L284` | **Fighter Core Locomotion & State Triggers** | `move()`, `dash()`, `jump()`, `block()`, `crouch()`, `knockdown()`, `takeHit()` |
-| **06** | `L285 - L494` | **Combat State Machine & Attack Updates** | `attack()`, `update()`, combo cooldowns, stun decay, afterimages, knockdown wake-up |
-| **07** | `L495 - L749` | **Skeletal Kinematics & Rendering Pipeline** | `drawLimb()`, `drawTorso()`, `drawHead()`, `drawDizzyStars()`, `drawDashGhosts()` |
-| **08** | `L750 - L1425` | **Per-State Skeletal Joint Angle Curves** | Angle curves for `idle`, `walk`, `punch`, `duckHeadbutt`, `kick`, `spartanKick`, `sweepKick`, `flipKick`, `groundStomp`, `hurt`, `knockdown`, `dead` |
-| **09** | `L1426 - L1444` | **Global Game State Variables** | `gameState`, `difficulty`, `isPaused`, `menuView`, `roundNum`, `playerWins`, `enemyWins` |
-| **10** | `L1445 - L1599` | **Master Combat Moves Database** | `ALL_MOVES` (11 moves with categories, P1/P2/Touch input tags, badges, damage, and tactical consequences) |
-| **11** | `L1600 - L1661` | **Match Lifecycle & Fighter Initialization** | `initRound()` (instantiates fighters, resets touch inputs, applies difficulty and PvP color themes) |
-| **12** | `L1662 - L1928` | **Combat Attack Dispatchers & Keyboard Input** | `triggerPlayer1Punch/Kick` (integrated with touch joystick), `triggerPlayer2Punch/Kick`, `keydown`, `keyup` |
-| **13** | `L1929 - L2086` | **Menu & Move List Modal Layout Generators** | `getMenuLayout()` (4 cards: Easy, Medium, Hard, 2P Versus), `getMoveListModalLayout()`, `getGameOverBtns()` |
-| **14** | `L2087 - L2319` | **Scrollable Move List Modal Renderer** | `drawScrollableMoveListModal()` (canvas clipping `ctx.clip()`, scrollbar track/thumb, overflow fade gradients) |
-| **15** | `L2320 - L3168` | **Mobile Touch Controls & Virtual Joystick Engine** | `touchControls`, `updateTouchLayout()`, `drawJoyArrow()`, `drawTouchControls()`, `updateJoystick()`, multi-touch handlers |
-| **16** | `L3169 - L3192` | **Ground Stomp ("Q" / "7") Attack System** | `triggerGroundStomp()` (hyper-armor, screen-wide floor slam, knockdown trigger) |
-| **17** | `L3193 - L3669` | **CPU Tactical AI Engine** | `updateAI()` (decision timer, Easy/Medium/Hard archetypes, reflex duck headbutt counters, dash movement) |
-| **18** | `L3670 - L3675` | **Combat Hitbox Detection & Damage Pipeline** | `checkHits()` (duck headbutt dodge frames, Spartan kick knockback, sweep kick trips, blood spray spawn, knockdown counters) |
-| **19** | `L3676 - L3738` | **Arena Background & Ground Shadows** | `drawBackground()` (minimalist floor line, P1 dark orange oval ground shadow, P2 royal blue oval ground shadow in PvP) |
-| **20** | `L3739 - L3848` | **Heads-Up Display (HUD)** | `drawHUD()` (health bars, round victory gems, dynamic mobile touch hints, [Q]/[7] Stomp prompts, round timer) |
-| **21** | `L3849 - L4113` | **Menu, Pause & Overlay Screens** | `drawMenu()` (4 mode cards + [M] Move List button), `drawPauseMenu()`, `drawCountdown()`, `drawRoundBanner()`, `drawGameOver()` |
-| **22** | `L4114 - L4248` | **Round Progression & Arena Persistence** | `checkRoundEnd()`, `startNextRoundContinuous()` (continuous arena reset, wake-up reversal shockwave on close proximity) |
-| **23** | `L4249 - L4353` | **Main Game Loop & Frame Engine** | `loop()`, touch controls overlay renderer, joystick locomotion, delta time clamping, screen shake transform |
+| **01** | `L1 - L150` | **Canvas Setup, Touch State & Mobile Scaling** | `canvas`, `ctx`, `isTouchDevice`, `touchControls`, `updateTouchLayout()`, `checkOrientation()`, `resize()`, `DW (900)`, `FLOOR_FRAC (0.82)` |
+| **02** | `L151 - L208` | **Particle & Blood VFX Engine** | `spawnParticles()`, `spawnBlood()`, `updateParticles()`, `drawParticles()` |
+| **03** | `L209 - L267` | **Seismic Shockwaves & Screen Shake** | `triggerGroundStompEffect()`, `updateGroundShockwaves()`, `drawGroundShockwaves()`, `shake()` |
+| **04** | `L268 - L320` | **Angle Convention & Fighter Constructor** | `class Fighter`, constructor properties (`hp`, `state`, `facing`, `stunTimer`, `dashGhosts`) |
+| **05** | `L321 - L385` | **Fighter Core Locomotion & State Triggers** | `move()`, `dash()`, `jump()`, `block()`, `crouch()`, `knockdown()`, `takeHit()` |
+| **06** | `L386 - L595` | **Combat State Machine & Attack Updates** | `attack()`, `update()`, combo cooldowns, stun decay, afterimages, knockdown wake-up |
+| **07** | `L596 - L850` | **Skeletal Kinematics & Rendering Pipeline** | `drawLimb()`, `drawTorso()`, `drawHead()`, `drawDizzyStars()`, `drawDashGhosts()` |
+| **08** | `L851 - L1525` | **Per-State Skeletal Joint Angle Curves** | Angle curves for `idle`, `walk`, `punch`, `duckHeadbutt`, `kick`, `spartanKick`, `sweepKick`, `flipKick`, `groundStomp`, `hurt`, `knockdown`, `dead` |
+| **09** | `L1526 - L1545` | **Global Game State Variables** | `gameState`, `difficulty`, `isPaused`, `menuView`, `roundNum`, `playerWins`, `enemyWins` |
+| **10** | `L1546 - L1700` | **Master Combat Moves Database** | `ALL_MOVES` (11 moves with categories, P1/P2/Touch input tags, badges, damage, and tactical consequences) |
+| **11** | `L1701 - L1762` | **Match Lifecycle & Fighter Initialization** | `initRound()` (instantiates fighters, resets touch inputs, applies difficulty and PvP color themes) |
+| **12** | `L1763 - L2030` | **Combat Attack Dispatchers & Keyboard Input** | `triggerPlayer1Punch/Kick` (integrated with touch joystick), `triggerPlayer2Punch/Kick`, `keydown`, `keyup` |
+| **13** | `L2031 - L2188` | **Menu & Move List Modal Layout Generators** | `getMenuLayout()` (4 cards: Easy, Medium, Hard, 2P Versus), `getMoveListModalLayout()`, `getGameOverBtns()` |
+| **14** | `L2189 - L2420` | **Scrollable Move List Modal Renderer** | `drawScrollableMoveListModal()` (canvas clipping `ctx.clip()`, scrollbar track/thumb, overflow fade gradients) |
+| **15** | `L2421 - L3265` | **Mobile Touch Controls & Virtual Joystick Engine** | `drawJoyArrow()`, `drawTouchControls()`, `updateJoystick()`, multi-touch handlers (`touchstart`, `touchmove`, `touchend`, `touchcancel`) |
+| **16** | `L3266 - L3290` | **Ground Stomp ("Q" / "7") Attack System** | `triggerGroundStomp()` (hyper-armor, screen-wide floor slam, knockdown trigger) |
+| **17** | `L3291 - L3765` | **CPU Tactical AI Engine** | `updateAI()` (decision timer, Easy/Medium/Hard archetypes, reflex duck headbutt counters, dash movement) |
+| **18** | `L3766 - L3850` | **Combat Hitbox Detection & Damage Pipeline** | `checkHits()` (duck headbutt dodge frames, Spartan kick knockback, sweep kick trips, blood spray spawn, knockdown counters) |
+| **19** | `L3851 - L3915` | **Arena Background & Ground Shadows** | `drawBackground()` (minimalist floor line, P1 dark orange oval ground shadow, P2 royal blue oval ground shadow in PvP) |
+| **20** | `L3916 - L4025` | **Heads-Up Display (HUD)** | `drawHUD()` (health bars, round victory gems, dynamic mobile touch hints, [Q]/[7] Stomp prompts, round timer) |
+| **21** | `L4026 - L4290` | **Menu, Pause & Overlay Screens** | `drawMenu()` (4 mode cards + [M] Move List button), `drawPauseMenu()`, `drawCountdown()`, `drawRoundBanner()`, `drawGameOver()` |
+| **22** | `L4291 - L4345` | **Round Progression & Arena Persistence** | `checkRoundEnd()`, `startNextRoundContinuous()` (continuous arena reset, wake-up reversal shockwave on close proximity) |
+| **23** | `L4346 - L4353` | **Main Game Loop & Frame Engine** | `loop()`, touch controls overlay renderer, joystick locomotion, delta time clamping, screen shake transform |
 
 ---
 

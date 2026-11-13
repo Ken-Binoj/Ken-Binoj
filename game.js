@@ -19,6 +19,107 @@ const lerp = (a, b, t) => a + (b - a) * t;
 let isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 let showTouchControls = isTouchDevice;
 
+// ══════════════════════════════════════════════════════════════
+//  TOUCH CONTROLS & VIRTUAL JOYSTICK STATE (MOBILE INTERFACE)
+// ══════════════════════════════════════════════════════════════
+const touchControls = {
+  joystick: {
+    baseX: 110,
+    baseY: 420,
+    baseR: 58,
+    knobX: 110,
+    knobY: 420,
+    knobR: 25,
+    active: false,
+    touchId: null,
+    vx: 0,
+    vy: 0,
+    left: false,
+    right: false,
+    up: false,
+    down: false,
+    upLeft: false,
+    upRight: false,
+    downLeft: false,
+    downRight: false,
+    lastJumpTriggered: false,
+    lastTapLeft: 0,
+    lastTapRight: 0
+  },
+  qButton: {
+    x: 110,
+    y: 330,
+    r: 28,
+    pressed: false,
+    touchId: null,
+    visible: false
+  },
+  buttons: {
+    block: { x: 0, y: 0, r: 31, pressed: false, touchId: null, label: 'BLOCK', sub: 'GUARD' },
+    punch: { x: 0, y: 0, r: 33, pressed: false, touchId: null, label: 'PUNCH', sub: 'COMBO' },
+    kick:  { x: 0, y: 0, r: 37, pressed: false, touchId: null, label: 'KICK',  sub: 'SPARTAN' }
+  },
+  pauseButton: {
+    x: 0,
+    y: 0,
+    w: 36,
+    h: 36,
+    pressed: false
+  }
+};
+
+function updateTouchLayout() {
+  const W = canvas.width, H = canvas.height;
+  const sc = Math.min(W / DW, H / 500);
+
+  // 1. Left Joystick Position
+  const joy = touchControls.joystick;
+  joy.baseR = Math.max(50, Math.min(68, 56 * sc));
+  joy.knobR = Math.max(22, Math.min(30, 24 * sc));
+  joy.baseX = Math.max(joy.baseR + 24 * sc, 80 * sc);
+  joy.baseY = H - Math.max(joy.baseR + 26 * sc, 75 * sc);
+  if (!joy.active) {
+    joy.knobX = joy.baseX;
+    joy.knobY = joy.baseY;
+  }
+
+  // 2. Q Ground Stomp Pop-Up Button (Directly above the Joystick)
+  const qBtn = touchControls.qButton;
+  qBtn.r = Math.max(24, Math.min(32, 28 * sc));
+  qBtn.x = joy.baseX;
+  qBtn.y = joy.baseY - joy.baseR - qBtn.r - 12 * sc;
+
+  // 3. Right Action Buttons: Triangular Formation
+  const btns = touchControls.buttons;
+  const clusterCenterX = W - Math.max(105 * sc, 95);
+  const clusterCenterY = H - Math.max(95 * sc, 90);
+
+  const horizontalSpread = Math.max(42, 46 * sc);
+  const verticalKickDrop = Math.max(42, 44 * sc);
+
+  // Block (top-left of cluster)
+  btns.block.r = Math.max(28, Math.min(36, 31 * sc));
+  btns.block.x = clusterCenterX - horizontalSpread;
+  btns.block.y = clusterCenterY - 32 * sc;
+
+  // Punch (top-right of cluster, same horizontal level)
+  btns.punch.r = Math.max(30, Math.min(38, 33 * sc));
+  btns.punch.x = clusterCenterX + horizontalSpread;
+  btns.punch.y = clusterCenterY - 32 * sc;
+
+  // Kick (centered beneath Block & Punch in triangular formation)
+  btns.kick.r = Math.max(34, Math.min(42, 37 * sc));
+  btns.kick.x = clusterCenterX;
+  btns.kick.y = clusterCenterY + verticalKickDrop;
+
+  // 4. Mobile Pause Button (Top-Right)
+  const pause = touchControls.pauseButton;
+  pause.w = Math.max(34, 38 * sc);
+  pause.h = Math.max(34, 38 * sc);
+  pause.x = W - pause.w - 18 * sc;
+  pause.y = 16 * sc;
+}
+
 function checkOrientation() {
   const overlay = document.getElementById('rotateOverlay');
   const isPortrait = window.innerHeight > window.innerWidth;
@@ -42,9 +143,7 @@ function resize() {
     canvas.width = Math.min(window.innerWidth - 20, 1000);
     canvas.height = Math.min(window.innerHeight - 40, 562);
   }
-  if (typeof updateTouchLayout === 'function') {
-    updateTouchLayout();
-  }
+  updateTouchLayout();
 }
 resize();
 
@@ -2318,106 +2417,6 @@ canvas.addEventListener('wheel', e => {
 // ══════════════════════════════════════════════════════════════
 //  TOUCH CONTROLS & VIRTUAL JOYSTICK ENGINE (MOBILE INTERFACE)
 // ══════════════════════════════════════════════════════════════
-const touchControls = {
-  joystick: {
-    baseX: 110,
-    baseY: 420,
-    baseR: 58,
-    knobX: 110,
-    knobY: 420,
-    knobR: 25,
-    active: false,
-    touchId: null,
-    vx: 0,
-    vy: 0,
-    left: false,
-    right: false,
-    up: false,
-    down: false,
-    upLeft: false,
-    upRight: false,
-    downLeft: false,
-    downRight: false,
-    lastJumpTriggered: false,
-    lastTapLeft: 0,
-    lastTapRight: 0
-  },
-  qButton: {
-    x: 110,
-    y: 330,
-    r: 28,
-    pressed: false,
-    touchId: null,
-    visible: false
-  },
-  buttons: {
-    block: { x: 0, y: 0, r: 31, pressed: false, touchId: null, label: 'BLOCK', sub: 'GUARD' },
-    punch: { x: 0, y: 0, r: 33, pressed: false, touchId: null, label: 'PUNCH', sub: 'COMBO' },
-    kick:  { x: 0, y: 0, r: 37, pressed: false, touchId: null, label: 'KICK',  sub: 'SPARTAN' }
-  },
-  pauseButton: {
-    x: 0,
-    y: 0,
-    w: 36,
-    h: 36,
-    pressed: false
-  }
-};
-
-function updateTouchLayout() {
-  if (typeof touchControls === 'undefined' || !touchControls.joystick) return;
-  const W = canvas.width, H = canvas.height;
-  const sc = Math.min(W / DW, H / 500);
-
-  // 1. Left Joystick Position
-  const joy = touchControls.joystick;
-  joy.baseR = Math.max(50, Math.min(68, 56 * sc));
-  joy.knobR = Math.max(22, Math.min(30, 24 * sc));
-  joy.baseX = Math.max(joy.baseR + 24 * sc, 80 * sc);
-  joy.baseY = H - Math.max(joy.baseR + 26 * sc, 75 * sc);
-  if (!joy.active) {
-    joy.knobX = joy.baseX;
-    joy.knobY = joy.baseY;
-  }
-
-  // 2. Q Ground Stomp Pop-Up Button (Directly above the Joystick)
-  const qBtn = touchControls.qButton;
-  qBtn.r = Math.max(24, Math.min(32, 28 * sc));
-  qBtn.x = joy.baseX;
-  qBtn.y = joy.baseY - joy.baseR - qBtn.r - 12 * sc;
-
-  // 3. Right Action Buttons: Triangular Formation
-  // Block and Punch at the SAME horizontal level, Kick centered BENEATH them
-  const btns = touchControls.buttons;
-  const clusterCenterX = W - Math.max(105 * sc, 95);
-  const clusterCenterY = H - Math.max(95 * sc, 90);
-
-  const horizontalSpread = Math.max(42, 46 * sc);
-  const verticalKickDrop = Math.max(42, 44 * sc);
-
-  // Block (top-left of cluster)
-  btns.block.r = Math.max(28, Math.min(36, 31 * sc));
-  btns.block.x = clusterCenterX - horizontalSpread;
-  btns.block.y = clusterCenterY - 32 * sc;
-
-  // Punch (top-right of cluster, same horizontal level)
-  btns.punch.r = Math.max(30, Math.min(38, 33 * sc));
-  btns.punch.x = clusterCenterX + horizontalSpread;
-  btns.punch.y = clusterCenterY - 32 * sc;
-
-  // Kick (centered beneath Block & Punch in triangular formation)
-  btns.kick.r = Math.max(34, Math.min(42, 37 * sc));
-  btns.kick.x = clusterCenterX;
-  btns.kick.y = clusterCenterY + verticalKickDrop;
-
-  // 4. Mobile Pause Button (Top-Right)
-  const pause = touchControls.pauseButton;
-  pause.w = Math.max(34, 38 * sc);
-  pause.h = Math.max(34, 38 * sc);
-  pause.x = W - pause.w - 18 * sc;
-  pause.y = 16 * sc;
-}
-updateTouchLayout();
 
 function drawJoyArrow(cx, cy, angle, isHighlighted, sc) {
   ctx.save();

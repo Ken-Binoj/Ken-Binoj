@@ -112,10 +112,10 @@ This document tracks all features, mechanics, visual systems, and updates implem
   - Tapping on-screen `⏸` button opens the spacious Move List modal during combat.
   - Swipe up/down inside the modal to scroll through all moves and damage stats.
   - Tap difficulty cards directly on the Main Menu to switch modes.
-- **Top-Level Variable Initialization Bugfix**:
-  - Fixed `Uncaught ReferenceError: Cannot access 'DW' before initialization` which occurred when `resize()` ran during initial script load and called `updateTouchLayout()` before `DW` was declared.
-  - Re-ordered all fundamental game constants (`DW`, `GRAVITY`, `FLOOR_FRAC`, `PUSH_DIST`) to the very top of `game.js` before `resize()` is invoked.
-  - Added safety guard in `updateTouchLayout()` to prevent premature execution before `touchControls` is parsed.
+- **Top-Level Variable Initialization & TDZ Bugfix**:
+  - **Fixed `Cannot access 'touchControls' before initialization`**: In ECMAScript, accessing a `const` variable before its lexical declaration throws a `ReferenceError` due to the Temporal Dead Zone (TDZ), even with `typeof`. When `resize()` was invoked on initial script load, it called `updateTouchLayout()`, which tried to access `touchControls` while it was declared 2,300 lines down in `game.js`.
+  - **Root Cause Resolved**: Moved `touchControls` and `updateTouchLayout()` to the very top of `game.js` directly beneath core constants (`DW`, `GRAVITY`, `FLOOR_FRAC`, `PUSH_DIST`) and ahead of `resize()`, completely eliminating startup crashes on both PC and mobile devices.
+  - **Fixed `Cannot access 'DW' before initialization`**: Moved `const DW = 900` to the top of the file before `resize()` is invoked.
 
 ---
 
