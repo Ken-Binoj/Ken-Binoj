@@ -103,3 +103,72 @@ start index.html  # Windows
 - `game.js` — Core game engine (kinematics, combat state machines, AI, physics, rendering).
 - `CHANGELOG.md` — Complete development history, version notes, and feature specs.
 
+How to Setup Server and Generate Link for Online PVP
+
+Step 1: Start the Signaling Server on Your Laptop
+
+Open PowerShell Terminal 1 in the project directory and run:
+
+powershell
+node signaling-server.js
+
+You should see:
+
+text
+═══════════════════════════════════════════════════════
+  SHADOW FIGHT WEB — ALL-IN-ONE SERVER RUNNING!
+  Local Web & Signaling URL: http://localhost:8080
+═══════════════════════════════════════════════════════
+
+Keep this terminal window running in the background.
+
+Step 2: Expose Your Server with a Public HTTPS Tunnel
+
+Mobile Safari and mobile Chrome require HTTPS for WebRTC connections. Open a second PowerShell window (Terminal 2) in the project directory and choose either tunnel option below:
+
+Option A: Using localtunnel (Recommended — No signup or login required)
+powershell
+npx localtunnel --port 8080
+
+It will output a public URL like:
+
+text
+your url is: https://funny-otter-42.loca.lt
+
+(Note: When opening a localtunnel link for the first time on a phone, it may show a "Friendly Reminder" page — simply tap the "Click to Continue" button).
+
+Option B: Using ngrok
+
+We placed ngrok.exe directly into your project root. If you have an ngrok account:
+
+powershell
+.\ngrok.exe http 8080
+
+Copy the Forwarding https://xxxx.ngrok-free.app URL from the output.
+
+Step 3: Connect Phone 1 (Host — Player 1: Orange)
+On Phone 1, open Chrome or Safari and enter the HTTPS URL from Step 2 (e.g. https://funny-otter-42.loca.lt).
+Rotate your phone into Landscape mode.
+On the Main Menu, tap the 2P VERSUS card (turns blue).
+Tap ▶ START FIGHT.
+Phone 1 will display an overlay:
+text
+⚡ 1v1 ONLINE MULTIPLAYER
+WAITING FOR OPPONENT...
+Open this URL on Phone 2 and tap "2P VERSUS" -> "START FIGHT"
+Step 4: Connect Phone 2 (Guest — Player 2: Blue)
+On Phone 2, open the exact same HTTPS URL.
+Rotate into Landscape mode.
+Tap the 2P VERSUS card.
+Tap ▶ START FIGHT.
+Step 5: Battle! ⚔️
+In under 1 second, the two phones exchange SDP offers and ICE candidates through Google STUN servers and open an RTCDataChannel.
+The waiting screens on both phones automatically vanish.
+The announcer counts down: 3, 2, 1, FIGHT!
+Phone 1 controls Player 1 (Orange Shadow) using its on-screen joystick and buttons.
+Phone 2 controls Player 2 (Blue Shadow) using its own on-screen joystick and buttons.
+All strikes, kicks, crouches, boxer high guards, double-tap dashes, and ground stomps stream with ultra-low UDP-style latency.
+💡 Pro Tips & Controls Recap
+Both phones do not need to be on the same Wi-Fi: Because the connection is tunneled via HTTPS, Phone 1 can be on Wi-Fi and Phone 2 can be on mobile cellular data anywhere.
+Cancel Matchmaking: If Phone 2 hasn't joined yet and you want to return to single-player mode, tap anywhere on the screen (or tap ✕ TAP TO CANCEL) on Phone 1.
+
