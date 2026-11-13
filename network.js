@@ -34,8 +34,14 @@ class NetworkManager {
   }
 
   // 1. Connect to Signaling Server (e.g. "ws://localhost:8080" or "wss://xxxx.ngrok-free.app")
+  // Automatically detects current host/ngrok URL if signalingUrl is omitted!
   connect(signalingUrl, roomId = 'arena-1') {
+    if (!signalingUrl) {
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      signalingUrl = `${proto}//${window.location.host}`;
+    }
     this.roomId = roomId;
+    console.log('[Network] Connecting to signaling URL:', signalingUrl);
     this.ws = new WebSocket(signalingUrl);
 
     this.ws.onopen = () => {
@@ -237,3 +243,4 @@ class NetworkManager {
 
 // Global Singleton Instance
 window.networkManager = new NetworkManager();
+

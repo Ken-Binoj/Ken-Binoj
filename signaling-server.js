@@ -1,26 +1,73 @@
 // ══════════════════════════════════════════════════════════════════
-//  SHADOW FIGHT WEB — MINIMAL WEBRTC SIGNALING SERVER (Node.js + ws)
+//  SHADOW FIGHT WEB — ALL-IN-ONE WEB & SIGNALING SERVER (Node.js + ws)
 // ══════════════════════════════════════════════════════════════════
+//  Serves static game files (HTML, CSS, JS) AND handles WebRTC signaling
+//  on the same port for easy 1-step ngrok testing on mobile phones.
+//
 //  Prerequisites:
-//    npm init -y
 //    npm install ws
 //
 //  Run locally:
 //    node signaling-server.js
 //
-//  Expose via ngrok:
-//    ngrok http 8080   (or ngrok tcp 8080)
+//  Expose with ngrok for mobile testing:
+//    ngrok http 8080
 // ══════════════════════════════════════════════════════════════════
 
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 8080;
-const wss = new WebSocketServer({ port: PORT });
+
+// MIME types for static assets
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.ico': 'image/x-icon',
+  '.svg': 'image/svg+xml'
+};
+
+// 1. Built-in HTTP Server (serves game files to mobile phones)
+const server = http.createServer((req, res) => {
+  let reqPath = req.url.split('?')[0];
+  if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
+
+  const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
+  const filePath = path.join(__dirname, safePath);
+  const ext = path.extname(filePath).toLowerCase();
+
+  fs.readFile(filePath, (err, content) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('404 Not Found');
+      } else {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('500 Internal Server Error');
+      }
+      return;
+    }
+
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Cache-Control': 'no-cache'
+    });
+    res.end(content);
+  });
+});
+
+// 2. WebRTC WebSocket Signaling Server mounted on same HTTP server
+const wss = new WebSocketServer({ server });
 
 // Active matchmaking rooms: roomId -> Set<WebSocket> (max 2 peers)
 const rooms = new Map();
-
-console.log(`[Signaling Server] Listening on ws://localhost:${PORT}`);
 
 wss.on('connection', (ws) => {
   let currentRoom = null;
@@ -38,7 +85,7 @@ wss.on('connection', (ws) => {
     const { type, roomId, payload } = data;
 
     switch (type) {
-      // 1. Join or Create a 2-Player Room
+      // Join or Create a 2-Player Room
       case 'join': {
         currentRoom = roomId || 'default-arena';
 
@@ -80,7 +127,7 @@ wss.on('connection', (ws) => {
         break;
       }
 
-      // 2. Relay SDP Offer, SDP Answer, or ICE Candidate to the other peer in the room
+      // Relay SDP Offer, SDP Answer, or ICE Candidate to the other peer in the room
       case 'signal': {
         if (!currentRoom || !rooms.has(currentRoom)) return;
 
@@ -109,7 +156,6 @@ wss.on('connection', (ws) => {
 
       console.log(`[Signaling] Player left room "${currentRoom}". Remaining peers: ${roomPeers.size}`);
 
-      // Notify the remaining peer that opponent disconnected
       for (const peer of roomPeers) {
         if (peer.readyState === ws.OPEN) {
           peer.send(JSON.stringify({ type: 'peer-disconnected' }));
@@ -126,3 +172,12 @@ wss.on('connection', (ws) => {
     console.error('[Signaling Error]', err.message);
   });
 });
+
+server.listen(PORT, () => {
+  console.log(`═══════════════════════════════════════════════════════`);
+  console.log(`  SHADOW FIGHT WEB — ALL-IN-ONE SERVER RUNNING!`);
+  console.log(`  Local Web & Signaling URL: http://localhost:${PORT}`);
+  console.log(`  To test on 2 mobile phones: run "ngrok http ${PORT}"`);
+  console.log(`═══════════════════════════════════════════════════════`);
+});
+
