@@ -7,15 +7,49 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+let isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+let showTouchControls = isTouchDevice;
+
+function checkOrientation() {
+  const overlay = document.getElementById('rotateOverlay');
+  const isPortrait = window.innerHeight > window.innerWidth;
+  const isMobile = Math.min(window.innerWidth, window.innerHeight) <= 640 || isTouchDevice;
+  if (overlay) {
+    if (isPortrait && isMobile) {
+      overlay.style.display = 'flex';
+    } else {
+      overlay.style.display = 'none';
+    }
+  }
+}
+
 function resize() {
-  canvas.width = Math.min(window.innerWidth - 20, 1000);
-  canvas.height = Math.min(window.innerHeight - 40, 562);
+  checkOrientation();
+  const isMobileLandscape = isTouchDevice && (window.innerWidth <= 1100 || window.innerHeight <= 560);
+  if (isMobileLandscape) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  } else {
+    canvas.width = Math.min(window.innerWidth - 20, 1000);
+    canvas.height = Math.min(window.innerHeight - 40, 562);
+  }
+  if (typeof updateTouchLayout === 'function') {
+    updateTouchLayout();
+  }
 }
 resize();
+
 window.addEventListener('resize', () => {
   resize();
   if (player) player.y = canvas.height * FLOOR_FRAC;
   if (enemy) enemy.y = canvas.height * FLOOR_FRAC;
+});
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    resize();
+    if (player) player.y = canvas.height * FLOOR_FRAC;
+    if (enemy) enemy.y = canvas.height * FLOOR_FRAC;
+  }, 120);
 });
 
 const GRAVITY = 1600;
@@ -1602,16 +1636,41 @@ function initRound() {
   keys = {};
   roundBannerText = '';
   roundBannerTimer = 0;
+
+  // Reset touch controls
+  if (typeof touchControls !== 'undefined') {
+    const joy = touchControls.joystick;
+    joy.active = false; joy.touchId = null;
+    joy.knobX = joy.baseX; joy.knobY = joy.baseY;
+    joy.vx = 0; joy.vy = 0;
+    joy.left = false; joy.right = false; joy.up = false; joy.down = false;
+    joy.upLeft = false; joy.upRight = false; joy.downLeft = false; joy.downRight = false;
+    joy.lastJumpTriggered = false;
+    touchControls.buttons.block.pressed = false;
+    touchControls.buttons.block.touchId = null;
+    touchControls.buttons.punch.pressed = false;
+    touchControls.buttons.punch.touchId = null;
+    touchControls.buttons.kick.pressed = false;
+    touchControls.buttons.kick.touchId = null;
+    touchControls.qButton.pressed = false;
+    touchControls.qButton.touchId = null;
+    updateTouchLayout();
+  }
 }
 
 // ── Combat Attack Dispatchers ─────────────────────────────────
 function triggerPlayer1Punch() {
   if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
-  const isBack = (player.facing > 0 && (keys['KeyA'] || keys['ArrowLeft'])) ||
-                 (player.facing < 0 && (keys['KeyD'] || keys['ArrowRight']));
+  const joy = typeof touchControls !== 'undefined' ? touchControls.joystick : null;
+  const joyLeft = joy ? (joy.left || joy.downLeft || joy.upLeft) : false;
+  const joyRight = joy ? (joy.right || joy.downRight || joy.upRight) : false;
+  const joyDown = joy ? joy.down : false;
+
+  const isBack = (player.facing > 0 && (keys['KeyA'] || keys['ArrowLeft'] || joyLeft)) ||
+                 (player.facing < 0 && (keys['KeyD'] || keys['ArrowRight'] || joyRight));
   if (isBack) {
     player.attack('duckHeadbutt');
-  } else if (player.crouching || player.state === 'crouch') {
+  } else if (player.crouching || player.state === 'crouch' || joyDown) {
     player.attack('crouchPunch');
   } else {
     player.attack('punch');
@@ -1620,11 +1679,16 @@ function triggerPlayer1Punch() {
 
 function triggerPlayer1Kick() {
   if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
-  const isFwd = (player.facing > 0 && (keys['KeyD'] || keys['ArrowRight'])) ||
-                (player.facing < 0 && (keys['KeyA'] || keys['ArrowLeft']));
+  const joy = typeof touchControls !== 'undefined' ? touchControls.joystick : null;
+  const joyLeft = joy ? (joy.left || joy.downLeft || joy.upLeft) : false;
+  const joyRight = joy ? (joy.right || joy.downRight || joy.upRight) : false;
+  const joyDown = joy ? joy.down : false;
+
+  const isFwd = (player.facing > 0 && (keys['KeyD'] || keys['ArrowRight'] || joyRight)) ||
+                (player.facing < 0 && (keys['KeyA'] || keys['ArrowLeft'] || joyLeft));
   if (!player.onGround) {
     player.attack('flipKick');
-  } else if (player.crouching || player.state === 'crouch') {
+  } else if (player.crouching || player.state === 'crouch' || joyDown) {
     player.attack('sweepKick');
   } else {
     player.attack(isFwd ? 'spartanKick' : 'kick');
@@ -2251,21 +2315,431 @@ canvas.addEventListener('wheel', e => {
   }
 }, { passive: false });
 
-// Mouse: left = punch (or crouch punch if crouched), right = kick
-canvas.addEventListener('mousedown', e => {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const mx = (e.clientX - rect.left) * scaleX;
-  const my = (e.clientY - rect.top) * scaleY;
+// ══════════════════════════════════════════════════════════════
+//  TOUCH CONTROLS & VIRTUAL JOYSTICK ENGINE (MOBILE INTERFACE)
+// ══════════════════════════════════════════════════════════════
+const touchControls = {
+  joystick: {
+    baseX: 110,
+    baseY: 420,
+    baseR: 58,
+    knobX: 110,
+    knobY: 420,
+    knobR: 25,
+    active: false,
+    touchId: null,
+    vx: 0,
+    vy: 0,
+    left: false,
+    right: false,
+    up: false,
+    down: false,
+    upLeft: false,
+    upRight: false,
+    downLeft: false,
+    downRight: false,
+    lastJumpTriggered: false,
+    lastTapLeft: 0,
+    lastTapRight: 0
+  },
+  qButton: {
+    x: 110,
+    y: 330,
+    r: 28,
+    pressed: false,
+    touchId: null,
+    visible: false
+  },
+  buttons: {
+    block: { x: 0, y: 0, r: 31, pressed: false, touchId: null, label: 'BLOCK', sub: 'GUARD' },
+    punch: { x: 0, y: 0, r: 33, pressed: false, touchId: null, label: 'PUNCH', sub: 'COMBO' },
+    kick:  { x: 0, y: 0, r: 37, pressed: false, touchId: null, label: 'KICK',  sub: 'SPARTAN' }
+  },
+  pauseButton: {
+    x: 0,
+    y: 0,
+    w: 36,
+    h: 36,
+    pressed: false
+  }
+};
 
-  // Handle Pause Menu Interactions
-  if (isPaused) {
-    const layout = getMoveListModalLayout('pause');
+function updateTouchLayout() {
+  const W = canvas.width, H = canvas.height;
+  const sc = Math.min(W / DW, H / 500);
+
+  // 1. Left Joystick Position
+  const joy = touchControls.joystick;
+  joy.baseR = Math.max(50, Math.min(68, 56 * sc));
+  joy.knobR = Math.max(22, Math.min(30, 24 * sc));
+  joy.baseX = Math.max(joy.baseR + 24 * sc, 80 * sc);
+  joy.baseY = H - Math.max(joy.baseR + 26 * sc, 75 * sc);
+  if (!joy.active) {
+    joy.knobX = joy.baseX;
+    joy.knobY = joy.baseY;
+  }
+
+  // 2. Q Ground Stomp Pop-Up Button (Directly above the Joystick)
+  const qBtn = touchControls.qButton;
+  qBtn.r = Math.max(24, Math.min(32, 28 * sc));
+  qBtn.x = joy.baseX;
+  qBtn.y = joy.baseY - joy.baseR - qBtn.r - 12 * sc;
+
+  // 3. Right Action Buttons: Triangular Formation
+  // Block and Punch at the SAME horizontal level, Kick centered BENEATH them
+  const btns = touchControls.buttons;
+  const clusterCenterX = W - Math.max(105 * sc, 95);
+  const clusterCenterY = H - Math.max(95 * sc, 90);
+
+  const horizontalSpread = Math.max(42, 46 * sc);
+  const verticalKickDrop = Math.max(42, 44 * sc);
+
+  // Block (top-left of cluster)
+  btns.block.r = Math.max(28, Math.min(36, 31 * sc));
+  btns.block.x = clusterCenterX - horizontalSpread;
+  btns.block.y = clusterCenterY - 32 * sc;
+
+  // Punch (top-right of cluster, same horizontal level)
+  btns.punch.r = Math.max(30, Math.min(38, 33 * sc));
+  btns.punch.x = clusterCenterX + horizontalSpread;
+  btns.punch.y = clusterCenterY - 32 * sc;
+
+  // Kick (centered beneath Block & Punch in triangular formation)
+  btns.kick.r = Math.max(34, Math.min(42, 37 * sc));
+  btns.kick.x = clusterCenterX;
+  btns.kick.y = clusterCenterY + verticalKickDrop;
+
+  // 4. Mobile Pause Button (Top-Right)
+  const pause = touchControls.pauseButton;
+  pause.w = Math.max(34, 38 * sc);
+  pause.h = Math.max(34, 38 * sc);
+  pause.x = W - pause.w - 18 * sc;
+  pause.y = 16 * sc;
+}
+updateTouchLayout();
+
+function drawJoyArrow(cx, cy, angle, isHighlighted, sc) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.fillStyle = isHighlighted ? '#000000' : 'rgba(0, 0, 0, 0.22)';
+  ctx.strokeStyle = isHighlighted ? '#000000' : 'rgba(0, 0, 0, 0.35)';
+  ctx.lineWidth = isHighlighted ? 2 * sc : 1 * sc;
+
+  ctx.beginPath();
+  const sz = (isHighlighted ? 9.5 : 7.5) * sc;
+  ctx.moveTo(sz, 0);
+  ctx.lineTo(-sz * 0.75, -sz * 0.65);
+  ctx.lineTo(-sz * 0.30, 0);
+  ctx.lineTo(-sz * 0.75, sz * 0.65);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTouchControls() {
+  const W = canvas.width, H = canvas.height;
+  const sc = Math.min(W / DW, H / 500);
+  const joy = touchControls.joystick;
+  const qBtn = touchControls.qButton;
+  const btns = touchControls.buttons;
+  const pause = touchControls.pauseButton;
+
+  // ── 1. Left 8-Way Joystick ─────────────────────────────────
+  ctx.save();
+  // Translucent circular base
+  ctx.beginPath();
+  ctx.arc(joy.baseX, joy.baseY, joy.baseR, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+  ctx.fill();
+  ctx.strokeStyle = joy.active ? 'rgba(0, 0, 0, 0.55)' : 'rgba(0, 0, 0, 0.30)';
+  ctx.lineWidth = 2.5 * sc;
+  ctx.stroke();
+
+  // Subtle inner perimeter guide
+  ctx.beginPath();
+  ctx.arc(joy.baseX, joy.baseY, joy.baseR * 0.52, 0, Math.PI * 2);
+  ctx.setLineDash([4 * sc, 4 * sc]);
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+  ctx.lineWidth = 1.5 * sc;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 8-Directional Arrows around Joystick Perimeter
+  const arrowDist = joy.baseR * 0.74;
+  const isRightActive = joy.right && !joy.up && !joy.down;
+  const isDownRightActive = joy.right && joy.down;
+  const isDownActive = joy.down && !joy.left && !joy.right;
+  const isDownLeftActive = joy.left && joy.down;
+  const isLeftActive = joy.left && !joy.up && !joy.down;
+  const isUpLeftActive = joy.left && joy.up;
+  const isUpActive = joy.up && !joy.left && !joy.right;
+  const isUpRightActive = joy.right && joy.up;
+
+  drawJoyArrow(joy.baseX + Math.cos(0) * arrowDist, joy.baseY + Math.sin(0) * arrowDist, 0, isRightActive, sc);
+  drawJoyArrow(joy.baseX + Math.cos(Math.PI / 4) * arrowDist, joy.baseY + Math.sin(Math.PI / 4) * arrowDist, Math.PI / 4, isDownRightActive, sc);
+  drawJoyArrow(joy.baseX + Math.cos(Math.PI / 2) * arrowDist, joy.baseY + Math.sin(Math.PI / 2) * arrowDist, Math.PI / 2, isDownActive, sc);
+  drawJoyArrow(joy.baseX + Math.cos(3 * Math.PI / 4) * arrowDist, joy.baseY + Math.sin(3 * Math.PI / 4) * arrowDist, 3 * Math.PI / 4, isDownLeftActive, sc);
+  drawJoyArrow(joy.baseX + Math.cos(Math.PI) * arrowDist, joy.baseY + Math.sin(Math.PI) * arrowDist, Math.PI, isLeftActive, sc);
+  drawJoyArrow(joy.baseX + Math.cos(-3 * Math.PI / 4) * arrowDist, joy.baseY + Math.sin(-3 * Math.PI / 4) * arrowDist, -3 * Math.PI / 4, isUpLeftActive, sc);
+  drawJoyArrow(joy.baseX + Math.cos(-Math.PI / 2) * arrowDist, joy.baseY + Math.sin(-Math.PI / 2) * arrowDist, -Math.PI / 2, isUpActive, sc);
+  drawJoyArrow(joy.baseX + Math.cos(-Math.PI / 4) * arrowDist, joy.baseY + Math.sin(-Math.PI / 4) * arrowDist, -Math.PI / 4, isUpRightActive, sc);
+
+  // Joystick Knob
+  ctx.beginPath();
+  ctx.arc(joy.knobX, joy.knobY, joy.knobR, 0, Math.PI * 2);
+  ctx.fillStyle = joy.active ? 'rgba(0, 0, 0, 0.70)' : 'rgba(0, 0, 0, 0.35)';
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.5 * sc;
+  ctx.stroke();
+
+  // Center white dot on Knob
+  ctx.beginPath();
+  ctx.arc(joy.knobX, joy.knobY, 5 * sc, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  // Dash Instruction beneath Joystick
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.font = `bold ${Math.floor(8.5 * sc)}px monospace`;
+  ctx.fillText('TAP SIDES TO DASH', joy.baseX, joy.baseY + joy.baseR + 15 * sc);
+  ctx.restore();
+
+  // ── 2. Ground Stomp ("Q") Pop-Up Button (Above Joystick) ───
+  qBtn.visible = !!(player && (player.groundStompReady || player.reversalReady));
+  if (qBtn.visible) {
+    ctx.save();
+    const pulse = 0.75 + Math.sin(Date.now() * 0.009) * 0.25;
+
+    // Pulsing halo
+    ctx.beginPath();
+    ctx.arc(qBtn.x, qBtn.y, qBtn.r * (1 + (1 - pulse) * 0.22), 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(234, 88, 12, ${pulse * 0.65})`;
+    ctx.lineWidth = 2.5 * sc;
+    ctx.stroke();
+
+    // Button body
+    ctx.beginPath();
+    ctx.arc(qBtn.x, qBtn.y, qBtn.r, 0, Math.PI * 2);
+    ctx.fillStyle = qBtn.pressed ? '#ea580c' : '#000000';
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5 * sc;
+    ctx.stroke();
+
+    // Button Text
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${Math.floor(10.5 * sc)}px monospace`;
+    ctx.fillText('💥 STOMP', qBtn.x, qBtn.y - 2 * sc);
+    ctx.font = `bold ${Math.floor(8 * sc)}px monospace`;
+    ctx.fillText('[ Q ]', qBtn.x, qBtn.y + 11 * sc);
+    ctx.restore();
+  }
+
+  // ── 3. Right Action Buttons (Triangular Formation) ──────────
+  function drawActBtn(btn, title, sub) {
+    ctx.save();
+    const scale = btn.pressed ? 0.94 : 1;
+    ctx.translate(btn.x, btn.y);
+    ctx.scale(scale, scale);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, btn.r, 0, Math.PI * 2);
+    ctx.fillStyle = btn.pressed ? '#000000' : 'rgba(0, 0, 0, 0.08)';
+    ctx.fill();
+    ctx.strokeStyle = btn.pressed ? '#000000' : 'rgba(0, 0, 0, 0.55)';
+    ctx.lineWidth = 2.5 * sc;
+    ctx.stroke();
+
+    // Inner subtle ring
+    ctx.beginPath();
+    ctx.arc(0, 0, btn.r * 0.85, 0, Math.PI * 2);
+    ctx.strokeStyle = btn.pressed ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.12)';
+    ctx.lineWidth = 1 * sc;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = btn.pressed ? '#ffffff' : '#000000';
+    ctx.font = `900 ${Math.floor((btn.r * 0.36) * sc)}px monospace`;
+    ctx.fillText(title, 0, sub ? -2 * sc : 4 * sc);
+    if (sub) {
+      ctx.font = `bold ${Math.floor((btn.r * 0.25) * sc)}px monospace`;
+      ctx.fillStyle = btn.pressed ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.55)';
+      ctx.fillText(sub, 0, 12 * sc);
+    }
+    ctx.restore();
+  }
+
+  // BLOCK (top-left of cluster)
+  drawActBtn(btns.block, 'BLOCK', 'GUARD');
+
+  // PUNCH (top-right of cluster, same horizontal level as Block)
+  drawActBtn(btns.punch, 'PUNCH', 'COMBO');
+
+  // KICK (centered beneath Block & Punch in triangular formation)
+  drawActBtn(btns.kick, 'KICK', 'SPARTAN');
+
+  // ── 4. Mobile Pause Button (Top Right) ──────────────────────
+  ctx.save();
+  ctx.fillStyle = pause.pressed ? '#000000' : 'rgba(255, 255, 255, 0.9)';
+  ctx.fillRect(pause.x, pause.y, pause.w, pause.h);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2 * sc;
+  ctx.strokeRect(pause.x, pause.y, pause.w, pause.h);
+
+  // Two pause vertical bars
+  const barW = 4 * sc, barH = 14 * sc, barGap = 5 * sc;
+  const barColor = pause.pressed ? '#ffffff' : '#000000';
+  ctx.fillStyle = barColor;
+  ctx.fillRect(pause.x + (pause.w - barW * 2 - barGap) / 2, pause.y + (pause.h - barH) / 2, barW, barH);
+  ctx.fillRect(pause.x + (pause.w - barW * 2 - barGap) / 2 + barW + barGap, pause.y + (pause.h - barH) / 2, barW, barH);
+  ctx.restore();
+}
+
+function updateJoystick(tx, ty) {
+  const joy = touchControls.joystick;
+  const dx = tx - joy.baseX;
+  const dy = ty - joy.baseY;
+  const dist = Math.hypot(dx, dy);
+
+  // Clamp knob position to base radius
+  const maxR = joy.baseR;
+  if (dist > maxR) {
+    joy.knobX = joy.baseX + (dx / dist) * maxR;
+    joy.knobY = joy.baseY + (dy / dist) * maxR;
+  } else {
+    joy.knobX = tx;
+    joy.knobY = ty;
+  }
+
+  // Deadzone check
+  const DEADZONE = 12 * (canvas.width / DW);
+  if (dist < DEADZONE) {
+    joy.vx = 0; joy.vy = 0;
+    joy.left = false; joy.right = false;
+    joy.up = false; joy.down = false;
+    joy.upLeft = false; joy.upRight = false;
+    joy.downLeft = false; joy.downRight = false;
+    joy.lastJumpTriggered = false;
+    if (player && player.state === 'crouch' && !keys['KeyS'] && !keys['ArrowDown']) {
+      player.crouch(false);
+    }
+    return;
+  }
+
+  joy.vx = dx / dist;
+  joy.vy = dy / dist;
+
+  // Determine horizontal directions
+  joy.left = (joy.vx < -0.35);
+  joy.right = (joy.vx > 0.35);
+
+  // Determine vertical directions
+  const wasUp = joy.up;
+  joy.up = (joy.vy < -0.45);
+  joy.down = (joy.vy > 0.45);
+
+  // Determine 8 diagonals for arrow highlighting
+  joy.upLeft = joy.up && joy.left;
+  joy.upRight = joy.up && joy.right;
+  joy.downLeft = joy.down && joy.left;
+  joy.downRight = joy.down && joy.right;
+
+  // Jump trigger: when moving into Up sector
+  if (joy.up && !wasUp && !joy.lastJumpTriggered && player) {
+    player.jump();
+    joy.lastJumpTriggered = true;
+  } else if (!joy.up) {
+    joy.lastJumpTriggered = false;
+  }
+
+  // Crouch trigger
+  if (player) {
+    if (joy.down) {
+      player.crouch(true);
+    } else if (!keys['KeyS'] && !keys['ArrowDown']) {
+      player.crouch(false);
+    }
+  }
+}
+
+function onTouchBlockStart() {
+  if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  player.block(true);
+}
+
+function onTouchBlockEnd() {
+  if (!player) return;
+  if (!keys['ShiftLeft'] && !keys['ShiftRight']) {
+    player.block(false);
+  }
+}
+
+function onTouchStomp() {
+  if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  if (player.groundStompReady || player.reversalReady) {
+    triggerGroundStomp(player, enemy);
+  }
+}
+
+function handlePauseClick(mx, my) {
+  const layout = getMoveListModalLayout('pause');
+  const sb = layout.scrollbar;
+
+  // Check click on Scrollbar Track or Thumb
+  if (mx >= sb.trackX - 10 * layout.sc && mx <= sb.trackX + sb.trackW + 10 * layout.sc &&
+      my >= sb.trackY && my <= sb.trackY + sb.trackH) {
+    if (my >= sb.thumbY && my <= sb.thumbY + sb.thumbH) {
+      isDraggingScroll = true;
+      dragScrollStartY = my;
+      dragScrollStartScroll = moveScrollY;
+    } else {
+      const trackScrollableH = sb.trackH - sb.thumbH;
+      if (trackScrollableH > 0) {
+        const pct = clamp((my - sb.trackY - sb.thumbH / 2) / trackScrollableH, 0, 1);
+        moveScrollY = pct * layout.maxScrollY;
+      }
+      isDraggingScroll = true;
+      dragScrollStartY = my;
+      dragScrollStartScroll = moveScrollY;
+    }
+    return true;
+  }
+
+  // Check click on Resume Button
+  const btn = layout.footerButtons.resume;
+  if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+    isPaused = false;
+    lastTime = performance.now();
+    return true;
+  }
+
+  // Clicking inside the cards content viewport: record start Y for touch drag
+  if (mx >= layout.modalX && mx <= layout.modalX + layout.modalW &&
+      my >= layout.modalY && my <= layout.modalY + layout.modalH) {
+    isDraggingScroll = true;
+    dragScrollStartY = my;
+    dragScrollStartScroll = moveScrollY;
+    return true;
+  }
+
+  // Clicking outside modal veil: resume fight
+  isPaused = false;
+  lastTime = performance.now();
+  return true;
+}
+
+function handleMenuClick(mx, my) {
+  if (menuView === 'moves') {
+    const layout = getMoveListModalLayout('menu');
     const sb = layout.scrollbar;
 
     // Check click on Scrollbar Track or Thumb
-    if (mx >= sb.trackX - 6 * layout.sc && mx <= sb.trackX + sb.trackW + 6 * layout.sc &&
+    if (mx >= sb.trackX - 10 * layout.sc && mx <= sb.trackX + sb.trackW + 10 * layout.sc &&
         my >= sb.trackY && my <= sb.trackY + sb.trackH) {
       if (my >= sb.thumbY && my <= sb.thumbY + sb.thumbH) {
         isDraggingScroll = true;
@@ -2281,30 +2755,100 @@ canvas.addEventListener('mousedown', e => {
         dragScrollStartY = my;
         dragScrollStartScroll = moveScrollY;
       }
-      return;
+      return true;
     }
 
-    // Check click on Resume Button
-    const btn = layout.footerButtons.resume;
-    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
-      isPaused = false;
-      lastTime = performance.now();
-      return;
+    // Check click on Back Button
+    const backBtn = layout.footerButtons.back;
+    if (mx >= backBtn.x && mx <= backBtn.x + backBtn.w && my >= backBtn.y && my <= backBtn.y + backBtn.h) {
+      menuView = 'main';
+      return true;
     }
 
-    // Clicking inside the cards content viewport: do not unpause
+    // Check click on Start Fight Button
+    const startBtn = layout.footerButtons.start;
+    if (mx >= startBtn.x && mx <= startBtn.x + startBtn.w && my >= startBtn.y && my <= startBtn.y + startBtn.h) {
+      playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+      return true;
+    }
+
+    // Content area swipe scroll
     if (mx >= layout.modalX && mx <= layout.modalX + layout.modalW &&
         my >= layout.modalY && my <= layout.modalY + layout.modalH) {
-      return;
+      isDraggingScroll = true;
+      dragScrollStartY = my;
+      dragScrollStartScroll = moveScrollY;
+      return true;
     }
+    return false;
+  }
 
-    // Clicking outside modal veil: resume fight
-    isPaused = false;
-    lastTime = performance.now();
+  // Main Menu View
+  const layout = getMenuLayout();
+
+  // Check click on difficulty cards
+  for (const card of layout.cards) {
+    if (mx >= card.x && mx <= card.x + card.w && my >= card.y && my <= card.y + card.h) {
+      difficulty = card.id;
+      return true;
+    }
+  }
+
+  // Check click on Move List Button
+  const movesBtn = layout.movesBtn;
+  if (mx >= movesBtn.x && mx <= movesBtn.x + movesBtn.w && my >= movesBtn.y && my <= movesBtn.y + movesBtn.h) {
+    menuView = 'moves';
+    moveScrollY = 0;
+    return true;
+  }
+
+  // Check click on Start Button
+  const btn = layout.startBtn;
+  if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+    playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+    return true;
+  }
+  return false;
+}
+
+function handleGameOverClick(mx, my) {
+  const btns = getGameOverBtns();
+  if (mx >= btns.rematch.x && mx <= btns.rematch.x + btns.rematch.w &&
+      my >= btns.rematch.y && my <= btns.rematch.y + btns.rematch.h) {
+    playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
+    return true;
+  }
+  if (mx >= btns.menu.x && mx <= btns.menu.x + btns.menu.w &&
+      my >= btns.menu.y && my <= btns.menu.y + btns.menu.h) {
+    playerWins = 0; enemyWins = 0; roundNum = 1; gameState = 'menu'; menuView = 'main';
+    return true;
+  }
+  return false;
+}
+
+// Mouse: left = punch, right = kick
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+
+  if (isPaused) {
+    handlePauseClick(mx, my);
     return;
   }
 
   if (gameState === 'fight') {
+    // Check Mobile Pause Button click
+    const pause = touchControls.pauseButton;
+    if (mx >= pause.x && mx <= pause.x + pause.w && my >= pause.y && my <= pause.y + pause.h) {
+      isPaused = true;
+      moveScrollY = 0;
+      isDraggingScroll = false;
+      return;
+    }
+
     if (e.button === 0) {
       triggerPlayer1Punch();
     }
@@ -2315,89 +2859,217 @@ canvas.addEventListener('mousedown', e => {
   }
 
   if (gameState === 'gameOver') {
-    const btns = getGameOverBtns();
-
-    if (mx >= btns.rematch.x && mx <= btns.rematch.x + btns.rematch.w &&
-        my >= btns.rematch.y && my <= btns.rematch.y + btns.rematch.h) {
-      playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
-      return;
-    }
-    if (mx >= btns.menu.x && mx <= btns.menu.x + btns.menu.w &&
-        my >= btns.menu.y && my <= btns.menu.y + btns.menu.h) {
-      playerWins = 0; enemyWins = 0; roundNum = 1; gameState = 'menu'; menuView = 'main';
-      return;
-    }
+    handleGameOverClick(mx, my);
     return;
   }
 
   if (gameState === 'menu') {
-    if (menuView === 'moves') {
-      const layout = getMoveListModalLayout('menu');
-      const sb = layout.scrollbar;
-
-      // Check click on Scrollbar Track or Thumb
-      if (mx >= sb.trackX - 6 * layout.sc && mx <= sb.trackX + sb.trackW + 6 * layout.sc &&
-          my >= sb.trackY && my <= sb.trackY + sb.trackH) {
-        if (my >= sb.thumbY && my <= sb.thumbY + sb.thumbH) {
-          isDraggingScroll = true;
-          dragScrollStartY = my;
-          dragScrollStartScroll = moveScrollY;
-        } else {
-          const trackScrollableH = sb.trackH - sb.thumbH;
-          if (trackScrollableH > 0) {
-            const pct = clamp((my - sb.trackY - sb.thumbH / 2) / trackScrollableH, 0, 1);
-            moveScrollY = pct * layout.maxScrollY;
-          }
-          isDraggingScroll = true;
-          dragScrollStartY = my;
-          dragScrollStartScroll = moveScrollY;
-        }
-        return;
-      }
-
-      // Check click on Back Button
-      const backBtn = layout.footerButtons.back;
-      if (mx >= backBtn.x && mx <= backBtn.x + backBtn.w && my >= backBtn.y && my <= backBtn.y + backBtn.h) {
-        menuView = 'main';
-        return;
-      }
-
-      // Check click on Start Fight Button
-      const startBtn = layout.footerButtons.start;
-      if (mx >= startBtn.x && mx <= startBtn.x + startBtn.w && my >= startBtn.y && my <= startBtn.y + startBtn.h) {
-        playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
-        return;
-      }
-      return;
-    }
-
-    // Main Menu View
-    const layout = getMenuLayout();
-
-    // Check click on difficulty cards
-    for (const card of layout.cards) {
-      if (mx >= card.x && mx <= card.x + card.w && my >= card.y && my <= card.y + card.h) {
-        difficulty = card.id;
-        return;
-      }
-    }
-
-    // Check click on Move List Button
-    const movesBtn = layout.movesBtn;
-    if (mx >= movesBtn.x && mx <= movesBtn.x + movesBtn.w && my >= movesBtn.y && my <= movesBtn.y + movesBtn.h) {
-      menuView = 'moves';
-      moveScrollY = 0;
-      return;
-    }
-
-    // Check click on Start Button
-    const btn = layout.startBtn;
-    if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
-      playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
-      return;
-    }
+    handleMenuClick(mx, my);
+    return;
   }
 });
+
+// ── Multi-Touch Event Handlers for Mobile ────────────────────
+canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+function onTouchStart(e) {
+  e.preventDefault();
+  isTouchDevice = true;
+  showTouchControls = true;
+  checkOrientation();
+
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const t = e.changedTouches[i];
+    const tx = (t.clientX - rect.left) * scaleX;
+    const ty = (t.clientY - rect.top) * scaleY;
+
+    if (isPaused) {
+      handlePauseClick(tx, ty);
+      continue;
+    }
+
+    if (gameState === 'gameOver') {
+      handleGameOverClick(tx, ty);
+      continue;
+    }
+
+    if (gameState === 'menu') {
+      handleMenuClick(tx, ty);
+      continue;
+    }
+
+    if (gameState === 'fight' || gameState === 'countdown') {
+      const joy = touchControls.joystick;
+      const qBtn = touchControls.qButton;
+      const btns = touchControls.buttons;
+      const pause = touchControls.pauseButton;
+      const sc = Math.min(canvas.width / DW, canvas.height / 500);
+
+      // 1. Check Mobile Pause Button (top-right)
+      if (tx >= pause.x - 8 * sc && tx <= pause.x + pause.w + 8 * sc &&
+          ty >= pause.y - 8 * sc && ty <= pause.y + pause.h + 8 * sc) {
+        if (gameState === 'fight') {
+          isPaused = true;
+          moveScrollY = 0;
+          isDraggingScroll = false;
+        }
+        continue;
+      }
+
+      // 2. Check Q Pop-Up Button (above joystick)
+      if (qBtn.visible && Math.hypot(tx - qBtn.x, ty - qBtn.y) <= qBtn.r * 1.35) {
+        qBtn.pressed = true;
+        qBtn.touchId = t.identifier;
+        if (gameState === 'fight') {
+          onTouchStomp();
+        }
+        continue;
+      }
+
+      // 3. Check Block Button (Right cluster, top-left)
+      if (Math.hypot(tx - btns.block.x, ty - btns.block.y) <= btns.block.r * 1.35) {
+        btns.block.pressed = true;
+        btns.block.touchId = t.identifier;
+        if (gameState === 'fight') {
+          onTouchBlockStart();
+        }
+        continue;
+      }
+
+      // 4. Check Punch Button (Right cluster, top-right)
+      if (Math.hypot(tx - btns.punch.x, ty - btns.punch.y) <= btns.punch.r * 1.35) {
+        btns.punch.pressed = true;
+        btns.punch.touchId = t.identifier;
+        if (gameState === 'fight') {
+          triggerPlayer1Punch();
+        }
+        continue;
+      }
+
+      // 5. Check Kick Button (Right cluster, bottom center)
+      if (Math.hypot(tx - btns.kick.x, ty - btns.kick.y) <= btns.kick.r * 1.35) {
+        btns.kick.pressed = true;
+        btns.kick.touchId = t.identifier;
+        if (gameState === 'fight') {
+          triggerPlayer1Kick();
+        }
+        continue;
+      }
+
+      // 6. Check Joystick Zone (Left half of canvas)
+      if (tx < canvas.width * 0.48) {
+        // Double-tap on the sides of joystick to Dash
+        const relX = tx - joy.baseX;
+        const now = Date.now();
+        if (relX < -14 * sc) {
+          if (now - joy.lastTapLeft < DOUBLE_TAP_WINDOW) {
+            if (player) player.dash(-1);
+            joy.lastTapLeft = 0;
+          } else {
+            joy.lastTapLeft = now;
+          }
+        } else if (relX > 14 * sc) {
+          if (now - joy.lastTapRight < DOUBLE_TAP_WINDOW) {
+            if (player) player.dash(1);
+            joy.lastTapRight = 0;
+          } else {
+            joy.lastTapRight = now;
+          }
+        }
+
+        joy.active = true;
+        joy.touchId = t.identifier;
+        updateJoystick(tx, ty);
+        continue;
+      }
+    }
+  }
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const t = e.changedTouches[i];
+    const tx = (t.clientX - rect.left) * scaleX;
+    const ty = (t.clientY - rect.top) * scaleY;
+
+    if (isDraggingScroll) {
+      const modalMode = isPaused ? 'pause' : 'menu';
+      const layout = getMoveListModalLayout(modalMode);
+      const deltaY = ty - dragScrollStartY;
+      moveScrollY = clamp(dragScrollStartScroll - deltaY * 1.25, 0, layout.maxScrollY);
+      continue;
+    }
+
+    if (t.identifier === touchControls.joystick.touchId) {
+      updateJoystick(tx, ty);
+      continue;
+    }
+  }
+}
+
+function onTouchEnd(e) {
+  e.preventDefault();
+  const joy = touchControls.joystick;
+  const btns = touchControls.buttons;
+  const qBtn = touchControls.qButton;
+
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const t = e.changedTouches[i];
+
+    if (isDraggingScroll) {
+      isDraggingScroll = false;
+    }
+
+    if (t.identifier === joy.touchId) {
+      joy.active = false;
+      joy.touchId = null;
+      joy.knobX = joy.baseX;
+      joy.knobY = joy.baseY;
+      joy.vx = 0; joy.vy = 0;
+      joy.left = false; joy.right = false;
+      joy.up = false; joy.down = false;
+      joy.upLeft = false; joy.upRight = false;
+      joy.downLeft = false; joy.downRight = false;
+      joy.lastJumpTriggered = false;
+      if (player && !keys['KeyS'] && !keys['ArrowDown']) {
+        player.crouch(false);
+      }
+    }
+
+    if (t.identifier === btns.block.touchId) {
+      btns.block.pressed = false;
+      btns.block.touchId = null;
+      onTouchBlockEnd();
+    }
+
+    if (t.identifier === btns.punch.touchId) {
+      btns.punch.pressed = false;
+      btns.punch.touchId = null;
+    }
+
+    if (t.identifier === btns.kick.touchId) {
+      btns.kick.pressed = false;
+      btns.kick.touchId = null;
+    }
+
+    if (t.identifier === qBtn.touchId) {
+      qBtn.pressed = false;
+      qBtn.touchId = null;
+    }
+  }
+}
 
 canvas.addEventListener('mousemove', e => {
   const rect = canvas.getBoundingClientRect();
@@ -3159,7 +3831,10 @@ function drawHUD() {
   ctx.fillText(`ROUND ${roundNum}`, W / 2, pad + barH + 16 * sc);
 
   // Dynamic Directional Hint (adjusts automatically based on player facing direction & mode)
-  if (difficulty === 'pvp') {
+  if (showTouchControls) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.font = `${Math.floor(9 * sc)}px monospace`;
+    ctx.fillText('🕹️ JOYSTICK: 8-WAY MOVE  |  TAP SIDES: DASH  |  BLOCK & PUNCH  |  KICK  |  ⏸: PAUSE', W / 2, H - 10);
+  } else if (difficulty === 'pvp') {
     ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.font = `${Math.floor(9 * sc)}px monospace`;
     ctx.fillText('P1 [ORANGE]: WASD · V Punch · B Kick · Shift Block · Q Stomp   |   P2 [BLUE]: 8456 · - Punch · + Kick · 0 Block · 7 Stomp   |   P: Pause', W / 2, H - 10);
   } else {
@@ -3307,11 +3982,19 @@ function drawMenu() {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#888888';
   ctx.font = `${Math.floor(9.5 * sc)}px monospace`;
-  ctx.fillText('KEYS: [1] Easy  ·  [2] Medium  ·  [3] Hard  ·  [4] 2P Versus  ·  [M] Moves  ·  [ENTER] Start Match', W / 2, startBtn.y + startBtn.h + 20 * sc);
+  if (showTouchControls) {
+    ctx.fillText('TOUCH TO SELECT MODE  ·  TAP MOVE LIST OR START FIGHT', W / 2, startBtn.y + startBtn.h + 20 * sc);
+  } else {
+    ctx.fillText('KEYS: [1] Easy  ·  [2] Medium  ·  [3] Hard  ·  [4] 2P Versus  ·  [M] Moves  ·  [ENTER] Start Match', W / 2, startBtn.y + startBtn.h + 20 * sc);
+  }
 
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.font = `${Math.floor(9 * sc)}px monospace`;
-  ctx.fillText('P1 [ORANGE]: WASD + V/B (Punch/Kick) · Shift (Block) · Q (Stomp)   |   P2 [BLUE]: 8456 + -/+ (Punch/Kick) · 0 (Block) · 7 (Stomp)   |   P: Pause', W / 2, H - 12);
+  if (showTouchControls) {
+    ctx.fillText('🕹️ JOYSTICK (8-WAY)  |  DASH (TAP SIDES)  |  BLOCK & PUNCH  |  KICK  |  STOMP POPUP', W / 2, H - 12);
+  } else {
+    ctx.fillText('P1 [ORANGE]: WASD + V/B (Punch/Kick) · Shift (Block) · Q (Stomp)   |   P2 [BLUE]: 8456 + -/+ (Punch/Kick) · 0 (Block) · 7 (Stomp)   |   P: Pause', W / 2, H - 12);
+  }
 }
 
 function drawPauseMenu() {
@@ -3601,13 +4284,13 @@ function loop(ts) {
     }
 
     if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp'].includes(player.state)) {
-      if (player.state === 'crouch' && (keys['KeyS'] || keys['ArrowDown'])) {
+      if (player.state === 'crouch' && (keys['KeyS'] || keys['ArrowDown'] || touchControls.joystick.down)) {
         // Player is intentionally holding crouch
       } else {
         if (player.state === 'crouch') player.state = 'idle';
         let mv = false;
-        if (keys['KeyA'] || keys['ArrowLeft']) { player.move(-220 * dt); mv = true; }
-        if (keys['KeyD'] || keys['ArrowRight']) { player.move(220 * dt); mv = true; }
+        if (keys['KeyA'] || keys['ArrowLeft'] || touchControls.joystick.left) { player.move(-220 * dt); mv = true; }
+        if (keys['KeyD'] || keys['ArrowRight'] || touchControls.joystick.right) { player.move(220 * dt); mv = true; }
         if (!mv && player.state === 'walk') player.state = 'idle';
       }
     }
@@ -3656,6 +4339,9 @@ function loop(ts) {
   drawBackground(); player.draw(); enemy.draw();
   updateParticles(dt); updateGroundShockwaves(dt); drawParticles(); drawGroundShockwaves();
   drawHUD();
+  if (showTouchControls && (gameState === 'fight' || gameState === 'countdown') && !isPaused) {
+    drawTouchControls();
+  }
   if (roundBannerTimer > 0) drawRoundBanner();
   if (gameState === 'roundTransition') drawRoundTransition();
   if (gameState === 'roundEnd') drawRoundEnd();

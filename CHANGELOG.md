@@ -18,7 +18,26 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 🕹️ Controls Reference
 
-### 🟠 Player 1 (Left Fighter — Dark Orange Shadow)
+### 📱 Mobile Phone Touch Controls (Left & Right Thumb)
+| Action | Touch Control | Description |
+|---|---|---|
+| **8-Way Virtual Joystick** | Left Screen Thumbstick | Smooth analog motion across **8 radial directions** with visual arrow indicators (Up, Up-Right, Right, Down-Right, Down, Down-Left, Left, Up-Left). |
+| **Move Left / Right** | Drag Joystick Left / Right | Smooth lateral walking across the arena floor. |
+| **Jump** | Push Joystick Up (↑) | Leaps into the air; supports diagonal forward and backward jump arcs. |
+| **Crouch** | Pull Joystick Down (↓) | Drops into a low crouch; passively ducks under all high standing punches. |
+| **Dash Burst** | Double-Tap Sides of Joystick | Rapid double tap on the **left side** dashes left (`184px`); double tap on **right side** dashes right (`184px`) with shadow afterimages! |
+| **Block (High Guard)** | `BLOCK` Button (Right side, top-left) | Hold to raise boxer peek-a-boo guard (absorbs 90% DMG & blocks sweeps); release to drop guard. Same horizontal level as Punch. |
+| **Punch Combo** | `PUNCH` Button (Right side, top-right) | Rapid taps trigger 5-hit punch flurry (9 / 2.25 DMG). Same horizontal level as Block. |
+| **Duck Headbutt** | Pull Joystick Back + `PUNCH` | Ducks under Spartan kicks & punches, then hits with a 45° headbutt (**14 DMG**, **1.5s STUN**)! |
+| **Low Crouch Punch** | Pull Joystick Down + `PUNCH` | Straight low body punch executed from crouch (**9 DMG**). |
+| **Normal Kick** | `KICK` Button (Right side, bottom center) | Swift linear round thrust kick (**12 DMG**). Situated beneath Block & Punch in triangular formation. |
+| **Spartan Kick** | Push Joystick Forward + `KICK` | Powerful chest thrust kick (**18 DMG**) with **4x knockback (`368px`)**. |
+| **Front Flip Axe Kick** | Airborne (Joystick Up) + `KICK` | 360° somersault axe slam (**21 DMG**) with explosive red blood and knockdown! |
+| **Low Sweep Kick** | Pull Joystick Down + `KICK` | Ground sweep (**7 DMG**) that trips standing foes onto the floor! |
+| **Ground Stomp (Q)** | `💥 STOMP` Pop-Up Button | **Pops up directly above the joystick only when available** (after 3 Spartan kicks / KDs in 5s). Uninterruptible hyper-armor screen-wide knockdown! |
+| **Pause Match** | `⏸` Button (Top-Right Corner) | Pauses fight and opens the spacious Move List modal. Swipe inside modal to scroll! |
+
+### 🟠 Player 1 (Left Fighter — Dark Orange Shadow, Keyboard Mode)
 | Action | Key / Input | Description |
 |---|---|---|
 | **Punch Combo** | `V` (or Left-Click) | Rapid flurry punches alternating lead and rear arms (Hikite chamber). 1st punch deals **9 DMG**; rest deal **2.25 DMG** (`9 / 4`) with arterial blood spray. Max 5 punches followed by 0.5s lockout. |
@@ -55,15 +74,48 @@ This document tracks all features, mechanics, visual systems, and updates implem
 ### ⚙️ General & Navigation Controls
 | Action | Key / Input | Description |
 |---|---|---|
-| **Pause & Move List** | `P` or `Escape` | Pauses match and opens spacious scrollable Move List modal with damage values and tactical consequences. |
-| **Menu Move List & Guide** | `M` (On Menu Screen) | Opens the full scrollable Move List modal directly from the Main Menu. Press ESC, M, or click Back to return. |
-| **Mode & Difficulty Selection** | `1`, `2`, `3`, `4` or Click | `1`: Easy, `2`: Medium (Default), `3`: Hard, `4`: 2P Versus (Local Multiplayer). |
+| **Pause & Move List** | `P` or `Escape` or `⏸` Button | Pauses match and opens spacious scrollable Move List modal with damage values and tactical consequences. |
+| **Menu Move List & Guide** | `M` or Tap Button | Opens the full scrollable Move List modal directly from the Main Menu. Press ESC, M, or tap Back to return. |
+| **Mode & Difficulty Selection** | `1`, `2`, `3`, `4` or Tap Card | `1`: Easy, `2`: Medium (Default), `3`: Hard, `4`: 2P Versus (Local Multiplayer). |
 
 ---
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.8.3 — Local 2-Player Same-Keyboard Multiplayer Mode with Orange & Blue Ground Shadows (Current)
+### Version 1.8.4 — Mobile Phone Interface, Orientation Guard & Virtual 8-Way Touch Controls (Current)
+- **Mandatory Mobile Landscape Prompt Overlay**:
+  - **Orientation Detection**: Automatically detects mobile portrait orientation and activates a clean full-screen overlay (`#rotateOverlay`).
+  - **Smooth Rotation Animation**: Features an animated rotating smartphone SVG diagram demonstrating the 90-degree transition from portrait to landscape mode.
+  - **Lockout Protection**: Prevents match physics and game execution until the user rotates their mobile phone into landscape mode, ensuring perfect aspect ratio and visibility on all mobile displays.
+  - **Full-Bleed Edge-to-Edge Canvas**: In landscape mode on smartphones, automatically expands canvas to fill the full viewport (`100vw` by `100vh` / `100dvh`), removing desktop border margins while preserving `FLOOR_FRAC` and inverse kinematics fidelity.
+- **8-Directional Virtual Joystick (Left Side)**:
+  - **Visual 8-Way Feedback**: Circular joystick base with 8 distinct radial arrow indicators (Up, Up-Right, Right, Down-Right, Down, Down-Left, Left, Up-Left). Moving the thumbstick dynamically illuminates the active direction in solid black.
+  - **Fluid Locomotion & Posture**: Pushing Left/Right walks; pushing Up triggers airborne jump arcs; pulling Down ducks into full crouch (passively evading high strikes).
+  - **Side-Tap Dash System**: Rapidly double-tapping either the left or right side of the joystick triggers an explosive `184px` forward or backward dash with silhouette afterimages.
+- **Triangular Action Buttons (Right Side)**:
+  - **Ergonomic Arrangement**:
+    - **Top Row**: `BLOCK` (top-left) and `PUNCH` (top-right) at the exact same horizontal level.
+    - **Bottom Apex**: `KICK` positioned directly beneath Block and Punch in a natural thumb-accessible triangle.
+  - **Tactile Visual States**: Crisp translucent styling (`rgba(0,0,0,0.08)`) with dark borders; inverts to solid black (`#000000`) with white text and a tactile 0.94 scale depress animation when pressed.
+  - **Directional Strike Integration**:
+    - Tapping `PUNCH` while pulling Back on the joystick executes the Duck Headbutt (evades attacks, **1.5s STUN**).
+    - Tapping `PUNCH` while crouching executes the Low Crouch Punch (**9 DMG**).
+    - Tapping `KICK` while airborne executes the Front Flip Axe Kick (**21 DMG** + KD).
+    - Tapping `KICK` while pushing Forward executes the Spartan Kick (**18 DMG**, **4x knockback**).
+    - Tapping `KICK` while crouching executes the Low Sweep Kick (**7 DMG**, trips foe).
+    - Holding `BLOCK` raises boxer peek-a-boo guard (absorbs 90% DMG & blocks sweeps); releasing lowers guard.
+- **Pop-Up Ground Stomp ("Q") Button (Above Joystick)**:
+  - **Context-Aware Visibility**: Stays hidden until the player accumulates 3 Spartan Kicks or 3 KDs in 5 seconds.
+  - **Pulsing Animation**: Pops up directly above the joystick base with a vibrant pulsing orange/black aura (`💥 STOMP [Q]`).
+  - **Uninterruptible Shockwave**: Tapping unleashes the 100% hyper-armor ground stomp, knocking down the opponent wherever they stand on screen.
+- **Full Touch Support for Menus, Move Guide & Pause**:
+  - Tapping on-screen `⏸` button opens the spacious Move List modal during combat.
+  - Swipe up/down inside the modal to scroll through all moves and damage stats.
+  - Tap difficulty cards directly on the Main Menu to switch modes.
+
+---
+
+### Version 1.8.3 — Local 2-Player Same-Keyboard Multiplayer Mode with Orange & Blue Ground Shadows
 - **Local 2-Player Same-Keyboard Multiplayer ("2P VERSUS")**:
   - **4th Mode Selection**: Added "2P VERSUS" mode card (`difficulty = 'pvp'`) to the Main Menu and hotkey `4` (along with `1` Easy, `2` Medium, `3` Hard).
   - **AI Bypass in PvP**: When `pvp` mode is active, CPU AI loop (`updateAI`) is completely bypassed; both fighters are 100% human-controlled in real-time on a single keyboard!
@@ -78,6 +130,20 @@ This document tracks all features, mechanics, visual systems, and updates implem
       - `6` (Numpad6 / Digit6): Move Right / Double-tap Dash Right
       - `5` (Numpad5 / Digit5): Crouch (ducks under high standing punches)
       - `0` (Numpad0 / Digit0): High Guard Block (absorbs 90% DMG & blocks sweeps)
+      - `7` (Numpad7 / Digit7): Ground Stomp (100% uninterruptible hyper-armor screen-wide knockdown)
+      - `-` (Minus / Numpad-): Punch Combo, Low Crouch Punch (`5 + -`), Duck Headbutt (`Back + -`)
+      - `+` (Plus / Numpad+ / Equal): Snap Kick, Spartan Kick (`Fwd + +`), Flip Axe Kick (`Jump + +`), Low Sweep Kick (`5 + +`)
+    - **Ground Shadow**: Distinctive royal blue horizontally elongated oval shadow under feet (`rgba(29, 78, 216, 0.65)` core + `rgba(37, 99, 235, 0.28)` ambient halo).
+    - **HUD**: Labeled `P2 [BLUE]` with royal blue health bar fill (`#1d4ed8`), royal blue round victory gems, and blue match victory banners.
+    - **Stomp Prompt**: Dynamic `💥 PRESS [7] STOMP! 💥` badge displayed beneath P2 health bar when 3 Spartan Kicks / KDs are received in 5s.
+  - **Adaptive Directional Mechanics for Both Players**:
+    - Both Player 1 and Player 2 dynamically compute `isFwd` and `isBack` based on their real-time relative positions (`player.x` vs `enemy.x`) and facing directions.
+    - Crossing sides seamlessly flips Spartan Kick and Duck Headbutt inputs for both players without glitching!
+  - **Updated Move List Modal & Menu HUD**:
+    - All 11 moves in `ALL_MOVES` master move list now display dual input annotations for both Player 1 and Player 2.
+    - Bottom controls bar displays both P1 and P2 full mappings for instant in-game reference.
+
+---
       - `7` (Numpad7 / Digit7): Ground Stomp (100% uninterruptible hyper-armor screen-wide knockdown)
       - `-` (Minus / Numpad-): Punch Combo, Low Crouch Punch (`5 + -`), Duck Headbutt (`Back + -`)
       - `+` (Plus / Numpad+ / Equal): Snap Kick, Spartan Kick (`Fwd + +`), Flip Axe Kick (`Jump + +`), Low Sweep Kick (`5 + +`)

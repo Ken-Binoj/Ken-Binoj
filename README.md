@@ -6,7 +6,26 @@ A browser-based, high-performance 2D martial arts fighting game inspired by *Sha
 
 ## 🕹️ Controls
 
-### 🟠 Player 1 (Left Fighter — Dark Orange Shadow)
+### 📱 Mobile Phone Touch Controls (Left & Right Thumb)
+| Action | Touch Control | Description |
+|---|---|---|
+| **8-Way Virtual Joystick** | Left Screen Thumbstick | Smooth analog motion across **8 radial directions** with visual arrow indicators (Up, Up-Right, Right, Down-Right, Down, Down-Left, Left, Up-Left). |
+| **Move Left / Right** | Drag Joystick Left / Right | Smooth lateral walking across the arena floor. |
+| **Jump** | Push Joystick Up (↑) | Leaps into the air; supports diagonal forward and backward jump arcs. |
+| **Crouch** | Pull Joystick Down (↓) | Drops into a low crouch; passively ducks under all high standing punches. |
+| **Dash Burst** | Double-Tap Sides of Joystick | Rapid double tap on the **left side** dashes left (`184px`); double tap on **right side** dashes right (`184px`) with shadow afterimages! |
+| **Block (High Guard)** | `BLOCK` Button (Right side, top-left) | Hold to raise boxer peek-a-boo guard (absorbs 90% DMG & blocks sweeps); release to drop guard. Same horizontal level as Punch. |
+| **Punch Combo** | `PUNCH` Button (Right side, top-right) | Rapid taps trigger 5-hit punch flurry (9 / 2.25 DMG). Same horizontal level as Block. |
+| **Duck Headbutt** | Pull Joystick Back + `PUNCH` | Ducks under Spartan kicks & punches, then hits with a 45° headbutt (**14 DMG**, **1.5s STUN**)! |
+| **Low Crouch Punch** | Pull Joystick Down + `PUNCH` | Straight low body punch executed from crouch (**9 DMG**). |
+| **Normal Kick** | `KICK` Button (Right side, bottom center) | Swift linear round thrust kick (**12 DMG**). Situated beneath Block & Punch in triangular formation. |
+| **Spartan Kick** | Push Joystick Forward + `KICK` | Powerful chest thrust kick (**18 DMG**) with **4x knockback (`368px`)**. |
+| **Front Flip Axe Kick** | Airborne (Joystick Up) + `KICK` | 360° somersault axe slam (**21 DMG**) with explosive red blood and knockdown! |
+| **Low Sweep Kick** | Pull Joystick Down + `KICK` | Ground sweep (**7 DMG**) that trips standing foes onto the floor! |
+| **Ground Stomp (Q)** | `💥 STOMP` Pop-Up Button | **Pops up directly above the joystick only when available** (after 3 Spartan kicks / KDs in 5s). Uninterruptible hyper-armor screen-wide knockdown! |
+| **Pause Match** | `⏸` Button (Top-Right Corner) | Pauses fight and opens the spacious Move List modal. Swipe inside modal to scroll! |
+
+### 🟠 Player 1 (Left Fighter — Dark Orange Shadow, Keyboard Mode)
 | Move | Key / Input | Description |
 |---|---|---|
 | **Rapid Punch Combo** | `V` (or Left-Click) | Flurry punches alternating lead and rear hands (Hikite chamber). 1st punch 9 DMG; rest 2.25 DMG (`9 / 4`). Max 5 punches followed by 0.5s lockout. |

@@ -2,11 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Shadow Fight Web</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Mobile Portrait Orientation Prompt Overlay -->
+  <div id="rotateOverlay">
+    <div class="rotate-card">
+      <div class="rotate-icon-wrapper">
+        <svg class="phone-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Smartphone body -->
+          <rect x="18" y="8" width="28" height="48" rx="5" stroke="#000000" stroke-width="3" fill="#ffffff" />
+          <!-- Screen inner -->
+          <rect x="22" y="15" width="20" height="34" rx="2" fill="#f3f4f6" />
+          <!-- Home pill / Speaker notch -->
+          <line x1="28" y1="12" x2="36" y2="12" stroke="#000000" stroke-width="2" stroke-linecap="round" />
+          <!-- Home indicator -->
+          <line x1="27" y1="52" x2="37" y2="52" stroke="#000000" stroke-width="2.5" stroke-linecap="round" />
+          <!-- Rotation swoosh arrows -->
+          <path d="M50 20 C60 28, 60 40, 50 48" stroke="#ea580c" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 4" />
+          <polygon points="53,49 46,49 49,43" fill="#ea580c" />
+        </svg>
+      </div>
+      <h2>ROTATE YOUR DEVICE</h2>
+      <p class="rotate-desc">SHADOW FIGHT REQUIRES LANDSCAPE MODE</p>
+      <div class="rotate-badge">
+        <span class="badge-dot"></span>
+        LANDSCAPE ONLY
+      </div>
+    </div>
+  </div>
+
   <canvas id="gameCanvas"></canvas>
   <script src="game.js"></script>
 </body>
