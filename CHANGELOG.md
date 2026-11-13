@@ -82,7 +82,35 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.8.7 — Defeat Knockdown Lock & KO Ragdoll Settle (Current)
+### Version 1.9.0 — WebRTC 1v1 Online Mobile Multiplayer (Two Phones / P2P) (Current)
+- **All-in-One Node.js Web & WebSocket Signaling Server (`signaling-server.js`)**:
+  - Serves static assets (`index.html`, `style.css`, `game.js`, `network.js`) and handles 2-peer matchmaking & WebRTC signal forwarding on port `8080`.
+  - Automatically pairs the first two incoming connections in a room: 1st peer becomes Host (Player 1), 2nd peer becomes Guest (Player 2).
+  - Clean error handling, peer disconnection broadcasts, and room-full detection.
+- **Client-Side WebRTC Manager (`network.js`)**:
+  - Configures `RTCPeerConnection` with Google STUN servers (`stun:stun.l.google.com:19302`, `stun:stun1.l.google.com:19302`).
+  - Creates an unordered, zero-retransmission `RTCDataChannel` (`ordered: false, maxRetransmits: 0`) for UDP-like ultra-low-latency real-time input transmission between phones.
+  - Automatically resolves signaling URL scheme (`wss://` for HTTPS tunnels, `ws://` for local HTTP).
+  - Handles SDP Offers, SDP Answers, and ICE Candidate trickle negotiation.
+- **Game Engine Multiplayer Integration (`game.js`)**:
+  - **Fighter Abstraction (`getLocalFighter()` / `getRemoteFighter()`)**:
+    - Host controls Player 1 (Orange Shadow) on the left side.
+    - Guest controls Player 2 (Blue Shadow) on the right side.
+    - On both phones, touch controls (virtual joystick, action buttons) seamlessly drive the player's own fighter.
+  - **Input Streaming & State Synchronization**:
+    - Streams 60fps input vectors (`left`, `right`, `up`, `down`, `block`) across the data channel.
+    - Host dispatches authoritative position and health sync packets ~12 times per second to prevent physics drift across different screen refresh rates.
+    - Dispatches instant attack triggers (`punch`, `kick`, `spartanKick`, `flipKick`, `sweepKick`, `duckHeadbutt`, `crouchPunch`, `groundStomp`, `dashLeft`, `dashRight`).
+  - **Waiting Overlay & Matchmaking UI**:
+    - Tapping "2P VERSUS" and "START FIGHT" initiates connection to the signaling server and displays an interactive waiting dialog until the second phone joins.
+    - Automatically transitions to `3, 2, 1, FIGHT!` as soon as WebRTC P2P DataChannel handshake finishes.
+- **Executable & Script Tooling**:
+  - `.\ngrok.exe` copied directly to workspace root for quick tunneling (`.\ngrok.exe http 8080`).
+  - PowerShell ExecutionPolicy configured to `RemoteSigned` for seamless `npx localtunnel --port 8080`.
+
+---
+
+### Version 1.8.7 — Defeat Knockdown Lock & KO Ragdoll Settle
 - **Defeat Knockdown Position Lock (`hp <= 0`)**:
   - **Identified Cause of Standing While Defeated**: In `loop()` and `Fighter.update()`, `'dead'` was missing from the state exclusion lists. When a player's HP dropped to 0, if the player was still holding the virtual joystick or touching the screen, the game loop evaluated the defeated character as able to move/crouch, resetting `this.state` from `'dead'` back to `'walk'`, `'crouch'`, or `'idle'`.
   - **Permanent Defeat Guard**: Added a top-level guard at the start of `Fighter.update()` that immediately locks any fighter with `hp <= 0` or `state === 'dead'` into the grounded knockdown state, preventing all movement, joystick, keyboard, or state transitions until the round transitions.

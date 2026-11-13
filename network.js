@@ -85,8 +85,15 @@ class NetworkManager {
       }
     };
 
-    this.ws.onerror = (err) => console.error('[Network] Signaling error:', err);
-    this.ws.onclose = () => console.log('[Network] Signaling server disconnected.');
+    this.ws.onerror = (err) => {
+      console.error('[Network] Signaling error:', err);
+      if (this.onError) this.onError(err);
+    };
+    this.ws.onclose = () => {
+      console.log('[Network] Signaling server disconnected.');
+      this.isConnected = false;
+      if (this.onDisconnected) this.onDisconnected();
+    };
   }
 
   // 2. Initialize RTCPeerConnection & DataChannel

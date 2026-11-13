@@ -1754,6 +1754,88 @@ const ALL_MOVES = [
   }
 ];
 
+function getLocalFighter() {
+  if (typeof networkManager !== 'undefined' && networkManager.isConnected && networkManager.role === 'guest') {
+    return enemy;
+  }
+  return player;
+}
+
+function getRemoteFighter() {
+  if (typeof networkManager !== 'undefined' && networkManager.isConnected && networkManager.role === 'guest') {
+    return player;
+  }
+  return enemy;
+}
+
+// ── WebRTC Online Multiplayer Event Wire-Up ───────────────────
+let lastNetworkSync = 0;
+let onlineWaitingStatus = false;
+
+if (typeof networkManager !== 'undefined') {
+  networkManager.onConnected = (role) => {
+    console.log('[Online 1v1] WebRTC P2P DataChannel Connected as:', role);
+    difficulty = 'pvp';
+    onlineWaitingStatus = false;
+    playerWins = 0; enemyWins = 0; roundNum = 1;
+    initRound();
+    if (role === 'guest') {
+      player.displayName = 'P1 [REMOTE]';
+      enemy.displayName = 'P2 [YOU - BLUE]';
+    } else {
+      player.displayName = 'P1 [YOU - ORANGE]';
+      enemy.displayName = 'P2 [REMOTE]';
+    }
+    countdown = 3;
+    countdownTimer = 1;
+    gameState = 'countdown';
+  };
+
+  networkManager.onDisconnected = () => {
+    console.warn('[Online 1v1] Opponent disconnected.');
+    resultText = 'OPPONENT DISCONNECTED';
+    onlineWaitingStatus = false;
+  };
+
+  networkManager.onError = () => {
+    console.warn('[Online 1v1] Signaling connection error.');
+    onlineWaitingStatus = false;
+  };
+
+  networkManager.onOpponentAttack = (action) => {
+    const opp = getRemoteFighter();
+    if (!opp || opp.hp <= 0) return;
+    if (action === 'groundStomp') {
+      triggerGroundStomp(opp, getLocalFighter());
+    } else if (action === 'dashRight') {
+      opp.dash(1);
+    } else if (action === 'dashLeft') {
+      opp.dash(-1);
+    } else {
+      opp.attack(action);
+    }
+  };
+
+  networkManager.onOpponentInput = (remoteKeys) => {
+    const opp = getRemoteFighter();
+    if (!opp || opp.hp <= 0) return;
+    opp.crouch(!!remoteKeys.down);
+    opp.block(!!remoteKeys.block);
+    if (remoteKeys.up && opp.onGround) opp.jump();
+    opp._remoteLeft = !!remoteKeys.left;
+    opp._remoteRight = !!remoteKeys.right;
+  };
+
+  networkManager.onOpponentSync = (data) => {
+    if (networkManager.role === 'guest') {
+      if (player && Math.abs(player.x - data.x) > 25) player.x = data.x;
+      if (enemy && Math.abs(enemy.x - data.vx) > 25) enemy.x = data.vx;
+      if (player && data.y !== undefined) player.hp = data.y;
+      if (enemy && data.vy !== undefined) enemy.hp = data.vy;
+    }
+  };
+}
+
 function initRound() {
   player = new Fighter(canvas.width * 0.25, true, 'PLAYER');
   enemy = new Fighter(canvas.width * 0.75, false, difficulty === 'pvp' ? 'PLAYER 2' : 'CPU');
@@ -1817,38 +1899,54 @@ function initRound() {
 
 // ── Combat Attack Dispatchers ─────────────────────────────────
 function triggerPlayer1Punch() {
-  if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  if (gameState !== 'fight' || isPaused) return;
+  const f = getLocalFighter();
+  if (!f || f.hp <= 0) return;
+
   const joy = typeof touchControls !== 'undefined' ? touchControls.joystick : null;
   const joyLeft = joy ? (joy.left || joy.downLeft || joy.upLeft) : false;
   const joyRight = joy ? (joy.right || joy.downRight || joy.upRight) : false;
   const joyDown = joy ? joy.down : false;
 
-  const isBack = (player.facing > 0 && (keys['KeyA'] || keys['ArrowLeft'] || joyLeft)) ||
-                 (player.facing < 0 && (keys['KeyD'] || keys['ArrowRight'] || joyRight));
+  const isBack = (f.facing > 0 && (keys['KeyA'] || keys['ArrowLeft'] || joyLeft)) ||
+                 (f.facing < 0 && (keys['KeyD'] || keys['ArrowRight'] || joyRight));
+  let atk = 'punch';
   if (isBack) {
-    player.attack('duckHeadbutt');
-  } else if (player.crouching || player.state === 'crouch' || joyDown) {
-    player.attack('crouchPunch');
-  } else {
-    player.attack('punch');
+    atk = 'duckHeadbutt';
+  } else if (f.crouching || f.state === 'crouch' || joyDown) {
+    atk = 'crouchPunch';
+  }
+  f.attack(atk);
+
+  if (typeof networkManager !== 'undefined' && networkManager.isConnected) {
+    networkManager.sendAttack(atk);
   }
 }
 
 function triggerPlayer1Kick() {
-  if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  if (gameState !== 'fight' || isPaused) return;
+  const f = getLocalFighter();
+  if (!f || f.hp <= 0) return;
+
   const joy = typeof touchControls !== 'undefined' ? touchControls.joystick : null;
   const joyLeft = joy ? (joy.left || joy.downLeft || joy.upLeft) : false;
   const joyRight = joy ? (joy.right || joy.downRight || joy.upRight) : false;
   const joyDown = joy ? joy.down : false;
 
-  const isFwd = (player.facing > 0 && (keys['KeyD'] || keys['ArrowRight'] || joyRight)) ||
-                (player.facing < 0 && (keys['KeyA'] || keys['ArrowLeft'] || joyLeft));
-  if (!player.onGround) {
-    player.attack('flipKick');
-  } else if (player.crouching || player.state === 'crouch' || joyDown) {
-    player.attack('sweepKick');
-  } else {
-    player.attack(isFwd ? 'spartanKick' : 'kick');
+  const isFwd = (f.facing > 0 && (keys['KeyD'] || keys['ArrowRight'] || joyRight)) ||
+                (f.facing < 0 && (keys['KeyA'] || keys['ArrowLeft'] || joyLeft));
+  let atk = 'kick';
+  if (!f.onGround) {
+    atk = 'flipKick';
+  } else if (f.crouching || f.state === 'crouch' || joyDown) {
+    atk = 'sweepKick';
+  } else if (isFwd) {
+    atk = 'spartanKick';
+  }
+  f.attack(atk);
+
+  if (typeof networkManager !== 'undefined' && networkManager.isConnected) {
+    networkManager.sendAttack(atk);
   }
 }
 
@@ -1948,10 +2046,14 @@ document.addEventListener('keydown', e => {
   if (gameState === 'fight' && !isPaused) {
     const now = Date.now();
 
-    // ── PLAYER 1 CONTROLS (Left Fighter) ──
+    // ── PLAYER 1 / LOCAL FIGHTER CONTROLS ──
+    const fLocal = getLocalFighter();
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
       if (now - lastTap.left < DOUBLE_TAP_WINDOW) {
-        player.dash(-1);
+        if (fLocal) {
+          fLocal.dash(-1);
+          if (typeof networkManager !== 'undefined' && networkManager.isConnected) networkManager.sendAttack('dashLeft');
+        }
         lastTap.left = 0;
       } else {
         lastTap.left = now;
@@ -1959,18 +2061,28 @@ document.addEventListener('keydown', e => {
     }
     if (e.code === 'KeyD' || e.code === 'ArrowRight') {
       if (now - lastTap.right < DOUBLE_TAP_WINDOW) {
-        player.dash(1);
+        if (fLocal) {
+          fLocal.dash(1);
+          if (typeof networkManager !== 'undefined' && networkManager.isConnected) networkManager.sendAttack('dashRight');
+        }
         lastTap.right = 0;
       } else {
         lastTap.right = now;
       }
     }
-    if (e.code === 'KeyW' || e.code === 'ArrowUp') player.jump();
-    if (e.code === 'KeyS' || e.code === 'ArrowDown') player.crouch(true);
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(true);
+    if (e.code === 'KeyW' || e.code === 'ArrowUp') {
+      if (fLocal) fLocal.jump();
+    }
+    if (e.code === 'KeyS' || e.code === 'ArrowDown') {
+      if (fLocal) fLocal.crouch(true);
+    }
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+      if (fLocal) fLocal.block(true);
+    }
     if (e.code === 'KeyQ') {
-      if (player && (player.groundStompReady || player.reversalReady)) {
-        triggerGroundStomp(player, enemy);
+      if (fLocal && (fLocal.groundStompReady || fLocal.reversalReady)) {
+        triggerGroundStomp(fLocal, getRemoteFighter());
+        if (typeof networkManager !== 'undefined' && networkManager.isConnected) networkManager.sendAttack('groundStomp');
       }
     }
     if (e.code === 'KeyV') {
@@ -2063,6 +2175,11 @@ document.addEventListener('keydown', e => {
       return;
     }
     if (e.code === 'Enter' || e.code === 'Space') {
+      if (difficulty === 'pvp' && typeof networkManager !== 'undefined') {
+        onlineWaitingStatus = true;
+        networkManager.connect();
+        return;
+      }
       playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
       return;
     }
@@ -2072,9 +2189,10 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => {
   keys[e.code] = false;
   keys[e.key] = false;
-  if (player) {
-    if (e.code === 'KeyS' || e.code === 'ArrowDown') player.crouch(false);
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.block(false);
+  const fLocal = getLocalFighter();
+  if (fLocal) {
+    if (e.code === 'KeyS' || e.code === 'ArrowDown') fLocal.crouch(false);
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') fLocal.block(false);
   }
   if (enemy && difficulty === 'pvp') {
     if (e.code === 'Numpad5' || e.code === 'Digit5' || e.key === '5') enemy.crouch(false);
@@ -2713,40 +2831,47 @@ function updateJoystick(tx, ty) {
   joy.downRight = joy.down && joy.right;
 
   // Jump trigger: when moving into Up sector
-  if (joy.up && !wasUp && !joy.lastJumpTriggered && player) {
-    player.jump();
+  const localFighter = getLocalFighter();
+  if (joy.up && !wasUp && !joy.lastJumpTriggered && localFighter) {
+    localFighter.jump();
     joy.lastJumpTriggered = true;
   } else if (!joy.up) {
     joy.lastJumpTriggered = false;
   }
 
   // Crouch trigger
-  if (player) {
+  if (localFighter) {
     if (joy.down) {
-      player.crouch(true);
+      localFighter.crouch(true);
     } else if (!keys['KeyS'] && !keys['ArrowDown']) {
-      player.crouch(false);
+      localFighter.crouch(false);
     }
   }
 }
 
 function onTouchBlockStart() {
-  if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
-  player.block(true);
+  const f = getLocalFighter();
+  if (!f || f.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  f.block(true);
 }
 
 function onTouchBlockEnd() {
-  if (!player) return;
+  const f = getLocalFighter();
+  if (!f) return;
   const isTouchBlock = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.buttons && touchControls.buttons.block && touchControls.buttons.block.pressed);
   if (!keys['ShiftLeft'] && !keys['ShiftRight'] && !isTouchBlock) {
-    player.block(false);
+    f.block(false);
   }
 }
 
 function onTouchStomp() {
-  if (!player || player.hp <= 0 || gameState !== 'fight' || isPaused) return;
-  if (player.groundStompReady || player.reversalReady) {
-    triggerGroundStomp(player, enemy);
+  const f = getLocalFighter();
+  if (!f || f.hp <= 0 || gameState !== 'fight' || isPaused) return;
+  if (f.groundStompReady || f.reversalReady) {
+    triggerGroundStomp(f, getRemoteFighter());
+    if (typeof networkManager !== 'undefined' && networkManager.isConnected) {
+      networkManager.sendAttack('groundStomp');
+    }
   }
 }
 
@@ -2798,6 +2923,14 @@ function handlePauseClick(mx, my) {
 }
 
 function handleMenuClick(mx, my) {
+  if (onlineWaitingStatus) {
+    onlineWaitingStatus = false;
+    if (typeof networkManager !== 'undefined' && networkManager.ws) {
+      try { networkManager.ws.close(); } catch (e) {}
+    }
+    return true;
+  }
+
   if (menuView === 'moves') {
     const layout = getMoveListModalLayout('menu');
     const sb = layout.scrollbar;
@@ -2869,6 +3002,11 @@ function handleMenuClick(mx, my) {
   // Check click on Start Button
   const btn = layout.startBtn;
   if (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h) {
+    if (difficulty === 'pvp' && typeof networkManager !== 'undefined') {
+      onlineWaitingStatus = true;
+      networkManager.connect();
+      return true;
+    }
     playerWins = 0; enemyWins = 0; roundNum = 1; initRound();
     return true;
   }
@@ -3037,14 +3175,22 @@ function onTouchStart(e) {
         const now = Date.now();
         if (relX < -14 * sc) {
           if (now - joy.lastTapLeft < DOUBLE_TAP_WINDOW) {
-            if (player) player.dash(-1);
+            const f = getLocalFighter();
+            if (f) {
+              f.dash(-1);
+              if (typeof networkManager !== 'undefined' && networkManager.isConnected) networkManager.sendAttack('dashLeft');
+            }
             joy.lastTapLeft = 0;
           } else {
             joy.lastTapLeft = now;
           }
         } else if (relX > 14 * sc) {
           if (now - joy.lastTapRight < DOUBLE_TAP_WINDOW) {
-            if (player) player.dash(1);
+            const f = getLocalFighter();
+            if (f) {
+              f.dash(1);
+              if (typeof networkManager !== 'undefined' && networkManager.isConnected) networkManager.sendAttack('dashRight');
+            }
             joy.lastTapRight = 0;
           } else {
             joy.lastTapRight = now;
@@ -3091,7 +3237,8 @@ function onTouchMove(e) {
         const dist = Math.hypot(tx - btns.block.x, ty - btns.block.y);
         if (dist <= Math.max(btns.block.r * 2.0, 60 * sc)) {
           btns.block.pressed = true;
-          if (player) player.block(true);
+          const f = getLocalFighter();
+          if (f) f.block(true);
         } else {
           btns.block.pressed = false;
           btns.block.touchId = null;
@@ -3127,8 +3274,9 @@ function onTouchEnd(e) {
       joy.upLeft = false; joy.upRight = false;
       joy.downLeft = false; joy.downRight = false;
       joy.lastJumpTriggered = false;
-      if (player && !keys['KeyS'] && !keys['ArrowDown']) {
-        player.crouch(false);
+      const f = getLocalFighter();
+      if (f && !keys['KeyS'] && !keys['ArrowDown']) {
+        f.crouch(false);
       }
     }
 
@@ -4085,6 +4233,47 @@ function drawMenu() {
   } else {
     ctx.fillText('P1 [ORANGE]: WASD + V/B (Punch/Kick) · Shift (Block) · Q (Stomp)   |   P2 [BLUE]: 8456 + -/+ (Punch/Kick) · 0 (Block) · 7 (Stomp)   |   P: Pause', W / 2, H - 12);
   }
+
+  if (onlineWaitingStatus) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    ctx.fillRect(0, 0, W, H);
+
+    const boxW = Math.min(540 * sc, W * 0.92);
+    const boxH = Math.min(230 * sc, H * 0.82);
+    const boxX = (W - boxW) / 2;
+    const boxY = (H - boxH) / 2;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#2563eb';
+    ctx.font = `900 ${Math.floor(18 * sc)}px monospace`;
+    ctx.fillText('⚡ 1v1 ONLINE MULTIPLAYER', W / 2, boxY + 36 * sc);
+
+    const dots = '.'.repeat((Math.floor(Date.now() / 400) % 4) + 1);
+    ctx.fillStyle = '#000000';
+    ctx.font = `900 ${Math.floor(15 * sc)}px monospace`;
+    ctx.fillText(`WAITING FOR OPPONENT${dots}`, W / 2, boxY + 74 * sc);
+
+    ctx.fillStyle = '#4b5563';
+    ctx.font = `bold ${Math.floor(11.5 * sc)}px monospace`;
+    ctx.fillText('Open this URL on Phone 2 and tap "2P VERSUS" -> "START FIGHT"', W / 2, boxY + 110 * sc);
+    ctx.fillStyle = '#16a34a';
+    ctx.fillText('WebRTC P2P DataChannel will connect automatically!', W / 2, boxY + 132 * sc);
+
+    // Cancel Button Pill
+    const cW = 200 * sc, cH = 34 * sc;
+    const cX = (W - cW) / 2, cY = boxY + boxH - cH - 16 * sc;
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(cX, cY, cW, cH);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${Math.floor(11.5 * sc)}px monospace`;
+    ctx.fillText('✕  TAP TO CANCEL', W / 2, cY + cH * 0.68);
+  }
 }
 
 function drawPauseMenu() {
@@ -4373,21 +4562,66 @@ function loop(ts) {
       return;
     }
 
-    if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp', 'dead'].includes(player.state) && player.hp > 0) {
-      const isTouchDown = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.joystick && touchControls.joystick.down);
-      const downHeld = !!(keys['KeyS'] || keys['ArrowDown'] || isTouchDown);
-      if (downHeld) {
-        if (player.onGround && player.state !== 'crouch') player.state = 'crouch';
-      } else {
-        if (player.state === 'crouch') player.state = 'idle';
-        let mv = false;
-        if (keys['KeyA'] || keys['ArrowLeft'] || (touchControls.joystick && touchControls.joystick.left)) { player.move(-220 * dt); mv = true; }
-        if (keys['KeyD'] || keys['ArrowRight'] || (touchControls.joystick && touchControls.joystick.right)) { player.move(220 * dt); mv = true; }
-        if (!mv && player.state === 'walk') player.state = 'idle';
+    const isP2P = typeof networkManager !== 'undefined' && networkManager.isConnected;
+    const localFighter = getLocalFighter();
+    const remoteFighter = getRemoteFighter();
+
+    // 1. Stream inputs over WebRTC DataChannel if P2P online match
+    if (isP2P) {
+      const joy = typeof touchControls !== 'undefined' ? touchControls.joystick : null;
+      const isTouchDown = !!(typeof showTouchControls !== 'undefined' && showTouchControls && joy && joy.down);
+      const isTouchBlock = !!(typeof showTouchControls !== 'undefined' && showTouchControls && touchControls.buttons && touchControls.buttons.block && touchControls.buttons.block.pressed);
+      const isTouchLeft = !!(typeof showTouchControls !== 'undefined' && showTouchControls && joy && (joy.left || joy.downLeft || joy.upLeft));
+      const isTouchRight = !!(typeof showTouchControls !== 'undefined' && showTouchControls && joy && (joy.right || joy.downRight || joy.upRight));
+      const isTouchUp = !!(typeof showTouchControls !== 'undefined' && showTouchControls && joy && (joy.up || joy.upLeft || joy.upRight));
+
+      const left = !!(keys['KeyA'] || keys['ArrowLeft'] || isTouchLeft);
+      const right = !!(keys['KeyD'] || keys['ArrowRight'] || isTouchRight);
+      const down = !!(keys['KeyS'] || keys['ArrowDown'] || isTouchDown);
+      const up = !!(keys['KeyW'] || keys['ArrowUp'] || isTouchUp);
+      const block = !!(keys['ShiftLeft'] || keys['ShiftRight'] || isTouchBlock);
+
+      networkManager.sendInputs({ left, right, down, up, block });
+
+      // Host periodically broadcasts authoritative sync (~12 fps)
+      if (networkManager.role === 'host') {
+        const now = performance.now();
+        if (now - lastNetworkSync > 80) {
+          lastNetworkSync = now;
+          networkManager.sendStateSync(player.x, player.hp, enemy.x, enemy.hp, player.state);
+        }
       }
     }
 
-    if (difficulty === 'pvp') {
+    // 2. Local fighter movement
+    if (localFighter && !['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp', 'dead'].includes(localFighter.state) && localFighter.hp > 0) {
+      const isTouchDown = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.joystick && touchControls.joystick.down);
+      const downHeld = !!(keys['KeyS'] || keys['ArrowDown'] || isTouchDown);
+      if (downHeld) {
+        if (localFighter.onGround && localFighter.state !== 'crouch') localFighter.state = 'crouch';
+      } else {
+        if (localFighter.state === 'crouch') localFighter.state = 'idle';
+        let mv = false;
+        const joy = typeof touchControls !== 'undefined' ? touchControls.joystick : null;
+        const joyLeft = joy ? (joy.left || joy.downLeft || joy.upLeft) : false;
+        const joyRight = joy ? (joy.right || joy.downRight || joy.upRight) : false;
+        if (keys['KeyA'] || keys['ArrowLeft'] || joyLeft) { localFighter.move(-220 * dt); mv = true; }
+        if (keys['KeyD'] || keys['ArrowRight'] || joyRight) { localFighter.move(220 * dt); mv = true; }
+        if (!mv && localFighter.state === 'walk') localFighter.state = 'idle';
+      }
+    }
+
+    // 3. Remote or Second Fighter movement
+    if (isP2P && remoteFighter) {
+      if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp', 'dead'].includes(remoteFighter.state) && remoteFighter.hp > 0) {
+        if (remoteFighter.state !== 'crouch') {
+          let mvRemote = false;
+          if (remoteFighter._remoteLeft) { remoteFighter.move(-220 * dt); mvRemote = true; }
+          if (remoteFighter._remoteRight) { remoteFighter.move(220 * dt); mvRemote = true; }
+          if (!mvRemote && remoteFighter.state === 'walk') remoteFighter.state = 'idle';
+        }
+      }
+    } else if (difficulty === 'pvp') {
       // Player 2 keyboard movement in 2-Player Versus Mode
       if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp', 'dead'].includes(enemy.state) && enemy.hp > 0) {
         if (enemy.state === 'crouch' && (keys['Numpad5'] || keys['Digit5'] || keys['5'])) {
