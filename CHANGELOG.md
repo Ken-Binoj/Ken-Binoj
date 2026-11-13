@@ -82,7 +82,17 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.8.6 — Mobile Continuous Crouch, Boxer Guard Fix, Scaled Jump Physics & Single-Hit Punch Integrity (Current)
+### Version 1.8.7 — Defeat Knockdown Lock & KO Ragdoll Settle (Current)
+- **Defeat Knockdown Position Lock (`hp <= 0`)**:
+  - **Identified Cause of Standing While Defeated**: In `loop()` and `Fighter.update()`, `'dead'` was missing from the state exclusion lists. When a player's HP dropped to 0, if the player was still holding the virtual joystick or touching the screen, the game loop evaluated the defeated character as able to move/crouch, resetting `this.state` from `'dead'` back to `'walk'`, `'crouch'`, or `'idle'`.
+  - **Permanent Defeat Guard**: Added a top-level guard at the start of `Fighter.update()` that immediately locks any fighter with `hp <= 0` or `state === 'dead'` into the grounded knockdown state, preventing all movement, joystick, keyboard, or state transitions until the round transitions.
+  - **Added `'dead'` to All Exclusion Arrays**: Updated `loop()` lines 4371 and 4387 with `'dead'` and `hp > 0` guards.
+  - **Natural Mid-Air Defeat Tumble & Ground Settle**:
+    - Updated `case 'dead'` in `Fighter.draw()` to render a dynamic mid-air tumble while falling, landing flat on the mat in the relaxed horizontal knockdown sleeping pose with closed eyes.
+
+---
+
+### Version 1.8.6 — Mobile Continuous Crouch, Boxer Guard Fix, Scaled Jump Physics & Single-Hit Punch Integrity
 - **Continuous Mobile Joystick Crouch Fix**:
   - Resolved bug where holding the virtual joystick down did not keep the fighter in continuous crouch.
   - In `Fighter.update()`, the desktop keyboard sync was evaluating `keys['KeyS']` as false every frame, immediately overriding the mobile joystick and resetting the fighter to idle.

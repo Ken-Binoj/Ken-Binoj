@@ -478,7 +478,7 @@ class Fighter {
       this.hp = Math.max(0, this.hp - dmg);
       shake(5, 0.12);
       spawnParticles(this.x, this.y - 80 * this.sc, 8);
-      if (this.hp <= 0) { this.state = 'dead'; this.vy = -canvas.height * 0.5; }
+      if (this.hp <= 0) { this.state = 'dead'; this.vy = -canvas.height * 0.35; this.onGround = false; }
       return true;
     }
 
@@ -518,7 +518,7 @@ class Fighter {
       spawnParticles(this.x, this.y - 90 * this.sc, 6);
     }
     shake(5, 0.15);
-    if (this.hp <= 0) { this.state = 'dead'; this.vy = -canvas.height * 0.5; }
+    if (this.hp <= 0) { this.state = 'dead'; this.vy = -canvas.height * 0.35; this.onGround = false; }
     return true;
   }
 
@@ -550,10 +550,37 @@ class Fighter {
     this.stunTimer = 1.65;
     this.landedShake = false;
     spawnParticles(this.x, this.floor - 40, 10);
-    if (this.hp <= 0) { this.state = 'dead'; this.vy = -canvas.height * 0.5; }
+    if (this.hp <= 0) {
+      this.state = 'dead';
+      this.y = this.floor;
+      this.vy = 0;
+      this.onGround = true;
+    }
   }
 
   update(dt, opp) {
+    // If fighter has been defeated (HP <= 0), permanently lock into grounded knockdown/dead state
+    if (this.hp <= 0 || this.state === 'dead') {
+      this.state = 'dead';
+      this.blocking = false;
+      this.crouching = false;
+      if (!this.onGround) {
+        this.vy += getGravity() * dt;
+        this.y += this.vy * dt;
+        if (this.y >= this.floor) {
+          this.y = this.floor;
+          this.vy = 0;
+          this.onGround = true;
+          shake(8, 0.20);
+          spawnParticles(this.x, this.floor - 15, 14);
+        }
+      } else {
+        this.y = this.floor;
+        this.vy = 0;
+      }
+      return;
+    }
+
     // Maintain 5-second rolling window for Spartan kicks received and knockdowns
     const now = performance.now();
     this.spartanHitTimestamps = this.spartanHitTimestamps.filter(t => now - t <= 5000);
@@ -1404,12 +1431,23 @@ class Fighter {
       }
 
       case 'dead':
-        bodyLean = -90;
-        bodyDip = 58;
-        fThigh = -76; fCalf = -10;
-        bThigh = -70; bCalf = -8;
-        fUpper = 28; fFore = 80;
-        bUpper = 8; bFore = 10;
+        if (!this.onGround) {
+          // Mid-air defeat tumble before landing flat on floor
+          bodyLean = -50;
+          bodyDip = 24;
+          fThigh = -70; fCalf = 25;
+          bThigh = -50; bCalf = 15;
+          fUpper = -40; fFore = 45;
+          bUpper = -20; bFore = 30;
+        } else {
+          // Grounded knockdown sleeping pose: resting flat on back along the mat
+          bodyLean = -90;
+          bodyDip = 58;
+          fThigh = -76; fCalf = -10;
+          bThigh = -70; bCalf = -8;
+          fUpper = 28; fFore = 80;
+          bUpper = 8; bFore = 10;
+        }
         break;
 
       case 'victory':
@@ -3701,7 +3739,7 @@ function checkHit(att, def) {
       spawnParticles(def.x, def.y - 75 * sc, 12);
       att.hitCooldown = 0.6;
       if (att.isPlayer) { att.comboCount++; att.comboTimer = 2.2; }
-      if (def.hp <= 0) { def.state = 'dead'; def.vy = -canvas.height * 0.5; }
+      if (def.hp <= 0) { def.state = 'dead'; def.vy = -canvas.height * 0.35; def.onGround = false; }
     }
     return;
   }
@@ -4335,7 +4373,7 @@ function loop(ts) {
       return;
     }
 
-    if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp'].includes(player.state)) {
+    if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp', 'dead'].includes(player.state) && player.hp > 0) {
       const isTouchDown = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.joystick && touchControls.joystick.down);
       const downHeld = !!(keys['KeyS'] || keys['ArrowDown'] || isTouchDown);
       if (downHeld) {
@@ -4351,7 +4389,7 @@ function loop(ts) {
 
     if (difficulty === 'pvp') {
       // Player 2 keyboard movement in 2-Player Versus Mode
-      if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp'].includes(enemy.state)) {
+      if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp', 'dead'].includes(enemy.state) && enemy.hp > 0) {
         if (enemy.state === 'crouch' && (keys['Numpad5'] || keys['Digit5'] || keys['5'])) {
           // P2 is intentionally holding crouch
         } else {
