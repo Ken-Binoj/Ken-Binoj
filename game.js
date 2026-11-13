@@ -8,7 +8,8 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 const DW = 900;
-const GRAVITY = 1600;
+const getGravity = () => canvas.height * 3.46; // Dynamically scaled gravity: ~1945 on PC, ~1300 on mobile
+const getJumpVelocity = () => -canvas.height * 1.32; // Consistent jump height (~25% of screen) & 0.76s airtime
 const FLOOR_FRAC = 0.82;
 const PUSH_DIST = 55;
 
@@ -322,6 +323,7 @@ class Fighter {
     this.spartanHitTimestamps = [];
     this.groundStompReady = false;
     this.hasStomped = false;
+    this.hasHit = false;
     this.punchComboCount = 0;
     this.punchComboTimer = 0;
     this.punchLockoutTimer = 0;
@@ -369,13 +371,14 @@ class Fighter {
     if (!this.onGround || this.stunTimer > 0 || this.state === 'dead' || this.state === 'knockdown') return;
     if (['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'dash'].includes(this.state)) return;
     if (this.state === 'crouch') {
-      if (this.isPlayer && !(keys['KeyS'] || keys['ArrowDown'])) {
+      const isTouchDown = (typeof showTouchControls !== 'undefined' && showTouchControls && touchControls && touchControls.joystick && touchControls.joystick.down);
+      if (this.isPlayer && !(keys['KeyS'] || keys['ArrowDown'] || isTouchDown)) {
         this.state = 'idle';
       } else {
         return;
       }
     }
-    this.vy = -canvas.height * 0.9;
+    this.vy = getJumpVelocity();
     this.onGround = false;
     this.state = 'jump';
   }
@@ -449,6 +452,7 @@ class Fighter {
     this.state = type;
     this.stateDur = dur;
     this.stateElapsed = 0;
+    this.hasHit = false; // Reset hit flag: this attack animation can only connect once!
     this.atkCooldown = (type === 'punch') ? (dur * 0.40) : (dur * 0.70);
   }
 
@@ -558,16 +562,23 @@ class Fighter {
       this.reversalReady = true;
     }
 
-    // Player direct key synchronization (guarantees player NEVER gets stuck in crouch or block)
+    // Player direct key/touch synchronization (guarantees player NEVER gets stuck in crouch or block)
     if (this.isPlayer) {
-      const downHeld = !!(keys['KeyS'] || keys['ArrowDown']);
+      const isTouchDown = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.joystick && touchControls.joystick.down);
+      const isTouchBlock = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.buttons && touchControls.buttons.block && touchControls.buttons.block.pressed);
+      const downHeld = !!(keys['KeyS'] || keys['ArrowDown'] || isTouchDown);
       this.crouching = downHeld;
-      if (this.state === 'crouch' && !downHeld) {
+      if (downHeld && this.onGround && !['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'dash', 'groundStomp'].includes(this.state)) {
+        this.state = 'crouch';
+      } else if (this.state === 'crouch' && !downHeld) {
         this.state = 'idle';
       }
-      const blockHeld = !!(keys['ShiftLeft'] || keys['ShiftRight']);
+
+      const blockHeld = !!(keys['ShiftLeft'] || keys['ShiftRight'] || isTouchBlock);
       this.blocking = blockHeld;
-      if (this.state === 'block' && !blockHeld) {
+      if (blockHeld && this.onGround && !['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'dash', 'groundStomp'].includes(this.state)) {
+        this.state = 'block';
+      } else if (this.state === 'block' && !blockHeld) {
         this.state = 'idle';
       }
     }
@@ -676,11 +687,16 @@ class Fighter {
     if (['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'dash', 'groundStomp'].includes(this.state)) {
       this.stateElapsed += dt;
       if (this.stateElapsed >= this.stateDur) {
+        const isTouchDown = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.joystick && touchControls.joystick.down);
+        const isTouchBlock = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.buttons && touchControls.buttons.block && touchControls.buttons.block.pressed);
+        const downHeld = this.isPlayer ? !!(keys['KeyS'] || keys['ArrowDown'] || isTouchDown) : this.crouching;
+        const blockHeld = this.isPlayer ? !!(keys['ShiftLeft'] || keys['ShiftRight'] || isTouchBlock) : this.blocking;
+
         if (!this.onGround) {
           this.state = 'jump';
-        } else if (this.crouching && (this.isPlayer ? (keys['KeyS'] || keys['ArrowDown']) : true)) {
+        } else if (downHeld) {
           this.state = 'crouch';
-        } else if (this.blocking && (this.isPlayer ? (keys['ShiftLeft'] || keys['ShiftRight']) : true)) {
+        } else if (blockHeld) {
           this.state = 'block';
         } else {
           this.state = 'idle';
@@ -688,7 +704,7 @@ class Fighter {
       }
     }
 
-    if (!this.onGround) { this.vy += GRAVITY * dt; this.y += this.vy * dt; }
+    if (!this.onGround) { this.vy += getGravity() * dt; this.y += this.vy * dt; }
     if (this.y >= this.floor) {
       this.y = this.floor; this.vy = 0;
       if (!this.onGround) { this.onGround = true; if (this.state === 'jump') this.state = 'idle'; }
@@ -3507,6 +3523,7 @@ function updateAI(dt) {
 // Combo increments ONLY on confirmed hit
 function checkHit(att, def) {
   if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick'].includes(att.state)) return;
+  if (att.hasHit) return; // Strict single-hit lock: guarantees attack only connects once per animation!
   if (att.hitCooldown > 0) return;
   if (def.state === 'knockdown' || def.state === 'dead') return; // Cannot hit grounded target
   const sp = att.stateProgress;
@@ -3595,6 +3612,7 @@ function checkHit(att, def) {
 
   // Both "Q" Ground Stomp attacks are completely uninterruptible (hyper-armor)!
   if (def.state === 'groundStomp') {
+    att.hasHit = true;
     def.takeHit(dmg, 0, att);
     att.hitCooldown = 0.5;
     return;
@@ -3602,6 +3620,7 @@ function checkHit(att, def) {
 
   // Sweep kick special logic: trips unblocked opponents! (No blood effect)
   if (att.state === 'sweepKick') {
+    att.hasHit = true;
     // A standing high guard CANNOT block a low ground sweep! Only a crouching block can stop it.
     const isLowBlocked = def.blocking && def.crouching;
     if (isLowBlocked) {
@@ -3619,6 +3638,7 @@ function checkHit(att, def) {
 
   // Front Flip Axe Kick special logic: KNOCKS DOWN OPPONENT!
   if (att.state === 'flipKick') {
+    att.hasHit = true;
     // Standing boxer block can mitigate overhead hit; crouching cannot block overhead axe kick!
     const isHighBlocked = def.blocking && !def.crouching;
     if (isHighBlocked) {
@@ -3638,6 +3658,7 @@ function checkHit(att, def) {
 
   // Duck Headbutt special logic: STUNS ENEMY FOR 1.5 SECONDS!
   if (att.state === 'duckHeadbutt') {
+    att.hasHit = true;
     const isBlocked = def.blocking;
     if (isBlocked) {
       def.takeHit(Math.floor(dmg * 0.20), 25 * sc, att);
@@ -3667,7 +3688,8 @@ function checkHit(att, def) {
   }
 
   if (def.takeHit(dmg, kbk, att)) {
-    att.hitCooldown = (att.state === 'punch') ? 0.10 : 0.5;
+    att.hasHit = true;
+    att.hitCooldown = (att.state === 'punch') ? 0.20 : 0.5;
     // Combo: only increment on confirmed hit to enemy
     if (att.isPlayer) { att.comboCount++; att.comboTimer = 1.5; }
   }
@@ -4289,13 +4311,15 @@ function loop(ts) {
     }
 
     if (!['punch', 'crouchPunch', 'duckHeadbutt', 'kick', 'spartanKick', 'sweepKick', 'flipKick', 'hurt', 'knockdown', 'block', 'groundStomp'].includes(player.state)) {
-      if (player.state === 'crouch' && (keys['KeyS'] || keys['ArrowDown'] || touchControls.joystick.down)) {
-        // Player is intentionally holding crouch
+      const isTouchDown = (typeof showTouchControls !== 'undefined' && showTouchControls && typeof touchControls !== 'undefined' && touchControls.joystick && touchControls.joystick.down);
+      const downHeld = !!(keys['KeyS'] || keys['ArrowDown'] || isTouchDown);
+      if (downHeld) {
+        if (player.onGround && player.state !== 'crouch') player.state = 'crouch';
       } else {
         if (player.state === 'crouch') player.state = 'idle';
         let mv = false;
-        if (keys['KeyA'] || keys['ArrowLeft'] || touchControls.joystick.left) { player.move(-220 * dt); mv = true; }
-        if (keys['KeyD'] || keys['ArrowRight'] || touchControls.joystick.right) { player.move(220 * dt); mv = true; }
+        if (keys['KeyA'] || keys['ArrowLeft'] || (touchControls.joystick && touchControls.joystick.left)) { player.move(-220 * dt); mv = true; }
+        if (keys['KeyD'] || keys['ArrowRight'] || (touchControls.joystick && touchControls.joystick.right)) { player.move(220 * dt); mv = true; }
         if (!mv && player.state === 'walk') player.state = 'idle';
       }
     }

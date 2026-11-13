@@ -82,7 +82,24 @@ This document tracks all features, mechanics, visual systems, and updates implem
 
 ## 📝 Detailed Chronological Changelog
 
-### Version 1.8.5 — Streamlined Move List (Removed P2 Clutter) & High-Legibility Typography (Current)
+### Version 1.8.6 — Mobile Continuous Crouch, Scaled Jump Physics & Single-Hit Punch Integrity (Current)
+- **Continuous Mobile Joystick Crouch Fix**:
+  - Resolved bug where holding the virtual joystick down did not keep the fighter in continuous crouch.
+  - In `Fighter.update()`, the desktop keyboard sync was evaluating `keys['KeyS']` as false every frame, immediately overriding the mobile joystick and resetting the fighter to idle.
+  - Linked `touchControls.joystick.down` directly into `downHeld` across `update()` and `loop()`, ensuring continuous ducking whenever the joystick is pulled down.
+- **Dynamically Scaled Jump Height & Airborne Airtime**:
+  - On mobile smartphones in landscape mode, `canvas.height` is typically 360px–390px (compared to 562px on desktop).
+  - With fixed gravity (`1600`) and unscaled jump velocity, fighters on phones had less than half the peak jump clearance and only 0.40s airtime, causing aerial jump kicks (`flipKick`, duration 0.68s) to hit the ground before the attack finished.
+  - Implemented dynamic gravity scaling `getGravity() = canvas.height * 3.46` and jump impulse `getJumpVelocity() = -canvas.height * 1.32`.
+  - Jump height is now consistent at ~25% of screen height with a generous 0.76s airtime across all devices, giving ample air clearance for Front Flip Axe Kicks!
+- **Strict Single-Hit Punch Integrity & Multi-Hit Prevention**:
+  - Implemented `att.hasHit` flag to ensure that each punch or strike animation connects at most once per execution, preventing 120Hz mobile displays or rapid frame ticks from double-dealing damage within a single punch.
+- **PowerShell Script Execution Policy Updated**:
+  - Configured `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` so `npx localtunnel --port 8080` runs without PowerShell `.ps1` permission errors.
+
+---
+
+### Version 1.8.5 — Streamlined Move List (Removed P2 Clutter) & High-Legibility Typography
 - **Streamlined Move List Inputs (Removed Player 2 Clutter)**:
   - Cleaned all 11 moves in `ALL_MOVES`: stripped out all cluttered `P2: -`, `P2: +`, `P2: 5`, `P2: 7`, `P2: 4/6` control tags from both the title badges and the description bullet points.
   - Controls are now presented cleanly with primary inputs: Keyboard (`V`, `B`, `Shift`, `Q`, `WASD`), Mouse (Left-Click / Right-Click), and Mobile Touch buttons (`[PUNCH]`, `[KICK]`, `[BLOCK]`, `[STOMP]`, Joystick).
